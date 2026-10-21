@@ -1,0 +1,2 @@
+# Sample logs are evidence fixtures: keep their bytes (and SHA-256) identical on every OS.
+src/tests/data/** -text
