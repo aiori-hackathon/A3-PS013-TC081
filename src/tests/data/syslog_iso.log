@@ -1,0 +1,5 @@
+2027-01-01T00:00:13.204511+05:30 web01 sshd[1205]: Accepted password for alice from 203.0.113.7 port 51040 ssh2
+2026-12-31T18:31:00Z db01 kernel: [12345.678901] audit: type=1400 apparmor="DENIED"
+<38>1 2026-12-31T18:32:00.5Z db01 sshd 2201 - [origin ip="10.0.0.9"] Accepted publickey for backup from 10.0.0.9 port 40022 ssh2
+<38>1 - db01 sshd 2202 - - Connection closed by 10.0.0.9 port 40022
+2026-12-31 23:59:59 web01 systemd[1]: Started Daily apt upgrade.
