@@ -1,0 +1,7 @@
+203.0.113.7 - - [31/Dec/2026:23:50:01 +0530] "GET / HTTP/1.1" 200 3120 "-" "Mozilla/5.0 (X11; Linux x86_64)"
+203.0.113.7 - - [31/Dec/2026:23:50:09 +0530] "GET /wp-login.php HTTP/1.1" 404 196 "-" "sqlmap/1.8"
+203.0.113.7 - - [31/Dec/2026:23:51:15 +0530] "POST /upload.php HTTP/1.1" 200 54 "http://web01/upload" "curl/8.5.0"
+203.0.113.7 - - [31/Dec/2026:23:51:20 +0530] "GET /uploads/shell.php?cmd=id HTTP/1.1" 200 61 "-" "curl/8.5.0"
+2001:db8::5 - bob [31/Dec/2026:23:52:00 +0530] "GET /admin/ HTTP/1.1" 401 381
+198.51.100.23 - - [31/Dec/2026:23:53:30 +0530] "\x16\x03\x01\x00\xa5\x01\x00\x00" 400 157 "-" "-"
+web01 GET /favicon.ico malformed line without brackets
