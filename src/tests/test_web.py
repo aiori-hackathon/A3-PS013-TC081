@@ -106,3 +106,38 @@ def test_evidence_endpoint_refuses_tampered_source(tmp_path: Path) -> None:
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_evidence_endpoint_returns_the_line_the_event_cites(tmp_path: Path) -> None:
+    """Gzipped logs and lines containing a lone carriage return must not shift line numbers."""
+    import gzip
+
+    from incident_timeline.evidence import Case, collect
+    from incident_timeline.pipeline import build_timeline
+
+    gz_log = tmp_path / "auth.log.gz"
+    gz_log.write_bytes(gzip.compress(
+        b"Oct 21 09:00:01 web01 sshd[1]: Accepted password for alice from 10.0.0.1 port 22 ssh2\n"))
+    cr_log = tmp_path / "app.log"
+    cr_log.write_bytes(b"Oct 21 09:00:01 web01 app[1]: weird\rpayload\n"
+                       b"Oct 21 09:00:02 web01 sshd[1]: Accepted password for bob from 10.0.0.2 port 22 ssh2\n")
+    case = Case.open(tmp_path / "case", create=True)
+    collect(case, gz_log, "auth", year=2026)
+    collect(case, cr_log, "auth", year=2026)
+    events = build_timeline(case).events
+
+    handler = type("TestTracefuseHandler", (TracefuseHandler,), {"case_root": case.root.resolve()})
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        for event in events:
+            query = urlencode({"source_id": event.source_id, "line_no": event.line_no})
+            with urlopen(base + "/api/evidence?" + query) as response:
+                evidence = json.loads(response.read())
+            assert evidence["raw_line"] == event.raw_line
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)

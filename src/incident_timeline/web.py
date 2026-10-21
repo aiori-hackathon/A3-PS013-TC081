@@ -13,6 +13,7 @@ from typing import Any
 from .evidence import Case, EvidenceError, check_source, verify, verify_chain
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
+from .parsers import read_lines
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -113,15 +114,16 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             evidence_path.relative_to(self.case.root.resolve())
         except ValueError as exc:
             raise EvidenceError("Evidence path escaped the case directory; refusing to read it") from exc
-        with evidence_path.open("r", encoding="utf-8", errors="replace") as fh:
-            for current, line in enumerate(fh, start=1):
-                if current == line_no:
-                    return {
-                        "source_id": sid, "source_file": source.get("original_name"),
-                        "line_no": line_no, "raw_line": line.rstrip("\r\n"),
-                        "file_sha256": collect_record.get("sha256"),
-                        "integrity_verified": True,
-                    }
+        # Read lines exactly as the parser did (same .gz handling, line splitting
+        # and decoding) so line N here is the line N the event cites.
+        for current, line in read_lines(evidence_path):
+            if current == line_no:
+                return {
+                    "source_id": sid, "source_file": source.get("original_name"),
+                    "line_no": line_no, "raw_line": line,
+                    "file_sha256": collect_record.get("sha256"),
+                    "integrity_verified": True,
+                }
         raise ValueError(f"line {line_no} does not exist in evidence source {sid}")
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler contract
