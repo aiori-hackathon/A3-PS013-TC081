@@ -2,3 +2,6 @@
 tzdata>=2024.1; sys_platform == "win32"
 # Tests
 pytest>=7
+
+# PDF investigation report export
+reportlab>=4.0

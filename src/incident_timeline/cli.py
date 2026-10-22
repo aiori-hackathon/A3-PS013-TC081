@@ -18,6 +18,8 @@ from . import __version__
 from .evidence import SOURCE_TYPES, Case, EvidenceError, collect, verify
 from .pipeline import anchor_skew, apply_skew, build_timeline, estimate_case_skew
 from .skew import SkewEstimate
+from .scenarios import create_demo_cases
+from .web import serve_case
 
 
 def _cmd_collect(args: argparse.Namespace) -> int:
@@ -118,6 +120,22 @@ def _cmd_parse(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    serve_case(args.case, host=args.host, port=args.port)
+    return 0
+
+
+def _cmd_demo(args: argparse.Namespace) -> int:
+    results = create_demo_cases(args.output)
+    for result in results:
+        state = "PASS" if result["passed"] else "FAIL"
+        print(f"{state:<4} {result['scenario_id']}: {result['event_count']} events, {result['gap_count']} gaps")
+        print(f"     case: {result['case_path']}")
+    passed = sum(bool(result["passed"]) for result in results)
+    print(f"{passed}/{len(results)} synthetic scenarios passed; manifest: {args.output}/manifest.json")
+    return 0 if passed == len(results) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="incident-timeline", description=__doc__.splitlines()[0])
     p.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -160,6 +178,16 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("case")
     r.add_argument("--force", action="store_true", help="parse even if evidence fails verification")
     r.set_defaults(func=_cmd_parse)
+
+    w = sub.add_parser("serve", parents=[common], help="open a local web dashboard for a parsed case")
+    w.add_argument("case", help="case directory with normalised/events.jsonl")
+    w.add_argument("--host", default="127.0.0.1", help="interface to bind (default: localhost only)")
+    w.add_argument("--port", type=int, default=8765, help="local dashboard port (default: 8765)")
+    w.set_defaults(func=_cmd_serve)
+
+    d = sub.add_parser("demo", help="generate and validate three synthetic incident scenarios")
+    d.add_argument("--output", default="cases/demo-scenarios", help="output directory (default: cases/demo-scenarios)")
+    d.set_defaults(func=_cmd_demo)
     return p
 
 
