@@ -9,13 +9,16 @@ description = "Incident timeline and evidence collection for small teams"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Ishaan Seal" }, { name = "Aishik Ghosh" }]
-dependencies = ["tzdata; sys_platform == 'win32'"]
+dependencies = ["tzdata; sys_platform == 'win32'", "reportlab>=4.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
 [project.scripts]
 incident-timeline = "incident_timeline.cli:main"
+
+[tool.setuptools.package-data]
+incident_timeline = ["dashboard.html"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
