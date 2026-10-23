@@ -13,6 +13,7 @@ from typing import Any
 from .evidence import Case, EvidenceError, check_source, verify, verify_chain
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
+from .time_analysis import build_time_analysis
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -134,6 +135,37 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 return
             if url.path == "/api/summary":
                 self._send(200, _json_bytes(self._summary()))
+                return
+            if url.path == "/api/time-analysis":
+                # Read-only diagnostics. Clock-offset previews are computed in memory;
+                # this endpoint never updates case metadata, normalized events, or custody.
+                try:
+                    limit = min(max(int((params.get("limit") or ["100"])[0]), 1), 200)
+                    offset = max(int((params.get("offset") or ["0"])[0]), 0)
+                except ValueError as exc:
+                    raise ValueError("limit and offset must be integers") from exc
+                source_filter = (params.get("source_id") or [""])[0] or None
+                issues_only_text = (params.get("issues_only") or ["0"])[0].strip().lower()
+                if issues_only_text not in ("0", "1", "true", "false", "yes", "no"):
+                    raise ValueError("issues_only must be a boolean value")
+                issues_only = issues_only_text in ("1", "true", "yes")
+                preview_source_id = (params.get("preview_source_id") or [""])[0] or None
+                preview_offset_text = (params.get("preview_offset_s") or [""])[0]
+                preview_offset_s = None
+                if preview_offset_text != "":
+                    try:
+                        preview_offset_s = float(preview_offset_text)
+                    except ValueError as exc:
+                        raise ValueError("preview_offset_s must be a finite number") from exc
+                event_path = self.case.output_dir / "events.jsonl"
+                if not event_path.is_file():
+                    self._events()  # raise the standard, actionable missing-timeline error
+                report = build_time_analysis(
+                    self.case, list(load_events(event_path)), limit=limit, offset=offset,
+                    source_filter=source_filter, issues_only=issues_only,
+                    preview_source_id=preview_source_id, preview_offset_s=preview_offset_s,
+                )
+                self._send(200, _json_bytes(report))
                 return
             if url.path == "/api/benchmark":
                 # Run on disposable synthetic cases. Never touch the active case or its evidence.
