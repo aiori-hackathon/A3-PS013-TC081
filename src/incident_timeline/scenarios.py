@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import stat
+import time
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +131,8 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
 
     for scenario_id, spec in SCENARIOS.items():
+        # Measures the synthetic evidence-to-timeline workflow, not analyst triage time.
+        scenario_started = time.perf_counter()
         scenario_dir = root / scenario_id
         inputs_dir = scenario_dir / "inputs"
         case_dir = scenario_dir / "case"
@@ -161,6 +164,7 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
                     allow_duplicate=True)
 
         build = build_timeline(case, actor="tracefuse-synthetic-demo")
+        tracefuse_elapsed_ms = (time.perf_counter() - scenario_started) * 1000.0
         event_dicts = [event.to_dict() for event in build.events]
         actions = [event.action for event in build.events]
         actual_timeline = [{"ts_utc": event.to_dict()["ts_utc"], "action": event.action} for event in build.events]
@@ -183,6 +187,7 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
             "inputs_path": str(inputs_dir),
             "event_count": len(event_dicts),
             "gap_count": build.summary["gaps"],
+            "tracefuse_elapsed_ms": round(tracefuse_elapsed_ms, 3),
             "actual_action_counts": counts,
             "expected_action_counts": expected["action_counts"],
             "actual_timeline": actual_timeline,
