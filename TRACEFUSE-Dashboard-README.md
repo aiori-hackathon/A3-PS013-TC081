@@ -4,13 +4,17 @@ TRACEFUSE is our PS-013 hackathon project for reconstructing an incident from sy
 
 ## What does it show?
 
-- **Timeline:** events sorted by normalized UTC time, with the action, outcome, source, and other fields found in the log.
-- **Case summary:** number of events and evidence files, unparsed lines, and the time range covered by the events.
-- **Evidence sources:** source filenames and their SHA-256 hashes.
+- **Findings:** leads raised by fixed, readable rules: repeated failed logins, a login after failures, an address that moves from web requests to SSH across two logs, web-shell requests, admin-path probing, credential files read through sudo, new accounts given admin rights, and cron jobs running from hidden or temporary paths. Each finding states the rule that fired, the MITRE ATT&CK technique it resembles, and the exact `source:line` of every event behind it. **Show lines** narrows the timeline to that evidence.
+- **Activity by source:** one lane per evidence source over UTC time, coloured by outcome. Events that belong to a high finding are ringed. Drag across the chart to filter a time range, or click a point to open that event.
+- **Timeline:** events sorted by normalized UTC time, with the action, outcome, source, and other fields found in the log. A dot next to the action means the event is part of a finding.
+- **Who and where:** the most active addresses and accounts, with event and failure counts. Anything seen in more than one source is marked, because that is where separate logs connect. Click one to search for it.
+- **Chain of custody:** every custody record (collect, verify, parse, skew changes) with its own hash and its link to the record before it, each checked live.
+- **Case summary:** number of events and evidence files, unparsed lines, and the time range covered by the events. If some lines could not be parsed, click the count to see them with the reason. They are kept, never silently dropped.
+- **Evidence sources:** source filenames and their SHA-256 hashes, with a copy button.
 - **Original log lines:** open an event's source line to see what was actually recorded. TRACEFUSE checks the source hash and custody chain before showing it.
-- **Exports:** download the current results as JSON or a PDF report.
+- **Exports:** download the current results as JSON or a PDF report. Both include the findings.
 
-The dashboard helps you review a sequence of events; it does not automatically prove that an attack happened or that one event caused another. A successful hash check means the collected evidence matches its recorded hash, not that the original log was complete or genuine.
+The dashboard helps you review a sequence of events; it does not automatically prove that an attack happened or that one event caused another. Findings are leads to check, not conclusions. A successful hash check means the collected evidence matches its recorded hash, not that the original log was complete or genuine.
 
 ## Run it locally
 
@@ -45,23 +49,25 @@ Generate the demo cases:
 incident-timeline demo --output cases/demo-scenarios
 ```
 
-The command creates and checks three synthetic cases. To open the first one, run:
+The command creates and checks three synthetic cases. To open all three, with a case picker in the top bar, run:
 
 ```bash
-incident-timeline serve cases/demo-scenarios/01-brute-force-to-sudo/case
+incident-timeline serve cases/demo-scenarios
 ```
+
+To open a single case, pass its folder instead, for example `cases/demo-scenarios/01-brute-force-to-sudo/case`.
 
 Open the local URL printed in the terminal (usually `http://127.0.0.1:8765`). Keep the terminal open while using the dashboard; press **Ctrl+C** to stop it.
 
-To view another case, stop the server and run `incident-timeline serve` with that case's path.
-
 ## Using the dashboard
 
-Use the search box to look for a user, IP address, action, message, path, or hash. You can also filter by source, action, outcome, or time range. Filters can be combined; **Reset** clears them, and **Refresh** reloads the case. Use the Previous/Next buttons to move through the results.
+Start with **Findings**. Choose **Show lines** on a finding to narrow the timeline to its evidence; **Show all events** returns to the full timeline.
+
+Use the search box to look for a user, IP address, action, message, path, or hash (press `/` to jump to it, `Esc` to clear it). You can also filter by source, action, outcome, or time range, or drag across the activity chart to set the time range. Filters can be combined; **Reset** clears them, and **Refresh** reloads the case. Use the Previous/Next buttons to move through the results.
 
 Choose **View original line** on an event to inspect its matching line in the collected evidence. If the integrity check fails, TRACEFUSE will not show that line. Keep the full case folder if you need to investigate a warning.
 
-**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover or demo. Both exports use the active filters, so clear them first if you need the full timeline.
+**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover or demo. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
 
 ## Demo scenarios
 

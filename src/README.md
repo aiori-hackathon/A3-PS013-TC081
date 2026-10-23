@@ -11,8 +11,9 @@ Python 3.11+. The log-ingestion engine and local web server use the standard lib
 | `timeutil.py` | Zone handling (IANA names or fixed offsets), daylight-saving ambiguity, RFC 3339 output. |
 | `skew.py` | Clock-skew estimation between two sources, automatic or from an analyst-chosen pair of lines. |
 | `pipeline.py` | Checks hashes, parses the evidence copies, applies skew, merges and writes the outputs. |
-| `web.py` / `dashboard.html` | Read-only local dashboard with searching, filters, pagination, integrity status and original-line lookup. |
-| `exports.py` | Filter-aware JSON export and paginated PDF investigation report with full evidence references. |
+| `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs and an ATT&CK technique. |
+| `web.py` / `dashboard.html` | Read-only local dashboard: findings, activity chart, entity pivots, custody-chain viewer, search and filters, original-line lookup. Serves one case or a folder of cases. |
+| `exports.py` | Filter-aware JSON export and paginated PDF investigation report with findings and full evidence references. |
 | `scenarios.py` | Generates and validates three deterministic synthetic incident cases. |
 | `cli.py` | Command-line interface, including `serve` and `demo`. |
 
@@ -119,15 +120,20 @@ incident-timeline serve cases/c1 --port 8766
 
 Open the URL printed in the terminal (by default `http://127.0.0.1:8765`). The dashboard supports free-text search, source/action/outcome filters, a time range, pagination, event details, and an original-evidence view. Opening an evidence line performs a fresh source SHA-256 check first. The dashboard is read-only and does not append records to the custody log. It binds to localhost by default; do not expose it to an untrusted network.
 
-The **Export JSON** and **Export PDF report** buttons export the current filtered timeline. Exports include the UTC event time, event fields, original raw line, source ID, source line number, full source-file SHA-256, source inventory, and integrity-verification result. The PDF is formatted for landscape pages and repeats the timeline table header on new pages.
+`serve` also accepts a folder: it finds every parsed case up to three levels below it, and the dashboard shows a case picker (`?case=<case_id>` in the URL).
+
+The dashboard's API is read-only JSON: `/api/summary`, `/api/events` (filters `q`, `source`, `action`, `outcome`, `start`, `end`, and `ids` for a comma-separated list of `source:line` event IDs), `/api/insights` (findings, top addresses and accounts, activity points), `/api/custody` (each custody record with its own hash check), `/api/gaps` (unparsed lines), `/api/evidence` and `/api/cases`. Every endpoint takes `case=` when a folder is served.
+
+The **Export JSON** and **Export PDF report** buttons export the current filtered timeline. Both also carry the case's findings. Exports include the UTC event time, event fields, original raw line, source ID, source line number, full source-file SHA-256, source inventory, and integrity-verification result. The PDF is formatted for landscape pages and repeats the timeline table header on new pages.
 
 Generate three ready-to-open synthetic cases and their expected results:
 
 ```sh
 incident-timeline demo --output cases/demo-scenarios
+# Serve all three; switch between them with the case picker in the dashboard
+incident-timeline serve cases/demo-scenarios
+# Or serve one
 incident-timeline serve cases/demo-scenarios/01-brute-force-to-sudo/case
-incident-timeline serve cases/demo-scenarios/02-web-exploit-to-server-access/case
-incident-timeline serve cases/demo-scenarios/03-account-persistence/case
 ```
 
 The scenarios cover (1) SSH brute-force attempts followed by successful and privileged access, (2) suspicious web upload/shell-like requests followed by server access, and (3) suspicious account creation, group modification, and cron persistence. The generated directory includes the raw synthetic inputs, `expected.json`, a `run-result.json`, a manifest, and each parsed case. Use an output directory reserved for generated demos: rerunning overwrites the three scenarios' generated inputs and expected-result files, rebuilds their `case/` folders, and revalidates the scenarios. All scenario data is synthetic; it is for demonstrations and regression tests, not real incident evidence.
