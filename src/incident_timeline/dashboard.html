@@ -970,6 +970,171 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   .tf-fallback-enabled .tf-reveal,.tf-fallback-enabled .tf-reveal.is-visible { opacity:1 !important; transform:none !important; filter:none !important; }
 }
 </style>
+<style id="tracefuse-time-confidence-lab">
+  .time-lab{margin:20px 0 24px;padding:clamp(17px,2.5vw,28px);overflow:hidden}
+  .tlab-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px}
+  .tlab-kicker{display:flex;align-items:center;flex-wrap:wrap;gap:9px;color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+  .tlab-kicker-mark{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--line);border-radius:7px;color:var(--blue);font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0}
+  .tlab-no-score{border:1px solid var(--line);border-radius:5px;padding:4px 6px;color:var(--muted);font-size:8px;letter-spacing:.08em}
+  .tlab-head h3{font-size:clamp(23px,3vw,34px);line-height:1.12;letter-spacing:-.045em;font-weight:650;margin:11px 0 8px}
+  .tlab-head p{max-width:770px;margin:0;color:var(--muted);font-size:12px;line-height:1.75}
+  .tlab-callout{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;margin-bottom:18px;border:1px solid var(--line);border-left:2px solid var(--blue);border-radius:8px;background:var(--panel2);color:var(--muted);font-size:11px;line-height:1.7}
+  .tlab-callout strong{color:var(--text)}
+  .tlab-callout-mark{color:var(--blue);font-weight:900;flex:0 0 auto}
+  .tlab-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:0 0 24px}
+  .tlab-metric{min-width:0;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--panel);position:relative}
+  .tlab-metric:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;background:var(--blue);opacity:.6}
+  .tlab-metric:nth-child(2):before{background:var(--tf-amber,var(--amber))}.tlab-metric:nth-child(3):before{background:var(--tf-mint,var(--green))}.tlab-metric:nth-child(4):before{background:var(--tf-red,var(--red))}.tlab-metric:nth-child(5):before{background:var(--tf-lime,var(--blue))}
+  .tlab-metric-label{color:var(--muted);font-size:9px;line-height:1.45;font-weight:720;letter-spacing:.06em;text-transform:uppercase}
+  .tlab-metric-value{font-size:clamp(22px,2.2vw,30px);line-height:1.1;font-weight:680;letter-spacing:-.055em;margin-top:10px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .tlab-metric-sub{font-size:9px;line-height:1.5;color:var(--muted);margin-top:5px}
+  .tlab-section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:21px 0 11px}
+  .tlab-section-title h4{margin:0;font-size:13px;font-weight:700;letter-spacing:-.02em}
+  .tlab-section-title p{margin:3px 0 0;color:var(--muted);font-size:10px;line-height:1.6}
+  .tlab-source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .tlab-source-card{min-width:0;border:1px solid var(--line);border-radius:9px;padding:13px;background:var(--panel);transition:border-color .2s ease,transform .2s ease,background .2s ease}
+  .tlab-source-card:hover{border-color:color-mix(in srgb,var(--blue) 42%,var(--line));transform:translateY(-1px)}
+  .tlab-source-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .tlab-source-id{color:var(--blue);font:700 9px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em}
+  .tlab-source-file{font-size:12px;font-weight:680;overflow-wrap:anywhere;margin-top:4px}
+  .tlab-status{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:5px;padding:4px 6px;color:var(--muted);font-size:8px;line-height:1.2;white-space:nowrap}
+  .tlab-status:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green)}
+  .tlab-status.review:before{background:var(--amber)}.tlab-status.mismatch:before{background:var(--red)}
+  .tlab-source-meta{font-size:10px;color:var(--muted);line-height:1.65;margin-top:7px;overflow-wrap:anywhere}
+  .tlab-source-meta strong{color:var(--text);font-weight:600}
+  .tlab-source-warning{margin-top:9px;padding:8px 9px;border-left:2px solid var(--amber);background:rgba(226,189,122,.055);font-size:9px;line-height:1.6;color:var(--muted)}
+  .tlab-workbench{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:10px;margin-top:21px}
+  .tlab-card{min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:16px}
+  .tlab-card h4{font-size:12px;letter-spacing:-.015em;margin:0 0 5px}
+  .tlab-card-intro{font-size:10px;color:var(--muted);line-height:1.65;margin:0 0 14px}
+  .tlab-field{display:block;min-width:0;margin:0 0 12px}
+  .tlab-field>span{display:block;color:var(--muted);font-size:9px;font-weight:750;letter-spacing:.055em;text-transform:uppercase;margin-bottom:6px}
+  .tlab-field input,.tlab-field select{width:100%;min-width:0;min-height:38px;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);outline:none}
+  .tlab-field input:focus,.tlab-field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 10%,transparent)}
+  .tlab-offset-help{color:var(--muted);font-size:9px;line-height:1.65;margin:-5px 0 12px}
+  .tlab-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+  .tlab-btn{border:1px solid var(--line);border-radius:7px;padding:8px 11px;background:var(--panel2);color:var(--text);font-size:10px;font-weight:700;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+  .tlab-btn:hover{border-color:var(--blue);transform:translateY(-1px)}.tlab-btn.primary{background:var(--blue);border-color:var(--blue);color:#151a11}
+  .tlab-preview-status{padding:10px 11px;margin-top:12px;border-radius:7px;background:var(--bg);border:1px solid var(--line);color:var(--muted);font-size:10px;line-height:1.65}
+  .tlab-preview-status.active{border-color:color-mix(in srgb,var(--blue) 40%,var(--line));color:var(--text)}.tlab-preview-status.error{border-color:var(--red);color:var(--red)}
+  .tlab-detail-empty{padding:15px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:10px;line-height:1.7}
+  .tlab-detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .tlab-detail-id{color:var(--blue);font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace}
+  .tlab-detail-action{font-size:12px;font-weight:700;margin-top:5px;overflow-wrap:anywhere}
+  .tlab-detail-flagset{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 13px}
+  .tlab-flag{display:inline-flex;padding:4px 6px;border:1px solid var(--line);border-radius:5px;color:var(--muted);font-size:8px;line-height:1.35}
+  .tlab-flag.warn{border-color:color-mix(in srgb,var(--amber) 42%,var(--line));color:var(--amber)}.tlab-flag.offset{border-color:color-mix(in srgb,var(--blue) 40%,var(--line));color:var(--blue)}
+  .tlab-time-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tlab-time-value{min-width:0;padding:10px;border-radius:7px;background:var(--bg);border:1px solid var(--line)}
+  .tlab-time-value span{display:block;color:var(--muted);font-size:8px;letter-spacing:.05em;text-transform:uppercase;font-weight:750}
+  .tlab-time-value strong{display:block;margin-top:7px;font:600 11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+  .tlab-formula{margin-top:9px;padding:9px 10px;border-left:2px solid var(--blue);background:var(--bg);color:var(--muted);font-size:9px;line-height:1.65;overflow-wrap:anywhere}
+  .tlab-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:22px 0 10px}
+  .tlab-toolbar-title{font-size:13px;font-weight:700}.tlab-toolbar-sub{font-size:10px;color:var(--muted);margin-top:3px}
+  .tlab-filters{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  .tlab-filters select{max-width:210px;min-height:34px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:10px}
+  .tlab-check{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:10px;white-space:nowrap}.tlab-check input{accent-color:var(--blue)}
+  .tlab-event-count{flex:0 0 auto;color:var(--muted);font-size:9px;font-variant-numeric:tabular-nums}
+  .tlab-table-wrap{width:100%;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+  .tlab-table{border-collapse:separate;border-spacing:0;width:100%;min-width:920px;font-size:10px}
+  .tlab-table th{position:sticky;top:0;z-index:1;text-align:left;padding:10px 11px;background:var(--panel2);border-bottom:1px solid var(--line);color:var(--muted);font-size:8px;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+  .tlab-table td{padding:10px 11px;border-bottom:1px solid color-mix(in srgb,var(--line) 72%,transparent);vertical-align:top;max-width:250px}
+  .tlab-table tr:last-child td{border-bottom:0}.tlab-table tbody tr:hover td{background:color-mix(in srgb,var(--panel2) 62%,transparent)}.tlab-table tbody tr.position-changed td:first-child{box-shadow:inset 2px 0 0 var(--blue)}
+  .tlab-mono{font:10px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tlab-raw{white-space:normal;overflow-wrap:anywhere;min-width:150px;color:var(--text)}
+  .tlab-row-source{color:var(--muted);white-space:nowrap}.tlab-flags{display:flex;gap:4px;flex-wrap:wrap;min-width:140px}
+  .tlab-inspect-btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:5px 7px;border-radius:5px;font-size:9px;font-weight:700}.tlab-inspect-btn:hover{border-color:var(--blue)}
+  .tlab-rank-shift{display:inline-block;margin-top:4px;color:var(--blue);font:8px ui-monospace,SFMono-Regular,Consolas,monospace}
+  .tlab-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}.tlab-page-info{color:var(--muted);font-size:9px}
+  .tlab-ties{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+  .tlab-tie-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tlab-tie{min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:12px}
+  .tlab-tie-time{color:var(--blue);font:600 10px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+  .tlab-tie-meta{font-size:9px;color:var(--muted);margin:4px 0 8px;line-height:1.55}
+  .tlab-tie-event{font-size:10px;line-height:1.6;padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}
+  .tlab-tie-event strong{color:var(--text);font-weight:650}
+  .tlab-quiet-note{font-size:9px;color:var(--muted);line-height:1.7;margin-top:9px}
+  .tlab-error{padding:18px;border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:11px}
+  @media(max-width:1050px){.tlab-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.tlab-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tlab-workbench{grid-template-columns:1fr}}
+  @media(max-width:720px){.time-lab{padding:15px 12px}.tlab-head{align-items:stretch;flex-direction:column;gap:14px}.tlab-head .tlab-btn{width:100%}.tlab-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.tlab-metric{padding:12px}.tlab-metric-value{font-size:23px}.tlab-source-grid{grid-template-columns:1fr}.tlab-section-title{align-items:flex-start;flex-direction:column}.tlab-time-grid{grid-template-columns:1fr}.tlab-tie-grid{grid-template-columns:1fr}.tlab-toolbar{align-items:flex-start;flex-direction:column}.tlab-filters{width:100%;align-items:stretch}.tlab-filters select{max-width:none;flex:1}.tlab-offset-actions{display:grid;grid-template-columns:1fr 1fr}.tlab-event-count{white-space:normal}}
+  @media(prefers-reduced-motion:reduce){.tlab-source-card,.tlab-btn{transition:none}.tlab-source-card:hover,.tlab-btn:hover{transform:none}}
+</style>
+<style id="tracefuse-tlab-presentation-v3">
+  /* Timeline Confidence Lab — evidence-first, low-clutter presentation */
+  /* The Award Dashboard uses explicit flex ordering; the lab must be assigned a later slot. */
+  .shell>#triageBenchmark{order:5!important}
+  .shell>#timelineConfidenceLab{order:6!important}
+  .shell>footer.footer{order:7!important}
+  #timelineConfidenceLab.time-lab{
+    --tlab-accent:var(--tf-lime,#d8ff63);
+    --tlab-sage:var(--tf-sage,#a9b89a);
+    margin:clamp(42px,6vw,78px) 0 6px!important;
+    padding:clamp(24px,3.8vw,40px) 0 0!important;
+    background:transparent!important;background-image:none!important;
+    border:0!important;border-top:1px solid var(--line,#343a32)!important;
+    border-radius:0!important;box-shadow:none!important;overflow:visible!important;
+  }
+  #timelineConfidenceLab .tlab-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:22px;margin:0 0 18px}
+  #timelineConfidenceLab .tlab-heading-copy{max-width:800px;min-width:0}
+  #timelineConfidenceLab .tlab-kicker{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--tlab-sage);font-size:9px;font-weight:750;letter-spacing:.13em;text-transform:uppercase}
+  #timelineConfidenceLab .tlab-kicker-mark{width:27px;height:27px;display:inline-grid;place-items:center;border:1px solid var(--line,#343a32);border-radius:7px;background:rgba(216,255,99,.045);color:var(--tlab-accent);font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:0}
+  #timelineConfidenceLab .tlab-no-score{display:inline-block;padding:4px 7px;border:1px solid var(--line,#343a32);border-radius:5px;color:var(--muted,#a2a89a);font-size:8px;letter-spacing:.055em}
+  #timelineConfidenceLab .tlab-head h3{max-width:750px;margin:15px 0 10px;color:var(--text,#ecefe5);font-size:clamp(27px,3.6vw,41px);font-weight:650;line-height:1.08;letter-spacing:-.052em}
+  #timelineConfidenceLab .tlab-head p{max-width:68ch;margin:0;color:var(--muted,#a2a89a);font-size:12px;line-height:1.85}
+  #timelineConfidenceLab .tlab-head .tlab-btn{align-self:start;margin-top:2px;white-space:nowrap}
+  #timelineConfidenceLab .tlab-callout{display:flex;align-items:flex-start;gap:10px;margin:18px 0 22px;padding:11px 13px;border:0;border-left:2px solid var(--tlab-accent);border-radius:0;background:rgba(255,255,255,.018);color:var(--muted,#a2a89a);font-size:11px;line-height:1.75}
+  #timelineConfidenceLab .tlab-callout strong{color:var(--text,#ecefe5)}
+  #timelineConfidenceLab .tlab-callout-mark{flex:0 0 auto;color:var(--tlab-accent);font-weight:800}
+  #timelineConfidenceLab .tlab-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;margin:0 0 23px;padding:13px 0 14px;border-top:1px solid var(--line,#343a32);border-bottom:1px solid var(--line,#343a32)}
+  #timelineConfidenceLab .tlab-metric{min-width:0;min-height:0;padding:7px 15px 7px 0;border:0;border-radius:0;background:transparent;box-shadow:none}
+  #timelineConfidenceLab .tlab-metric:not(:last-child){margin-right:15px;border-right:1px solid var(--line,#343a32)}
+  #timelineConfidenceLab .tlab-metric:before{display:none}
+  #timelineConfidenceLab .tlab-metric-label{min-height:25px;color:var(--muted,#a2a89a);font-size:9px;line-height:1.55;letter-spacing:.025em}
+  #timelineConfidenceLab .tlab-metric-value{margin-top:5px;color:var(--text,#ecefe5);font-size:clamp(23px,2.5vw,31px);font-weight:650;line-height:1.1;letter-spacing:-.05em}
+  #timelineConfidenceLab .tlab-metric-sub{margin-top:5px;color:var(--muted,#a2a89a);font-size:9px;line-height:1.55}
+  #timelineConfidenceLab .tlab-workbench{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:13px;margin-top:0}
+  #timelineConfidenceLab .tlab-card{min-width:0;padding:clamp(15px,2vw,22px);border:1px solid var(--line,#343a32);border-radius:10px;background:var(--panel,#171a16);box-shadow:none}
+  #timelineConfidenceLab .tlab-card h4{margin:0 0 7px;color:var(--text,#ecefe5);font-size:13px;font-weight:700;letter-spacing:-.02em}
+  #timelineConfidenceLab .tlab-card-intro{max-width:55ch;margin:0 0 15px;color:var(--muted,#a2a89a);font-size:11px;line-height:1.75}
+  #timelineConfidenceLab .tlab-field>span{color:var(--muted,#a2a89a);font-size:9px;font-weight:650;letter-spacing:.055em;text-transform:uppercase}
+  #timelineConfidenceLab .tlab-field input,#timelineConfidenceLab .tlab-field select{min-height:41px;border:1px solid var(--line,#343a32);border-radius:7px;background:var(--bg,#10120f);color:var(--text,#ecefe5)}
+  #timelineConfidenceLab .tlab-btn{border-radius:7px;padding:9px 12px;font-size:10px;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+  #timelineConfidenceLab .tlab-btn.primary{border-color:var(--tlab-accent);background:var(--tlab-accent);color:#171b12}
+  #timelineConfidenceLab .tlab-btn:focus-visible,#timelineConfidenceLab summary:focus-visible{outline:2px solid var(--tlab-accent);outline-offset:3px}
+  #timelineConfidenceLab .tlab-preview-status{border:1px solid var(--line,#343a32);border-radius:7px;background:var(--bg,#10120f);font-size:10px;line-height:1.75}
+  #timelineConfidenceLab .tlab-time-value{border:1px solid var(--line,#343a32);border-radius:7px;background:rgba(255,255,255,.018)}
+  #timelineConfidenceLab .tlab-time-value strong{color:var(--text,#ecefe5);font-size:10px}
+  #timelineConfidenceLab .tlab-offset-help,#timelineConfidenceLab .tlab-quiet-note{color:var(--muted,#a2a89a);font-size:10px;line-height:1.75}
+  #timelineConfidenceLab .tlab-detail-empty{padding:16px 0 3px;border:0;border-top:1px solid var(--line,#343a32);border-radius:0;color:var(--muted,#a2a89a);font-size:11px;line-height:1.8}
+  #timelineConfidenceLab .tlab-ui-disclosure{margin:12px 0 0;border-top:1px solid var(--line,#343a32);border-bottom:1px solid transparent}
+  #timelineConfidenceLab .tlab-ui-disclosure[open]{border-bottom-color:var(--line,#343a32)}
+  #timelineConfidenceLab .tlab-ui-disclosure>summary{display:grid;grid-template-columns:minmax(0,1fr) auto 10px;align-items:center;gap:14px;padding:15px 0;list-style:none;cursor:pointer;user-select:none}
+  #timelineConfidenceLab .tlab-ui-disclosure>summary::-webkit-details-marker{display:none}
+  #timelineConfidenceLab .tlab-ui-disclosure-heading{display:block;min-width:0}
+  #timelineConfidenceLab .tlab-ui-disclosure-title{display:block;color:var(--text,#ecefe5);font-size:12px;font-weight:700;letter-spacing:-.012em}
+  #timelineConfidenceLab .tlab-ui-disclosure-help{display:block;max-width:70ch;margin-top:4px;color:var(--muted,#a2a89a);font-size:10px;font-weight:400;line-height:1.65}
+  #timelineConfidenceLab .tlab-ui-disclosure-count{color:var(--muted,#a2a89a);font:9px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;white-space:nowrap}
+  #timelineConfidenceLab .tlab-ui-disclosure-arrow{width:8px;height:8px;border-right:1.5px solid var(--muted,#a2a89a);border-bottom:1.5px solid var(--muted,#a2a89a);transform:rotate(45deg) translateY(-2px);transition:transform .2s ease}
+  #timelineConfidenceLab .tlab-ui-disclosure[open] .tlab-ui-disclosure-arrow{transform:rotate(225deg) translate(-1px,-1px)}
+  #timelineConfidenceLab .tlab-ui-disclosure-content{min-width:0;padding:0 0 17px}
+  #timelineConfidenceLab .tlab-ui-disclosure-intro{max-width:78ch;margin:0 0 12px;color:var(--muted,#a2a89a);font-size:10px;line-height:1.75}
+  #timelineConfidenceLab .tlab-source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  #timelineConfidenceLab .tlab-source-card{padding:12px;border-color:var(--line,#343a32);border-radius:8px;background:rgba(255,255,255,.016)}
+  #timelineConfidenceLab .tlab-source-card:hover{border-color:var(--tlab-accent);transform:translateY(-1px)}
+  #timelineConfidenceLab .tlab-toolbar{margin:0 0 10px;justify-content:flex-end}
+  #timelineConfidenceLab .tlab-filters{width:100%;justify-content:flex-start}
+  #timelineConfidenceLab .tlab-filters select{min-height:36px;border-color:var(--line,#343a32);background:var(--bg,#10120f)}
+  #timelineConfidenceLab .tlab-table-wrap{max-width:100%;border-color:var(--line,#343a32);border-radius:8px;background:var(--bg,#10120f)}
+  #timelineConfidenceLab .tlab-table{min-width:920px}
+  #timelineConfidenceLab .tlab-table th{background:#171a15;color:var(--muted,#a2a89a)}
+  #timelineConfidenceLab .tlab-table td{line-height:1.6}
+  #timelineConfidenceLab .tlab-ties{margin:0;padding:0;border:0}
+  #timelineConfidenceLab .tlab-tie-grid{display:grid;gap:8px}
+  #timelineConfidenceLab .tlab-ui-disclosure .tlab-tie{border-radius:8px}
+  @media(max-width:1050px){#timelineConfidenceLab .tlab-metrics{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:9px}#timelineConfidenceLab .tlab-metric:nth-child(3){margin-right:0;border-right:0}#timelineConfidenceLab .tlab-metric:nth-child(4){padding-left:0}#timelineConfidenceLab .tlab-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:720px){#timelineConfidenceLab .tlab-head{grid-template-columns:1fr;gap:14px}#timelineConfidenceLab .tlab-head .tlab-btn{justify-self:start;width:auto}#timelineConfidenceLab .tlab-metrics{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:0;padding:4px 0}#timelineConfidenceLab .tlab-metric{padding:12px 10px 12px 0}#timelineConfidenceLab .tlab-metric:nth-child(odd){margin-right:12px;border-right:1px solid var(--line,#343a32)}#timelineConfidenceLab .tlab-metric:nth-child(even){margin-right:0;padding-right:0;border-right:0}#timelineConfidenceLab .tlab-metric:nth-child(5){border-right:0}#timelineConfidenceLab .tlab-metric-label{min-height:0}#timelineConfidenceLab .tlab-metric-value{font-size:24px}#timelineConfidenceLab .tlab-workbench{grid-template-columns:1fr}#timelineConfidenceLab .tlab-card{padding:16px}#timelineConfidenceLab .tlab-source-grid{grid-template-columns:1fr}#timelineConfidenceLab .tlab-ui-disclosure>summary{grid-template-columns:minmax(0,1fr) auto 9px;gap:8px}#timelineConfidenceLab .tlab-ui-disclosure-count{font-size:8px}#timelineConfidenceLab .tlab-filters{flex-direction:column;align-items:stretch}#timelineConfidenceLab .tlab-filters select{max-width:none;width:100%}#timelineConfidenceLab .tlab-table{min-width:920px}}
+  @media(prefers-reduced-motion:reduce){#timelineConfidenceLab .tlab-ui-disclosure-arrow,#timelineConfidenceLab .tlab-btn,#timelineConfidenceLab .tlab-source-card{transition:none}#timelineConfidenceLab .tlab-source-card:hover{transform:none}}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -1010,7 +1175,10 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
         <h3 id="benchmarkHeading">Triage time, measured fairly.</h3>
         <p>Compare the time it takes to reach the same findings from raw logs and with the TRACEFUSE timeline. Use repeatable synthetic incidents and record both human trials.</p>
       </div>
-      <button class="btn bench-action" id="runEngineBenchmark" type="button"><span class="bench-action-icon" aria-hidden="true">↻</span> Measure engine runtime</button>
+      <div class="bench-action-stack">
+        <button class="btn bench-action" id="runEngineBenchmark" type="button"><span class="bench-action-icon" aria-hidden="true">↻</span> Measure engine runtime</button>
+        <div class="bench-run-feedback" id="engineBenchmarkFeedback" role="status" aria-live="polite">Ready to measure 3 disposable synthetic scenarios.</div>
+      </div>
     </div>
     <div class="benchmark-note"><span class="benchmark-note-icon" aria-hidden="true">i</span><span><strong>Keep the comparison honest.</strong> Human triage times come from stopwatch trials or values you enter; no manual baseline is invented. Times stay in this browser. Machine runtime is measured separately on disposable synthetic cases and is never presented as analyst triage time.</span></div>
     <div class="bench-metrics" aria-label="Matched human trial summary">
@@ -1024,6 +1192,66 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
     <div class="bench-summary"><div class="bench-summary-copy"><strong id="benchmarkSummary">No matched human trials yet</strong><div class="bench-status" id="benchmarkStatus" role="status" aria-live="polite">Run the engine benchmark, then record human triage times for the same scenario.</div></div><span class="bench-summary-stamp" aria-hidden="true">TRACEFUSE / REALITY CHECK</span></div>
     <div class="bench-method"><span aria-hidden="true">↳</span> Timing protocol: start at the beginning of each investigation and stop when you can state the same incident findings. Keep the scope equivalent, record the scenario, and repeat trials when possible.</div>
   </section>
+  <section class="panel time-lab" id="timelineConfidenceLab" aria-labelledby="timeLabHeading">
+    <div class="tlab-head">
+      <div>
+        <div class="tlab-kicker"><span class="tlab-kicker-mark" aria-hidden="true">TL</span><span>Time basis / reconstruction review</span><span class="tlab-no-score">NO SYNTHETIC CONFIDENCE SCORE</span></div>
+        <h3 id="timeLabHeading">Timeline Confidence Lab</h3>
+        <p>See how each timestamp reached the merged timeline: the literal log value, the time interpreted from its source zone, the recorded clock correction, and the normalized UTC result. Review assumptions explicitly instead of trusting a single timestamp at face value.</p>
+      </div>
+      <button class="tlab-btn" id="tlabRefresh" type="button">↻ Refresh time analysis</button>
+    </div>
+    <div class="tlab-callout"><span class="tlab-callout-mark" aria-hidden="true">i</span><div><strong>What this lab can—and cannot—tell you.</strong> Counts below come from parser flags and saved case settings. An exact timestamp tie means records from different sources have the same stored normalized instant; it does not prove they happened simultaneously. No statistical confidence or causal order is inferred.</div></div>
+    <div class="tlab-metrics" aria-label="Recorded time review indicators">
+      <article class="tlab-metric"><div class="tlab-metric-label">Events flagged for review</div><div class="tlab-metric-value" id="tlabMetricFlags">—</div><div class="tlab-metric-sub">timezone, year or DST flags</div></article>
+      <article class="tlab-metric"><div class="tlab-metric-label">Timezone assumed</div><div class="tlab-metric-value" id="tlabMetricTimezone">—</div><div class="tlab-metric-sub">event-level parser flags</div></article>
+      <article class="tlab-metric"><div class="tlab-metric-label">Year inferred</div><div class="tlab-metric-value" id="tlabMetricYear">—</div><div class="tlab-metric-sub">year missing in original timestamp</div></article>
+      <article class="tlab-metric"><div class="tlab-metric-label">DST ambiguous</div><div class="tlab-metric-value" id="tlabMetricDst">—</div><div class="tlab-metric-sub">repeated or skipped local time</div></article>
+      <article class="tlab-metric"><div class="tlab-metric-label">Exact cross-source ties</div><div class="tlab-metric-value" id="tlabMetricTies">—</div><div class="tlab-metric-sub" id="tlabMetricTiesSub">identical stored UTC instant</div></article>
+    </div>
+
+    <div class="tlab-section-title"><div><h4>Source time-basis profile</h4><p>Configured timezone and clock offset versus the values actually saved in the normalized timeline.</p></div><span class="tlab-event-count" id="tlabSourceCount">Loading sources…</span></div>
+    <div class="tlab-source-grid" id="tlabSourceProfiles"><div class="empty">Loading source time-basis details…</div></div>
+
+    <div class="tlab-workbench">
+      <section class="tlab-card" aria-labelledby="tlabPreviewHeading">
+        <h4 id="tlabPreviewHeading">Clock-offset what-if</h4>
+        <p class="tlab-card-intro">Try a different absolute offset for one source and inspect how its records move in a temporary merged timeline. This is a preview only.</p>
+        <label class="tlab-field"><span>Source clock to test</span><select id="tlabPreviewSource"><option value="">Loading sources…</option></select></label>
+        <div class="tlab-time-grid">
+          <div class="tlab-time-value"><span>Offset used in saved timeline</span><strong id="tlabRecordedOffset">—</strong></div>
+          <div class="tlab-time-value"><span>Current case setting</span><strong id="tlabConfiguredOffset">—</strong></div>
+        </div>
+        <label class="tlab-field" style="margin-top:13px"><span>Proposed source clock offset · seconds</span><input id="tlabPreviewOffset" type="number" step="0.001" inputmode="decimal" value="0" aria-describedby="tlabOffsetHelp"></label>
+        <p class="tlab-offset-help" id="tlabOffsetHelp">Positive means the source clock was ahead of the reference; TRACEFUSE subtracts the offset to normalize the time.</p>
+        <div class="tlab-actions tlab-offset-actions"><button class="tlab-btn primary" id="tlabApplyPreview" type="button">Preview timeline shift</button><button class="tlab-btn" id="tlabClearPreview" type="button">Discard preview</button></div>
+        <div class="tlab-preview-status" id="tlabPreviewStatus" role="status" aria-live="polite">No what-if preview active. The table shows the stored normalized timeline.</div>
+        <p class="tlab-quiet-note">This control never writes to case.json, events.jsonl, original evidence, or the custody chain. To persist a real correction, use the normal skew/anchor workflow and rebuild the timeline.</p>
+      </section>
+      <section class="tlab-card" aria-labelledby="tlabInspectorHeading">
+        <h4 id="tlabInspectorHeading">Inspect one event's time basis</h4>
+        <p class="tlab-card-intro">Select “Inspect” on any row below. Each value is tied to that event's saved parser output and source settings.</p>
+        <div id="tlabSelectedEvent"><div class="tlab-detail-empty">Choose an event in the table to compare its raw timestamp, interpreted UTC time, and normalized timeline time.</div></div>
+      </section>
+    </div>
+
+    <div class="tlab-toolbar">
+      <div><div class="tlab-toolbar-title">Event timestamp ledger</div><div class="tlab-toolbar-sub">Raw timestamp → source-zone interpretation → saved UTC normalization</div></div>
+      <div class="tlab-filters"><select id="tlabEventSource" aria-label="Filter time ledger by source"><option value="">All sources</option></select><label class="tlab-check"><input id="tlabIssuesOnly" type="checkbox"> Only timezone/year/DST flags</label></div>
+      <span class="tlab-event-count" id="tlabEventCount">Loading events…</span>
+    </div>
+    <div class="tlab-table-wrap" role="region" aria-label="Event timestamp ledger" tabindex="0">
+      <table class="tlab-table"><thead><tr><th id="tlabOrderHeading">Stored order</th><th>Source / action</th><th>Raw timestamp</th><th>Zone / flags</th><th>Interpreted UTC · before skew</th><th>Normalized UTC</th><th>Preview UTC</th><th></th></tr></thead><tbody id="tlabEventRows"><tr><td colspan="8" class="empty">Loading timestamp records…</td></tr></tbody></table>
+    </div>
+    <div class="tlab-pagination"><span class="tlab-page-info" id="tlabPageInfo">—</span><div class="tlab-actions"><button class="tlab-btn" id="tlabPrevPage" type="button" disabled>← Previous</button><button class="tlab-btn" id="tlabNextPage" type="button" disabled>Next →</button></div></div>
+
+    <section class="tlab-ties" aria-labelledby="tlabTiesHeading">
+      <div class="tlab-section-title"><div><h4 id="tlabTiesHeading">Ordering review · exact cross-source timestamp ties</h4><p>When multiple sources share the same stored instant, source/line ordering is only a display tie-break—not proof of causality.</p></div><span class="tlab-event-count" id="tlabTieBasis">Stored normalized timeline</span></div>
+      <div class="tlab-tie-grid" id="tlabTieGroups"><div class="empty">Checking normalized timestamps…</div></div>
+      <p class="tlab-quiet-note">A lack of exact ties does not prove that all clocks were synchronized. The lab does not assume an uncertainty range when the source does not provide one.</p>
+    </section>
+  </section>
+
   <footer class="footer">TRACEFUSE · Local investigation dashboard · Keep evidence exports with the case records</footer>
 </div>
 <script>
@@ -1150,7 +1378,26 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   function refreshTimerLabels(){if(!activeTrial)return;const clock=$(`clock-${activeTrial.id}-${activeTrial.mode}`);if(clock)clock.textContent=fmtElapsed(Date.now());const button=$(`timer-${activeTrial.id}-${activeTrial.mode}`);if(button){button.textContent='Stop timer';button.classList.add('running');}}
   function toggleTrialTimer(id,mode){if(activeTrial){if(activeTrial.id!==id||activeTrial.mode!==mode){$('benchmarkStatus').textContent='Stop the running timer before starting another trial.';return;}const seconds=Math.max(.01,(Date.now()-activeTrial.startedAt)/1000);if(!benchmarkTrials[id])benchmarkTrials[id]={};benchmarkTrials[id][mode+'Seconds']=seconds;const input=$(`trial-${id}-${mode}`);if(input)input.value=(seconds/60).toFixed(3);const clock=$(`clock-${id}-${mode}`);if(clock)clock.textContent=fmtElapsedDuration(seconds);const button=$(`timer-${id}-${mode}`);if(button){button.textContent='Start timer';button.classList.remove('running');}activeTrial=null;if(timerTicker){clearInterval(timerTicker);timerTicker=null;}saveTrials();updateComparison(id);updateAggregate();$('benchmarkStatus').textContent='Trial recorded in this browser. Repeat each method under equivalent conditions.';return;}
     activeTrial={id,mode,startedAt:Date.now()};$('benchmarkStatus').textContent=`${mode==='manual'?'Manual':'TRACEFUSE-assisted'} stopwatch running for ${id}.`;refreshTimerLabels();timerTicker=setInterval(refreshTimerLabels,250);}
-  async function runEngineBenchmark(){if(activeTrial){$('benchmarkStatus').textContent='Stop the current human trial before rerunning the engine benchmark.';return;}const button=$('runEngineBenchmark');button.disabled=true;button.textContent='Measuring…';$('benchmarkStatus').classList.remove('error');$('benchmarkStatus').textContent='Rebuilding three disposable synthetic cases; your active case and its evidence are not changed.';try{const r=await fetch('/api/benchmark',{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error||'Engine benchmark failed');benchmarkData=d;renderBenchmarkRows(d.scenarios);$('benchmarkStatus').textContent='Engine pipeline timings measured on synthetic inputs. Human trial times remain your own recorded observations.';}catch(err){$('benchmarkStatus').textContent=`Benchmark failed: ${err.message}`;$('benchmarkStatus').classList.add('error');}finally{button.disabled=false;button.textContent='↻ Measure engine runtime';}}
+  function setEngineFeedback(kind,message){const node=$('engineBenchmarkFeedback');if(!node)return;node.className='bench-run-feedback'+(kind?' is-'+kind:'');node.textContent=message;}
+  async function runEngineBenchmark(){
+    if(activeTrial){const message='Stop the running human trial before measuring engine runtime.';$('benchmarkStatus').textContent=message;setEngineFeedback('error',message);return;}
+    const button=$('runEngineBenchmark');button.disabled=true;button.innerHTML='<span class="bench-action-icon" aria-hidden="true">↻</span> Measuring…';$('benchmarkStatus').classList.remove('error');$('benchmarkStatus').textContent='Rebuilding three disposable synthetic cases; your active case and its evidence are not changed.';setEngineFeedback('running','Running 3 synthetic scenarios…');
+    try{
+      const r=await fetch('/api/benchmark',{cache:'no-store'});let d;try{d=await r.json();}catch{throw new Error(`Benchmark endpoint returned an unreadable response (HTTP ${r.status}).`);}
+      if(!r.ok)throw new Error(d.error||`Engine benchmark failed (HTTP ${r.status}).`);
+      if(!Array.isArray(d.scenarios)||d.scenarios.length===0)throw new Error('The benchmark returned no scenarios. Check the server log.');
+      const measured=d.scenarios.filter(s=>typeof s.tracefuse_pipeline_ms==='number'&&Number.isFinite(s.tracefuse_pipeline_ms));
+      if(!measured.length)throw new Error('The benchmark completed but returned no valid runtime measurements.');
+      benchmarkData=d;renderBenchmarkRows(d.scenarios);
+      const totalMs=measured.reduce((sum,item)=>sum+item.tracefuse_pipeline_ms,0);
+      const passed=d.scenarios.filter(s=>s.passed===true&&s.integrity_ok===true).length;
+      const stamp=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      setEngineFeedback('success',`Completed ${measured.length}/${d.scenarios.length} measurements · ${totalMs.toFixed(2)} ms combined · ${stamp}`);
+      $('benchmarkStatus').classList.remove('error');$('benchmarkStatus').textContent=`Engine run complete: ${measured.length} scenario timings recorded; ${passed}/${d.scenarios.length} synthetic checks passed. This is machine processing time, not human triage time.`;
+      if(typeof window.dispatchEvent==='function')window.dispatchEvent(new CustomEvent('tracefuse:benchmark-complete',{detail:{count:measured.length,totalMs,completedAt:stamp}}));
+    }catch(err){const message=`Benchmark failed: ${err.message}`;$('benchmarkStatus').textContent=message;$('benchmarkStatus').classList.add('error');setEngineFeedback('error',message);}
+    finally{button.disabled=false;button.innerHTML='<span class="bench-action-icon" aria-hidden="true">↻</span> Measure engine runtime';}
+  }
   $('runEngineBenchmark').addEventListener('click',runEngineBenchmark);
   renderBenchmarkRows(benchmarkDefaults);
   reload();
@@ -1285,8 +1532,8 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
 
   if (reduced) return;
 
-  const selectors = '.filters, .timeline-panel, .side > .panel, .event, .source, .benchmark-intro, .benchmark-note, .bench-metric, .bench-list-heading, .bench-row, .bench-summary';
-  const dynamicRootIds = ['timeline', 'sources', 'benchmarkRows'];
+  const selectors = '.filters, .timeline-panel, .side > .panel, .event, .source, .benchmark-intro, .benchmark-note, .bench-metric, .bench-list-heading, .bench-row, .bench-summary, .time-lab .tlab-head, .tlab-callout, .tlab-metric, .tlab-source-card, .tlab-card, .tlab-toolbar, .tlab-table-wrap, .tlab-table tbody tr, .tlab-tie';
+  const dynamicRootIds = ['timeline', 'sources', 'benchmarkRows', 'tlabSourceProfiles', 'tlabEventRows', 'tlabTieGroups'];
   const bootTimeoutMs = 2600;
 
   function loadScript(src) {
@@ -1437,6 +1684,720 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
   else start();
+})();
+</script>
+<script id="tracefuse-time-confidence-logic">
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const state = { offset:0, limit:100, sourceFilter:'', issuesOnly:false, preview:null, data:null, selectedEvent:null, sourceInitialized:false, loading:false, requestId:0 };
+  const sourceLabel = s => `${s.source_id} · ${s.source_file}`;
+  const safeText = (tag, value, cls) => { const el=document.createElement(tag); if(cls)el.className=cls; el.textContent=value==null||value===''?'—':String(value); return el; };
+  const fmtTime = value => {
+    if(!value) return 'Unavailable';
+    try { return new Date(value).toLocaleString(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'UTC'})+' UTC'; }
+    catch { return String(value); }
+  };
+  const fmtOffset = value => Number.isFinite(Number(value)) ? `${Number(value)>0?'+':''}${Number(value).toFixed(3)} s` : 'Not available';
+  const num = value => Number.isFinite(Number(value)) ? Number(value) : null;
+  function setSelectOptions(el, values, firstText, previous, valueFn, labelFn) {
+    el.replaceChildren(new Option(firstText,''));
+    for(const v of values) el.add(new Option(labelFn(v),valueFn(v)));
+    if(previous && [...el.options].some(o=>o.value===previous)) el.value=previous;
+  }
+  function sourceById(id){return state.data?.sources?.find(s=>s.source_id===id)||null;}
+  function updateSourceReadout() {
+    const id=$('tlabPreviewSource').value, source=sourceById(id);
+    $('tlabRecordedOffset').textContent=source?fmtOffset(source.applied_offset_s):'—';
+    $('tlabConfiguredOffset').textContent=source?fmtOffset(source.configured_offset_s):'—';
+    if(source && source.offset_settings_match===false) {
+      $('tlabPreviewStatus').textContent='The case settings and stored timeline use different offsets. The preview uses a temporary value; rebuild the normalized timeline if you intend to persist the case setting.';
+      $('tlabPreviewStatus').className='tlab-preview-status';
+    } else if(!state.preview) {
+      $('tlabPreviewStatus').textContent='No what-if preview active. The table shows the stored normalized timeline.';
+      $('tlabPreviewStatus').className='tlab-preview-status';
+    }
+  }
+  function renderMetrics(summary, ties, previewActive) {
+    $('tlabMetricFlags').textContent=Number(summary.events_flagged_for_time_review||0).toLocaleString();
+    $('tlabMetricTimezone').textContent=Number(summary.timezone_assumed_events||0).toLocaleString();
+    $('tlabMetricYear').textContent=Number(summary.year_inferred_events||0).toLocaleString();
+    $('tlabMetricDst').textContent=Number(summary.dst_ambiguous_events||0).toLocaleString();
+    $('tlabMetricTies').textContent=Number(ties?.total_groups ?? summary.exact_cross_source_timestamp_tie_groups ?? 0).toLocaleString();
+    $('tlabMetricTiesSub').textContent=previewActive?'exact ties in temporary preview':'identical stored UTC instant';
+    $('tlabOrderHeading').textContent=previewActive?'Order · stored → preview':'Stored order';
+  }
+  function renderSources(sources) {
+    const box=$('tlabSourceProfiles'); box.replaceChildren();
+    $('tlabSourceCount').textContent=`${sources.length} source${sources.length===1?'':'s'} · ${Number(state.data?.summary?.event_count||0).toLocaleString()} events`;
+    if(!sources.length){box.append(safeText('div','No evidence sources were found.','empty'));return;}
+    for(const source of sources){
+      const card=document.createElement('article');card.className='tlab-source-card';
+      const top=document.createElement('div');top.className='tlab-source-top';
+      const ident=document.createElement('div');ident.append(safeText('div',source.source_id,'tlab-source-id'),safeText('div',source.source_file,'tlab-source-file'));
+      const mismatch=source.offset_settings_match===false || (source.recorded_offset_values_s||[]).length>1;
+      const review=(source.timezone_assumed_events||source.year_inferred_events||source.dst_ambiguous_events)>0;
+      top.append(ident,safeText('span',mismatch?'SETTING MISMATCH':review?'REVIEW FLAGS':'BASIS RECORDED','tlab-status '+(mismatch?'mismatch':review?'review':'')));
+      card.append(top);
+      const meta=document.createElement('div');meta.className='tlab-source-meta';
+      const zoneSetting=source.timezone_setting_assumed===true?'source zone assumed':source.timezone_setting_assumed===false?'source zone recorded':'source-zone assumption not recorded';
+      meta.append(safeText('div',`Configured zone: ${source.configured_timezone||'UTC'} · ${zoneSetting}`));
+      meta.append(safeText('div',`Events: ${source.event_count} · flagged zone: ${source.timezone_assumed_events} · inferred year: ${source.year_inferred_events} · DST: ${source.dst_ambiguous_events}`));
+      meta.append(safeText('div',`Offset in saved timeline: ${source.applied_offset_s===null?'mixed / unavailable':fmtOffset(source.applied_offset_s)}`));
+      meta.append(safeText('div',`Case setting: ${fmtOffset(source.configured_offset_s)} · method: ${source.skew_method||'not recorded'}`));
+      card.append(meta);
+      if(mismatch){const warning=(source.recorded_offset_values_s||[]).length>1?'Parsed events for this source carry more than one clock offset. Review why the offsets differ before rebuilding the timeline.':'Case metadata and the offset stored on parsed events differ. Review the intended setting before rebuilding the timeline.';card.append(safeText('div',warning+' This lab will not rewrite the case or saved events.','tlab-source-warning'));}
+      box.append(card);
+    }
+  }
+  function renderFlags(event) {
+    const wrap=document.createElement('div');wrap.className='tlab-detail-flagset';
+    const labels=[];
+    if(event.timezone_assumed)labels.push(['Timezone assumed','warn']);
+    if(event.year_inferred)labels.push(['Year inferred','warn']);
+    if(event.dst_ambiguous)labels.push(['DST ambiguous','warn']);
+    if(Math.abs(Number(event.recorded_offset_s)||0)>0.0000005)labels.push([`Clock correction ${fmtOffset(event.recorded_offset_s)}`,'offset']);
+    if(!labels.length)labels.push(['No parser time flags','']);
+    for(const [label,cls] of labels)wrap.append(safeText('span',label,'tlab-flag '+cls));
+    return wrap;
+  }
+  function renderSelectedEvent(event) {
+    const box=$('tlabSelectedEvent'); box.replaceChildren();
+    if(!event){box.append(safeText('div','Choose an event in the table to inspect its timestamp basis.','tlab-detail-empty'));return;}
+    const top=document.createElement('div');top.className='tlab-detail-top';
+    const identity=document.createElement('div');identity.append(safeText('div',event.event_id,'tlab-detail-id'),safeText('div',event.action,'tlab-detail-action'));
+    top.append(identity,safeText('span',`line ${event.line_no}`,'tlab-status'));
+    box.append(top,renderFlags(event));
+    const grid=document.createElement('div');grid.className='tlab-time-grid';
+    for(const [label,value] of [
+      ['Literal timestamp',event.raw_timestamp],
+      ['Timezone interpreted',`${event.timezone||'unknown'}${event.timezone_assumed?' · assumed':''}`],
+      ['Parsed source time · UTC, before skew',event.interpreted_source_utc],
+      ['Saved normalized time · UTC',event.normalized_utc],
+      ['Recorded correction',fmtOffset(event.recorded_offset_s)],
+      ['Timestamp text precision',event.timestamp_precision_label]
+    ]){
+      const cell=document.createElement('div');cell.className='tlab-time-value';cell.append(safeText('span',label),safeText('strong',value));grid.append(cell);
+    }
+    box.append(grid);
+    let formula=`Parsed source time in UTC − recorded clock offset (${fmtOffset(event.recorded_offset_s)}) = saved normalized UTC.`;
+    if(state.preview){
+      formula+=` Temporary preview UTC for this record: ${event.preview_utc||event.normalized_utc}. ${event.source_id===state.preview.source_id?'The selected source uses the proposed offset '+fmtOffset(state.preview.offset_s)+'. Other sources keep their saved normalized time.':'This event is from another source, so its preview timestamp is unchanged.'}`;
+    }
+    box.append(safeText('div',formula,'tlab-formula'));
+    if(event.timezone_assumed||event.year_inferred||event.dst_ambiguous){
+      const caveat=[];
+      if(event.timezone_assumed)caveat.push('The parser marked this event timezone as assumed.');
+      if(event.year_inferred)caveat.push('The raw timestamp omitted its year; the parser inferred the year during parsing.');
+      if(event.dst_ambiguous)caveat.push('The local time was ambiguous at a DST transition; the parser chose the earlier fold.');
+      box.append(safeText('p',caveat.join(' '),'tlab-quiet-note'));
+    } else {
+      box.append(safeText('p','No timezone/year/DST assumption flag is stored for this event. That is not proof that all source clocks were synchronized or that the event order is causal.','tlab-quiet-note'));
+    }
+  }
+  function renderEventRows(events) {
+    const body=$('tlabEventRows');body.replaceChildren();
+    if(!events.length){const tr=document.createElement('tr'),td=safeText('td','No timestamp records match these filters.','empty');td.colSpan=8;tr.append(td);body.append(tr);renderSelectedEvent(null);return;}
+    for(const event of events){
+      const tr=document.createElement('tr');if(state.preview&&event.position_changed)tr.classList.add('position-changed');
+      const rank=state.preview?`#${event.current_rank} → #${event.preview_rank}`:`#${event.current_rank}`;
+      tr.append(safeText('td',rank,'tlab-mono'));
+      const src=document.createElement('td');src.append(safeText('div',`${event.source_id} · ${event.source_file}`,'tlab-row-source'),safeText('div',event.action,'tlab-raw'));
+      if(state.preview&&event.position_changed)src.append(safeText('div','position changed','tlab-rank-shift'));
+      tr.append(src,safeText('td',event.raw_timestamp,'tlab-raw'),safeText('td',`${event.timezone||'unknown'}${event.timezone_assumed?' · assumed':''}${event.year_inferred?' · inferred year':''}${event.dst_ambiguous?' · DST':''}`,'tlab-row-source'),safeText('td',event.interpreted_source_utc,'tlab-mono'),safeText('td',event.normalized_utc,'tlab-mono'),safeText('td',state.preview?event.preview_utc:'—','tlab-mono'));
+      const inspect=document.createElement('td'),button=safeText('button','Inspect','tlab-inspect-btn');button.type='button';button.addEventListener('click',()=>{state.selectedEvent=event;renderSelectedEvent(event);$('tlabSelectedEvent').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});});inspect.append(button);tr.append(inspect);body.append(tr);
+    }
+    if(!state.selectedEvent || !events.some(e=>e.event_id===state.selectedEvent.event_id))state.selectedEvent=events[0];
+    else state.selectedEvent=events.find(e=>e.event_id===state.selectedEvent.event_id)||events[0];
+    renderSelectedEvent(state.selectedEvent);
+  }
+  function renderTies(ties) {
+    const box=$('tlabTieGroups');box.replaceChildren();
+    $('tlabTieBasis').textContent=ties.basis==='temporary preview'?'Temporary preview order':'Stored normalized timeline';
+    if(!ties.total_groups){box.append(safeText('div',`No exact cross-source timestamp ties were found in the ${ties.basis==='temporary preview'?'temporary preview':'stored normalized timeline'}. This does not establish that all event order is certain.`,'tlab-detail-empty'));return;}
+    for(const group of ties.groups){
+      const card=document.createElement('article');card.className='tlab-tie';card.append(safeText('div',group.timestamp_utc,'tlab-tie-time'),safeText('div',`${group.event_count} records · ${group.source_count} sources (${group.source_ids.join(', ')})`,'tlab-tie-meta'));
+      for(const event of group.events){const line=document.createElement('div');line.className='tlab-tie-event';line.append(safeText('strong',`${event.event_id} · ${event.action}`),document.createTextNode(` — ${event.raw_timestamp}${event.timezone_assumed?' · timezone assumed':''}${event.year_inferred?' · year inferred':''}${event.dst_ambiguous?' · DST ambiguous':''}`));card.append(line);}
+      if(group.event_count>group.events.length)card.append(safeText('div',`+ ${group.event_count-group.events.length} more records in this tie`,'tlab-quiet-note'));
+      box.append(card);
+    }
+    if(ties.total_groups>ties.groups_shown)box.append(safeText('p',`Showing ${ties.groups_shown} of ${ties.total_groups} exact-tie groups. Summary count includes all groups.`,'tlab-quiet-note'));
+  }
+  function render(data) {
+    state.data=data;renderMetrics(data.summary,data.timestamp_ties,Boolean(state.preview));renderSources(data.sources);renderTies(data.timestamp_ties);
+    const previewSourceSelect=$('tlabPreviewSource'), sourceBefore=previewSourceSelect.value;
+    setSelectOptions(previewSourceSelect,data.sources,'Choose a source',sourceBefore,s=>s.source_id,s=>sourceLabel(s));
+    const eventSelect=$('tlabEventSource'), filterBefore=eventSelect.value;
+    setSelectOptions(eventSelect,data.sources,'All sources',filterBefore,s=>s.source_id,s=>sourceLabel(s));
+    if(!state.sourceInitialized && data.sources.length){
+      previewSourceSelect.value=data.sources[0].source_id;state.sourceInitialized=true;
+      const first=data.sources[0];$('tlabPreviewOffset').value=String(first.applied_offset_s??first.configured_offset_s??0);
+    } else if(!state.preview && previewSourceSelect.value!==sourceBefore){
+      const selected=sourceById(previewSourceSelect.value);$('tlabPreviewOffset').value=String(selected?.applied_offset_s??selected?.configured_offset_s??0);
+    }
+    updateSourceReadout();
+    const n=data.pagination.filtered_total;
+    $('tlabEventCount').textContent=`${Number(n).toLocaleString()} records${state.issuesOnly?' · flagged only':''}${state.preview?' · temporary order preview':''}`;
+    const start=n?state.offset+1:0,end=Math.min(state.offset+state.limit,n);
+    $('tlabPageInfo').textContent=`Showing ${start}–${end} of ${n} · ${state.preview?`preview offset ${fmtOffset(state.preview.offset_s)}`:'stored order'}`;
+    const prevButton=$('tlabPrevPage'),nextButton=$('tlabNextPage');
+    prevButton.disabled=!data.pagination.has_previous;nextButton.disabled=!data.pagination.has_next;
+    prevButton.title=data.pagination.has_previous?`Show the previous ${state.limit} timestamp records.`:'You are already on the first page.';
+    nextButton.title=data.pagination.has_next?`Show the next ${state.limit} timestamp records.`:`No next page: all ${n} matching records fit on this page.`;
+    const pager=prevButton.closest('.tlab-pagination');
+    if(pager)pager.classList.toggle('single-page',!data.pagination.has_previous&&!data.pagination.has_next);
+    if(!data.pagination.has_previous&&!data.pagination.has_next&&n>0)$('tlabPageInfo').textContent=`Showing ${start}–${end} of ${n} · all records fit on one page`;
+    renderEventRows(data.events);
+    if(state.preview){
+      const p=data.preview;
+      $('tlabPreviewStatus').className='tlab-preview-status active';
+      $('tlabPreviewStatus').textContent=`PREVIEW ONLY · ${p.events_from_source_with_recalculated_time} event times recalculated for ${p.source_id} using ${fmtOffset(p.proposed_offset_s)}. ${p.records_shifted_in_merged_order} records changed position in the full merged order. ${p.exact_cross_source_timestamp_tie_groups_after_preview} exact cross-source tie groups remain in this preview. No persistent changes were made.`;
+    }
+  }
+  async function loadLab() {
+    const requestId=++state.requestId;state.loading=true;$('tlabRefresh').disabled=true;
+    try{
+      const params=new URLSearchParams({limit:String(state.limit),offset:String(state.offset)});
+      if(state.sourceFilter)params.set('source_id',state.sourceFilter);
+      if(state.issuesOnly)params.set('issues_only','1');
+      if(state.preview){params.set('preview_source_id',state.preview.source_id);params.set('preview_offset_s',String(state.preview.offset_s));}
+      const response=await fetch('/api/time-analysis?'+params.toString(),{cache:'no-store'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||'Time analysis request failed');
+      if(requestId!==state.requestId)return; // Ignore an older request after a filter/preview change.
+      render(data);
+    }catch(error){
+      if(requestId!==state.requestId)return;
+      $('tlabPreviewStatus').className='tlab-preview-status error';$('tlabPreviewStatus').textContent=`Could not load time analysis: ${error.message}`;$('tlabEventRows').replaceChildren();const tr=document.createElement('tr'),td=safeText('td',error.message,'tlab-error');td.colSpan=8;tr.append(td);$('tlabEventRows').append(tr);
+    } finally{if(requestId===state.requestId){state.loading=false;$('tlabRefresh').disabled=false;}}
+  }
+  function applyOffsetPreview(){
+    const sourceId=$('tlabPreviewSource').value, value=$('tlabPreviewOffset').value.trim(), offset=Number(value);
+    if(!sourceId){$('tlabPreviewStatus').className='tlab-preview-status error';$('tlabPreviewStatus').textContent='Choose an evidence source first.';return;}
+    if(value===''||!Number.isFinite(offset)||Math.abs(offset)>31536000){$('tlabPreviewStatus').className='tlab-preview-status error';$('tlabPreviewStatus').textContent='Enter a finite offset between −31,536,000 and +31,536,000 seconds.';return;}
+    state.preview={source_id:sourceId,offset_s:offset};state.offset=0;loadLab();
+  }
+  $('tlabRefresh').addEventListener('click',()=>loadLab());
+  $('tlabApplyPreview').addEventListener('click',applyOffsetPreview);
+  $('tlabClearPreview').addEventListener('click',()=>{state.preview=null;state.offset=0;const source=sourceById($('tlabPreviewSource').value);$('tlabPreviewOffset').value=String(source?.applied_offset_s??source?.configured_offset_s??0);loadLab();});
+  $('tlabPreviewSource').addEventListener('change',()=>{state.preview=null;state.offset=0;const source=sourceById($('tlabPreviewSource').value);$('tlabPreviewOffset').value=String(source?.applied_offset_s??source?.configured_offset_s??0);updateSourceReadout();loadLab();});
+  $('tlabEventSource').addEventListener('change',()=>{state.sourceFilter=$('tlabEventSource').value;state.offset=0;loadLab();});
+  $('tlabIssuesOnly').addEventListener('change',()=>{state.issuesOnly=$('tlabIssuesOnly').checked;state.offset=0;loadLab();});
+  $('tlabPrevPage').addEventListener('click',()=>{if(state.loading||!state.data?.pagination?.has_previous)return;state.offset=Math.max(0,state.offset-state.limit);loadLab();});
+  $('tlabNextPage').addEventListener('click',()=>{if(state.loading||!state.data?.pagination?.has_next)return;state.offset+=state.limit;loadLab();});
+  loadLab();
+})();
+</script>
+<script id="tracefuse-tlab-presentation-v3-script">
+(() => {
+  const lab = document.getElementById('timelineConfidenceLab');
+  if (!lab || lab.dataset.presentationV3 === 'true') return;
+  lab.dataset.presentationV3 = 'true';
+  const within = (selector) => lab.querySelector(selector);
+
+  // Keep the investigator workflow first: timeline -> triage benchmark -> diagnostics.
+  const content = document.querySelector('.shell > .content, .content');
+  const benchmark = document.getElementById('triageBenchmark');
+  if (content && benchmark) content.insertAdjacentElement('afterend', benchmark);
+  const footer = document.querySelector('.shell > footer.footer, footer.footer');
+  if (footer && lab.nextElementSibling !== footer) footer.insertAdjacentElement('beforebegin', lab);
+
+  const makeDisclosure = (id, title, help, countNode, titleId) => {
+    const details = document.createElement('details');
+    details.id = id;
+    details.className = 'tlab-ui-disclosure';
+    const summary = document.createElement('summary');
+    summary.setAttribute('aria-expanded', 'false');
+    const heading = document.createElement('span'); heading.className = 'tlab-ui-disclosure-heading';
+    const titleSpan = document.createElement('span'); titleSpan.className = 'tlab-ui-disclosure-title';
+    titleSpan.textContent = title;
+    if (titleId) titleSpan.id = titleId;
+    const helpSpan = document.createElement('span'); helpSpan.className = 'tlab-ui-disclosure-help'; helpSpan.textContent = help;
+    heading.append(titleSpan, helpSpan);
+    summary.append(heading);
+    if (countNode) { countNode.classList.add('tlab-ui-disclosure-count'); summary.append(countNode); }
+    const arrow = document.createElement('span'); arrow.className = 'tlab-ui-disclosure-arrow'; arrow.setAttribute('aria-hidden', 'true'); summary.append(arrow);
+    const body = document.createElement('div'); body.className = 'tlab-ui-disclosure-content'; body.id = `${id}-content`;
+    summary.setAttribute('aria-controls', body.id);
+    details.append(summary, body);
+    details.addEventListener('toggle', () => {
+      summary.setAttribute('aria-expanded', String(details.open));
+      if (!details.open) return;
+      if (window.gsap && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const targets = Array.from(body.querySelectorAll('.tlab-source-card, .tlab-table tbody tr, .tlab-tie'));
+        if (targets.length) {
+          window.gsap.set(targets, {clearProps: 'opacity,transform,visibility'});
+          window.gsap.fromTo(targets, {y: 7, opacity: 0}, {y: 0, opacity: 1, duration: .28, stagger: .018, ease: 'power2.out', clearProps: 'opacity,transform'});
+        }
+      }
+      if (window.ScrollTrigger && typeof window.ScrollTrigger.refresh === 'function') requestAnimationFrame(() => window.ScrollTrigger.refresh());
+    });
+    return details;
+  };
+
+  // If a previous version already uses disclosure widgets, retain them; otherwise wrap the detail groups in place.
+  let sourceDisclosure = within('#tlabSourceDetails');
+  if (!sourceDisclosure) {
+    const grid = within('#tlabSourceProfiles');
+    const header = grid && grid.previousElementSibling;
+    if (grid && header && header.classList.contains('tlab-section-title')) {
+      const title = header.querySelector('h4')?.textContent.trim() || 'Review source clock profiles';
+      const help = header.querySelector('p')?.textContent.trim() || 'Compare the configured timezone and clock correction with values recorded in the saved timeline.';
+      sourceDisclosure = makeDisclosure('tlabSourceDetails', title, help, within('#tlabSourceCount'));
+      sourceDisclosure.querySelector('.tlab-ui-disclosure-content').append(grid);
+      header.replaceWith(sourceDisclosure);
+    }
+  }
+  if (sourceDisclosure) sourceDisclosure.classList.add('tlab-ui-disclosure');
+
+  let ledgerDisclosure = within('#tlabLedgerDetails');
+  if (!ledgerDisclosure) {
+    const toolbar = within('.tlab-toolbar');
+    const table = within('.tlab-table-wrap');
+    const pagination = within('.tlab-pagination');
+    if (toolbar && table) {
+      const title = toolbar.querySelector('.tlab-toolbar-title')?.textContent.trim() || 'Inspect individual timestamps';
+      const help = toolbar.querySelector('.tlab-toolbar-sub')?.textContent.trim() || 'Raw log value → interpreted source time → saved normalized UTC.';
+      const count = within('#tlabEventCount');
+      ledgerDisclosure = makeDisclosure('tlabLedgerDetails', title, help, count);
+      const body = ledgerDisclosure.querySelector('.tlab-ui-disclosure-content');
+      const titleBlock = toolbar.querySelector('.tlab-toolbar-title')?.parentElement;
+      if (titleBlock && titleBlock !== toolbar && !titleBlock.querySelector('.tlab-filters')) titleBlock.remove();
+      toolbar.querySelector('.tlab-toolbar-title')?.remove();
+      toolbar.querySelector('.tlab-toolbar-sub')?.remove();
+      const parent = toolbar.parentElement;
+      parent.insertBefore(ledgerDisclosure, toolbar);
+      body.append(toolbar, table);
+      if (pagination) body.append(pagination);
+    }
+  }
+  if (ledgerDisclosure) ledgerDisclosure.classList.add('tlab-ui-disclosure');
+
+  let tiesDisclosure = within('#tlabTieDetails');
+  if (!tiesDisclosure) {
+    const ties = within('.tlab-ties');
+    const grid = within('#tlabTieGroups');
+    if (ties && grid) {
+      const header = ties.querySelector('.tlab-section-title');
+      const titleNode = header?.querySelector('h4');
+      const help = header?.querySelector('p')?.textContent.trim() || 'Same stored UTC instant across sources; not proof of simultaneous activity.';
+      tiesDisclosure = makeDisclosure('tlabTieDetails', titleNode?.textContent.trim() || 'Review exact timestamp ties', help, within('#tlabTieBasis'), titleNode?.id || 'tlabTiesDisclosureTitle');
+      const body = tiesDisclosure.querySelector('.tlab-ui-disclosure-content');
+      body.append(grid);
+      const note = ties.querySelector('.tlab-quiet-note'); if (note) body.append(note);
+      ties.replaceWith(tiesDisclosure);
+    }
+  }
+  if (tiesDisclosure) tiesDisclosure.classList.add('tlab-ui-disclosure');
+
+  // Advanced details follow the interactive clock preview and stay collapsed by default.
+  const workbench = within('.tlab-workbench');
+  if (workbench) {
+    let cursor = workbench;
+    for (const section of [sourceDisclosure, ledgerDisclosure, tiesDisclosure]) {
+      if (!section) continue;
+      section.removeAttribute('open');
+      cursor.insertAdjacentElement('afterend', section);
+      cursor = section;
+    }
+  }
+
+  const intro = within('.tlab-head p');
+  if (intro) intro.textContent = 'See how a raw log timestamp becomes normalized UTC, review the assumptions recorded by the parser, and test how a proposed source-clock offset changes event order. The preview never edits the saved case.';
+  const callout = within('.tlab-callout div');
+  if (callout) callout.innerHTML = '<strong>How to use this lab.</strong> Start with the source-clock preview. Open the detailed profiles or timestamp ledger only when you need to investigate a specific assumption. Flags are diagnostic evidence—not a statistical confidence score.';
+
+  // Keep the event inspector quiet until the investigator deliberately chooses a row.
+  // The existing renderer selects the first record by default; this clears that presentation-only selection.
+  let userInspectedEvent = false;
+  const selectedPane = within('#tlabSelectedEvent');
+  const rowsPane = within('#tlabEventRows');
+  const showInspectorEmptyState = () => {
+    if (userInspectedEvent || !selectedPane) return;
+    const empty = document.createElement('div');
+    empty.className = 'tlab-detail-empty';
+    empty.textContent = 'Choose Inspect on a row in the timestamp ledger to see the original log time, source-time interpretation, recorded correction, and saved normalized UTC.';
+    selectedPane.replaceChildren(empty);
+  };
+  if (rowsPane && selectedPane) {
+    rowsPane.addEventListener('click', event => {
+      if (event.target.closest('.tlab-inspect-btn')) userInspectedEvent = true;
+    });
+    const inspectorObserver = new MutationObserver(showInspectorEmptyState);
+    inspectorObserver.observe(rowsPane, {childList:true, subtree:true});
+    showInspectorEmptyState();
+  }
+
+  if (window.ScrollTrigger && typeof window.ScrollTrigger.refresh === 'function') requestAnimationFrame(() => window.ScrollTrigger.refresh());
+})();
+</script>
+<style id="tracefuse-readable-type-scale">
+  /* Readability pass: keep the existing visual identity, increase text scale and control comfort. */
+  body { font-size: 15px; line-height: 1.6; }
+  body p { font-size: 15px; line-height: 1.7; }
+  body label { font-size: 13px; }
+  body small { font-size: 12.5px; }
+  body th, body td { font-size: 13px; }
+
+  /* Triage benchmark */
+  #triageBenchmark { font-size: 15px; line-height: 1.6; }
+  #triageBenchmark .benchmark-intro h3 { font-size: clamp(29px, 3.2vw, 40px) !important; line-height: 1.14 !important; }
+  #triageBenchmark .benchmark-intro p { max-width: 74ch; font-size: 15px !important; line-height: 1.75 !important; }
+  #triageBenchmark .bench-kicker .eyebrow { font-size: 12px !important; letter-spacing: .11em !important; line-height: 1.45; }
+  #triageBenchmark .bench-local { font-size: 11px !important; letter-spacing: .055em !important; padding: 6px 9px; }
+  #triageBenchmark .bench-action { font-size: 13px !important; min-height: 46px; padding: 12px 16px; }
+  #triageBenchmark .benchmark-note { font-size: 14px !important; line-height: 1.75 !important; }
+  #triageBenchmark .benchmark-note strong { font-size: 14px !important; }
+  #triageBenchmark .bench-metric-top { font-size: 13px !important; line-height: 1.5; }
+  #triageBenchmark .bench-metric-value { font-size: clamp(27px, 2.5vw, 35px) !important; line-height: 1.08 !important; }
+  #triageBenchmark .bench-metric-sub { font-size: 13px !important; line-height: 1.6 !important; }
+  #triageBenchmark .bench-list-heading h4,
+  #triageBenchmark .bench-list-heading h3 { font-size: 19px !important; line-height: 1.3 !important; }
+  #triageBenchmark .bench-list-key { font-size: 13px !important; line-height: 1.6; white-space: normal; }
+  #triageBenchmark .bench-title { font-size: 17px !important; line-height: 1.45 !important; letter-spacing: -.018em; }
+  #triageBenchmark .bench-sub { font-size: 13px !important; line-height: 1.65 !important; }
+  #triageBenchmark .bench-scenario-index { font-size: 12px !important; }
+  #triageBenchmark .bench-engine { font-size: 13px !important; line-height: 1.65 !important; }
+  #triageBenchmark .bench-control { padding: 15px !important; }
+  #triageBenchmark .bench-control label { font-size: 13px !important; line-height: 1.5 !important; letter-spacing: .035em !important; margin-bottom: 9px; }
+  #triageBenchmark .bench-control input { min-height: 48px !important; height: auto !important; padding: 10px 12px !important; font-size: 18px !important; line-height: 1.3 !important; }
+  #triageBenchmark .bench-timerline { gap: 10px; margin-top: 10px; }
+  #triageBenchmark .bench-clock { font-size: 13px !important; line-height: 1.5; }
+  #triageBenchmark .bench-timer,
+  #triageBenchmark .bench-reset { min-height: 38px; padding: 9px 11px !important; font-size: 13px !important; line-height: 1.25 !important; }
+  #triageBenchmark .bench-barline { gap: 11px; margin: 11px 0; }
+  #triageBenchmark .bench-barlabel { font-size: 13px !important; line-height: 1.55 !important; }
+  #triageBenchmark .bench-barvalue { font-size: 12.5px !important; line-height: 1.5 !important; }
+  #triageBenchmark .bench-result { font-size: 13px !important; line-height: 1.7 !important; padding: 13px 15px; }
+  #triageBenchmark .bench-summary { gap: 15px; padding: 18px 19px; font-size: 14px; line-height: 1.7; }
+  #triageBenchmark .bench-summary strong { font-size: 16px !important; line-height: 1.45; }
+  #triageBenchmark .bench-status { font-size: 13px !important; line-height: 1.7 !important; }
+  #triageBenchmark .bench-method { font-size: 13px !important; line-height: 1.75 !important; }
+  #triageBenchmark .bench-summary-stamp { font-size: 11px !important; line-height: 1.5; }
+
+  /* Timeline Confidence Lab */
+  #timelineConfidenceLab { font-size: 15px; line-height: 1.65; }
+  #timelineConfidenceLab .tlab-kicker { font-size: 12px !important; line-height: 1.55; letter-spacing: .11em !important; }
+  #timelineConfidenceLab .tlab-no-score { font-size: 11px !important; line-height: 1.5; }
+  #timelineConfidenceLab .tlab-head h3 { font-size: clamp(29px, 3.2vw, 40px) !important; line-height: 1.12 !important; }
+  #timelineConfidenceLab .tlab-head p { font-size: 15px !important; line-height: 1.75 !important; }
+  #timelineConfidenceLab .tlab-callout { font-size: 14px !important; line-height: 1.75 !important; padding: 14px 16px; }
+  #timelineConfidenceLab .tlab-metric-label { font-size: 12.5px !important; line-height: 1.6 !important; min-height: 0; }
+  #timelineConfidenceLab .tlab-metric-value { font-size: clamp(25px, 2.6vw, 34px) !important; line-height: 1.08 !important; }
+  #timelineConfidenceLab .tlab-metric-sub { font-size: 13px !important; line-height: 1.6 !important; }
+  #timelineConfidenceLab .tlab-card h4 { font-size: 16px !important; line-height: 1.45 !important; }
+  #timelineConfidenceLab .tlab-card-intro { font-size: 14px !important; line-height: 1.75 !important; }
+  #timelineConfidenceLab .tlab-field > span { font-size: 13px !important; line-height: 1.55; }
+  #timelineConfidenceLab .tlab-field input,
+  #timelineConfidenceLab .tlab-field select,
+  #timelineConfidenceLab .tlab-filters select { min-height: 44px; font-size: 14px !important; line-height: 1.4; }
+  #timelineConfidenceLab .tlab-btn { min-height: 40px; padding: 10px 14px !important; font-size: 13px !important; line-height: 1.3 !important; }
+  #timelineConfidenceLab .tlab-preview-status { font-size: 13px !important; line-height: 1.75 !important; padding: 11px 13px; }
+  #timelineConfidenceLab .tlab-time-value strong { font-size: 13px !important; }
+  #timelineConfidenceLab .tlab-offset-help,
+  #timelineConfidenceLab .tlab-quiet-note { font-size: 13px !important; line-height: 1.7 !important; }
+  #timelineConfidenceLab .tlab-detail-empty { font-size: 14px !important; line-height: 1.8 !important; }
+  #timelineConfidenceLab .tlab-ui-disclosure-title { font-size: 15px !important; line-height: 1.45 !important; }
+  #timelineConfidenceLab .tlab-ui-disclosure-help { font-size: 13px !important; line-height: 1.7 !important; }
+  #timelineConfidenceLab .tlab-ui-disclosure-count { font-size: 11px !important; }
+  #timelineConfidenceLab .tlab-ui-disclosure-intro { font-size: 13px !important; line-height: 1.75 !important; }
+  #timelineConfidenceLab .tlab-source-card { font-size: 13px; line-height: 1.65; }
+  #timelineConfidenceLab .tlab-table { font-size: 13px !important; }
+  #timelineConfidenceLab .tlab-table th,
+  #timelineConfidenceLab .tlab-table td { font-size: 13px !important; line-height: 1.6 !important; padding: 11px 12px; }
+
+  @media (max-width: 720px) {
+    body { font-size: 15px; }
+    #triageBenchmark .bench-title { font-size: 16px !important; }
+    #triageBenchmark .bench-barline { grid-template-columns: minmax(92px,.48fr) minmax(0,1fr) 68px; gap: 7px; }
+    #triageBenchmark .bench-barlabel,
+    #triageBenchmark .bench-barvalue { font-size: 12.5px !important; }
+    #triageBenchmark .bench-control { padding: 12px !important; }
+    #triageBenchmark .bench-control label { font-size: 12.5px !important; }
+    #triageBenchmark .bench-timer,
+    #triageBenchmark .bench-reset { padding: 8px 9px !important; font-size: 12.5px !important; }
+    #timelineConfidenceLab .tlab-head p { font-size: 14px !important; }
+    #timelineConfidenceLab .tlab-metric-label,
+    #timelineConfidenceLab .tlab-metric-sub { font-size: 12.5px !important; }
+    #timelineConfidenceLab .tlab-ui-disclosure>summary { min-height: 58px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #triageBenchmark *, #timelineConfidenceLab * { scroll-behavior: auto !important; }
+  }
+
+    /* Visible feedback for actions that otherwise update small values below the fold. */
+    .bench-action-stack{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:0 0 auto;min-width:260px;max-width:360px}
+    .bench-action-stack .bench-action{white-space:nowrap}
+    .bench-run-feedback{min-height:1.45em;text-align:right;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+    .bench-run-feedback.is-running{color:var(--tf-lime,#d8ff63)}
+    .bench-run-feedback.is-success{color:var(--tf-lime,#d8ff63)}
+    .bench-run-feedback.is-error{color:var(--red,#fca5a5)}
+    .tlab-btn:disabled,.tlab-inspect-btn:disabled{opacity:.36!important;color:#77806f!important;background:#0b0d0a!important;border-color:#292d26!important;cursor:not-allowed!important;transform:none!important;box-shadow:none!important;filter:saturate(.35)}
+    .tlab-btn:disabled:hover,.tlab-inspect-btn:disabled:hover{border-color:#292d26!important;transform:none!important}
+    .tlab-pagination.single-page .tlab-page-info{color:var(--muted)}
+    @media(max-width:720px){.bench-action-stack{align-items:stretch;min-width:0;max-width:none;width:100%}.bench-run-feedback{text-align:left}.bench-action-stack .bench-action{width:100%;white-space:normal}}
+</style>
+<style id="tracefuse-engine-runtime-separated-v3-style">
+  /* Dedicated machine benchmark; shares the existing TRACEFUSE palette. */
+  .shell > #engineRuntimeSection { order: 6 !important; }
+  .shell > #timelineConfidenceLab { order: 7 !important; }
+  .shell > footer.footer { order: 8 !important; }
+  #triageBenchmark .bench-engine { display: none !important; }
+  #engineRuntimeSection { position:relative; overflow:hidden; padding:clamp(20px,3vw,36px); margin:0 0 22px; border-color:var(--line,#30342b); background:linear-gradient(135deg,rgba(216,255,99,.045),transparent 36%),var(--panel,#11130f); }
+  #engineRuntimeSection:before { content:""; position:absolute; z-index:0; inset:0 auto auto 0; width:44%; height:2px; background:linear-gradient(90deg,var(--tf-lime,#d8ff63),transparent); }
+  #engineRuntimeSection > * { position:relative; z-index:1; }
+  #engineRuntimeSection .engine-runtime-head { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; padding-bottom:22px; border-bottom:1px solid var(--line,#30342b); }
+  #engineRuntimeSection .engine-runtime-copy { max-width:760px; min-width:0; }
+  #engineRuntimeSection .engine-runtime-kicker { display:flex; align-items:center; flex-wrap:wrap; gap:10px; color:var(--muted,#a7aa9d); font-size:13px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; }
+  #engineRuntimeSection .engine-runtime-index { width:32px; height:32px; display:inline-grid; place-items:center; border-radius:8px; background:var(--tf-lime,#d8ff63); color:#181b11; font:800 12px ui-monospace,Consolas,monospace; letter-spacing:0; }
+  #engineRuntimeSection .engine-runtime-tag { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line,#30342b); border-radius:7px; color:var(--muted,#a7aa9d); font-size:12px; letter-spacing:.04em; }
+  #engineRuntimeSection .engine-runtime-tag i { width:7px; height:7px; border-radius:50%; background:var(--tf-lime,#d8ff63); }
+  #engineRuntimeSection h3 { margin:17px 0 9px; font-size:clamp(28px,3vw,40px); line-height:1.12; letter-spacing:-.045em; font-weight:650; }
+  #engineRuntimeSection .engine-runtime-copy > p { max-width:72ch; margin:0; color:var(--muted,#a7aa9d); font-size:16px; line-height:1.75; }
+  #engineRuntimeSection .engine-runtime-action { display:flex; flex:0 0 min(330px,31%); flex-direction:column; align-items:stretch; gap:10px; }
+  #engineRuntimeSection .engine-runtime-action .bench-action-stack { display:contents; }
+  #engineRuntimeSection #runEngineBenchmark { width:100%; justify-content:center; min-height:50px; padding:13px 16px; font-size:15px; white-space:normal; background:var(--tf-lime,#d8ff63); border-color:var(--tf-lime,#d8ff63); color:#171a11; font-weight:800; }
+  #engineRuntimeSection #runEngineBenchmark:hover { filter:brightness(1.045); transform:translateY(-1px); }
+  #engineRuntimeSection #runEngineBenchmark:disabled { opacity:.72; cursor:progress; transform:none; }
+  #engineRuntimeSection .bench-run-feedback { min-height:1.5em; margin:0; color:var(--muted,#a7aa9d); font-size:13px; line-height:1.65; overflow-wrap:anywhere; }
+  #engineRuntimeSection .bench-run-feedback.is-running { color:var(--tf-lime,#d8ff63); }
+  #engineRuntimeSection .bench-run-feedback.is-success { color:var(--tf-lime,#d8ff63); }
+  #engineRuntimeSection .bench-run-feedback.is-error { color:var(--red,#efaaa4); }
+  #engineRuntimeSection .engine-runtime-explainer { display:flex; align-items:flex-start; gap:12px; margin:20px 0 23px; padding:15px 17px; border:1px solid var(--line,#30342b); border-left:2px solid var(--tf-lime,#d8ff63); border-radius:8px; background:rgba(255,255,255,.018); }
+  #engineRuntimeSection .engine-runtime-info { display:inline-grid; flex:0 0 22px; width:22px; height:22px; place-items:center; border:1px solid #4b5540; border-radius:50%; color:var(--tf-lime,#d8ff63); font-size:13px; font-weight:800; }
+  #engineRuntimeSection .engine-runtime-explainer p { margin:0; color:var(--muted,#a7aa9d); font-size:14px; line-height:1.75; }
+  #engineRuntimeSection .engine-runtime-explainer strong { color:var(--text,#edf0e6); }
+  #engineRuntimeSection .engine-runtime-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border-top:1px solid var(--line,#30342b); border-bottom:1px solid var(--line,#30342b); padding:16px 0; margin-bottom:26px; }
+  #engineRuntimeSection .engine-runtime-metric { min-width:0; padding:7px 18px 7px 0; }
+  #engineRuntimeSection .engine-runtime-metric + .engine-runtime-metric { padding-left:18px; border-left:1px solid var(--line,#30342b); }
+  #engineRuntimeSection .engine-runtime-metric-label { color:var(--muted,#a7aa9d); font-size:13px; line-height:1.5; }
+  #engineRuntimeSection .engine-runtime-metric-value { margin-top:7px; color:var(--text,#edf0e6); font-size:clamp(23px,2.2vw,31px); line-height:1.15; font-weight:700; letter-spacing:-.035em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  #engineRuntimeSection .engine-runtime-metric-total .engine-runtime-metric-value { color:var(--tf-lime,#d8ff63); }
+  #engineRuntimeSection .engine-runtime-metric-sub { margin-top:5px; color:var(--muted,#a7aa9d); font-size:12px; line-height:1.55; }
+  #engineRuntimeSection .engine-runtime-results-head { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin:0 0 14px; }
+  #engineRuntimeSection .engine-runtime-results-head h4 { margin:0; font-size:22px; line-height:1.3; }
+  #engineRuntimeSection .engine-runtime-results-head p { margin:5px 0 0; color:var(--muted,#a7aa9d); font-size:14px; line-height:1.65; }
+  #engineRuntimeSection .engine-runtime-last-run { color:var(--muted,#a7aa9d); font-size:12px; text-align:right; }
+  #engineRuntimeSection .engine-case-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  #engineRuntimeSection .engine-case-card { display:flex; flex-direction:column; min-width:0; padding:18px; border:1px solid var(--line,#30342b); border-radius:10px; background:rgba(0,0,0,.14); transition:border-color .18s ease,transform .18s ease,background .18s ease; }
+  #engineRuntimeSection .engine-case-card:hover { border-color:#505b42; background:rgba(216,255,99,.022); transform:translateY(-2px); }
+  #engineRuntimeSection .engine-case-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  #engineRuntimeSection .engine-case-index { display:inline-grid; place-items:center; width:31px; height:31px; border:1px solid #424b35; border-radius:7px; background:rgba(216,255,99,.055); color:var(--tf-lime,#d8ff63); font:750 12px ui-monospace,Consolas,monospace; }
+  #engineRuntimeSection .engine-case-status { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted,#a7aa9d); text-align:right; }
+  #engineRuntimeSection .engine-case-status:before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+  #engineRuntimeSection .engine-case-status.is-pass { color:var(--tf-lime,#d8ff63); }
+  #engineRuntimeSection .engine-case-status.is-review { color:var(--amber,#e9bf70); }
+  #engineRuntimeSection .engine-case-title { margin:17px 0 8px; font-size:18px; line-height:1.4; font-weight:700; letter-spacing:-.02em; }
+  #engineRuntimeSection .engine-case-description { min-height:5.2em; margin:0 0 15px; color:var(--muted,#a7aa9d); font-size:14px; line-height:1.7; }
+  #engineRuntimeSection .engine-case-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:auto; }
+  #engineRuntimeSection .engine-case-fact { padding:10px; border:1px solid var(--line,#30342b); border-radius:7px; }
+  #engineRuntimeSection .engine-case-fact span { display:block; color:var(--muted,#a7aa9d); font-size:12px; line-height:1.4; }
+  #engineRuntimeSection .engine-case-fact strong { display:block; margin-top:3px; color:var(--text,#edf0e6); font-size:16px; font-variant-numeric:tabular-nums; }
+  #engineRuntimeSection .engine-case-runtime { display:flex; flex-direction:column; gap:5px; margin-top:17px; padding-top:14px; border-top:1px solid var(--line,#30342b); }
+  #engineRuntimeSection .engine-case-runtime-label { color:var(--muted,#a7aa9d); font-size:12px; line-height:1.5; }
+  #engineRuntimeSection .engine-case-runtime-value { color:var(--text,#edf0e6); font-size:clamp(21px,2vw,27px); font-weight:750; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
+  #engineRuntimeSection .engine-case-track { height:9px; margin-top:12px; overflow:hidden; border:1px solid var(--line,#30342b); border-radius:999px; background:#080a08; }
+  #engineRuntimeSection .engine-case-bar { width:0; height:100%; border-radius:inherit; background:var(--tf-lime,#d8ff63); transition:width .5s cubic-bezier(.2,.7,.2,1); }
+  #engineRuntimeSection .engine-case-scale { margin:7px 0 0; color:var(--muted,#a7aa9d); font-size:12px; line-height:1.5; }
+  #engineRuntimeSection .engine-runtime-method { display:flex; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line,#30342b); }
+  #engineRuntimeSection .engine-runtime-method-mark { flex:0 0 auto; color:var(--tf-lime,#d8ff63); font-weight:800; }
+  #engineRuntimeSection .engine-runtime-method strong { font-size:14px; }
+  #engineRuntimeSection .engine-runtime-method p { margin:4px 0 0; color:var(--muted,#a7aa9d); font-size:13px; line-height:1.7; }
+  @media (max-width:1050px) { #engineRuntimeSection .engine-case-grid { grid-template-columns:1fr; } #engineRuntimeSection .engine-case-description { min-height:0; } }
+  @media (max-width:720px) { #engineRuntimeSection { padding:18px 14px; } #engineRuntimeSection .engine-runtime-head { flex-direction:column; align-items:stretch; gap:20px; } #engineRuntimeSection .engine-runtime-action { flex-basis:auto; width:100%; } #engineRuntimeSection .engine-runtime-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; } #engineRuntimeSection .engine-runtime-metric { padding:12px 10px 12px 0; } #engineRuntimeSection .engine-runtime-metric + .engine-runtime-metric { padding-left:10px; } #engineRuntimeSection .engine-runtime-metric:nth-child(3) { padding-left:0; border-left:0; border-top:1px solid var(--line,#30342b); } #engineRuntimeSection .engine-runtime-metric:nth-child(4) { border-top:1px solid var(--line,#30342b); } #engineRuntimeSection .engine-runtime-results-head { flex-direction:column; align-items:flex-start; gap:8px; } #engineRuntimeSection .engine-runtime-last-run { text-align:left; } #engineRuntimeSection .engine-case-card { padding:15px; } #engineRuntimeSection .engine-case-title { font-size:17px; } }
+  /* General readable floor for dashboard microcopy and investigation tables. */
+  .shell { font-size:16px; line-height:1.65; }
+  .shell .brand p,.shell .stat .sub,.shell .panel-head p,.shell .event-time,.shell .tag,.shell .event-meta,.shell .source-type,.shell .bench-sub,.shell .bench-engine,.shell .bench-metric-sub,.shell .bench-status,.shell .bench-method,.shell .footer { font-size:13px !important; line-height:1.6 !important; }
+  .shell .hash,.shell .raw-line,.shell .tlab-table,.shell .tlab-table th,.shell .tlab-table td { font-size:13px !important; line-height:1.6 !important; }
+  @media (prefers-reduced-motion: reduce) { #engineRuntimeSection .engine-case-card,#engineRuntimeSection .engine-case-bar { transition:none !important; } }
+</style>
+<script id="tracefuse-engine-runtime-separated-v3">
+(() => {
+  'use strict';
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const byId = id => document.getElementById(id);
+  const shell = $('.shell');
+  const benchmark = byId('triageBenchmark');
+  const button = byId('runEngineBenchmark');
+  if (!shell || !benchmark || !button || byId('engineRuntimeSection')) return;
+  // Older dashboard variants place the triage section before the main workspace in source order.
+  // Move it after the workspace first; the runtime section will follow it, before the Time Lab/footer.
+  const workspace = $('.content');
+  if (workspace && (benchmark.compareDocumentPosition(workspace) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+    workspace.insertAdjacentElement('afterend', benchmark);
+  }
+
+  const scenarios = [
+    {id:'01-brute-force-to-sudo', title:'Brute-force login → privileged access', description:'Repeated SSH authentication failures are followed by a successful login/session and privileged command activity.', events:6, gaps:0},
+    {id:'02-web-exploit-to-server-access', title:'Web exploit indicators → server access', description:'Suspicious web requests and upload/shell-like indicators precede server access and privileged commands.', events:8, gaps:0},
+    {id:'03-account-persistence', title:'Account creation → scheduled persistence', description:'A remote login is followed by account creation, a privilege-group change, and suspicious scheduled activity.', events:6, gaps:0}
+  ];
+  const section = document.createElement('section');
+  section.className = 'panel';
+  section.id = 'engineRuntimeSection';
+  section.setAttribute('aria-labelledby','engineRuntimeHeading');
+  section.innerHTML = `
+    <div class="engine-runtime-head">
+      <div class="engine-runtime-copy">
+        <div class="engine-runtime-kicker"><span class="engine-runtime-index" aria-hidden="true">03</span><span>Machine performance / controlled test</span><span class="engine-runtime-tag"><i aria-hidden="true"></i> LOCAL · SYNTHETIC</span></div>
+        <h3 id="engineRuntimeHeading">Engine runtime, measured separately.</h3>
+        <p>Run the three controlled synthetic incidents and inspect each case's processing time. This measures how quickly TRACEFUSE prepares evidence, verifies hashes, and builds the normalized timeline—not how long a person takes to investigate.</p>
+      </div>
+      <div class="engine-runtime-action" id="engineRuntimeAction"></div>
+    </div>
+    <div class="engine-runtime-explainer"><span class="engine-runtime-info" aria-hidden="true">i</span><p><strong>What this measures.</strong> End-to-end machine processing time for disposable synthetic cases. It does not measure human triage, and it does not change your active investigation or its evidence.</p></div>
+    <div class="engine-runtime-metrics" aria-label="Latest engine benchmark summary">
+      <article class="engine-runtime-metric"><div class="engine-runtime-metric-label">Cases measured</div><div class="engine-runtime-metric-value" id="engineMetricCases">0 / 3</div><div class="engine-runtime-metric-sub">synthetic incidents</div></article>
+      <article class="engine-runtime-metric engine-runtime-metric-total"><div class="engine-runtime-metric-label">Combined runtime</div><div class="engine-runtime-metric-value" id="engineMetricTotal">—</div><div class="engine-runtime-metric-sub">sum of measured runs</div></article>
+      <article class="engine-runtime-metric"><div class="engine-runtime-metric-label">Mean per case</div><div class="engine-runtime-metric-value" id="engineMetricMean">—</div><div class="engine-runtime-metric-sub">combined time ÷ cases</div></article>
+      <article class="engine-runtime-metric"><div class="engine-runtime-metric-label">Checks passed</div><div class="engine-runtime-metric-value" id="engineMetricChecks">—</div><div class="engine-runtime-metric-sub">integrity + expected timeline</div></article>
+    </div>
+    <div class="engine-runtime-results-head"><div><h4>Cases included in the benchmark</h4><p>Bars show each case relative to the slowest measured case in this run (100%).</p></div><span id="engineBenchmarkLastRun" class="engine-runtime-last-run">No completed run yet</span></div>
+    <div class="engine-case-grid" id="engineBenchmarkResults" aria-live="polite" aria-busy="false"></div>
+    <div class="engine-runtime-method"><span class="engine-runtime-method-mark" aria-hidden="true">↳</span><div><strong>Measurement notes</strong><p id="engineBenchmarkMethod">Pipeline runtimes are measured end to end. Individual internal phases are not timed separately. Results can vary with system load and filesystem conditions.</p><p id="engineBenchmarkApiNote">Run the benchmark to record a fresh result. Machine runtime and human triage times remain separate.</p></div></div>`;
+
+  // Place the new section right after human triage benchmark; flex order keeps it after the investigation workspace.
+  const lab = byId('timelineConfidenceLab');
+  const footer = $('.shell > footer.footer, footer.footer');
+  if (benchmark.parentElement === shell) {
+    benchmark.insertAdjacentElement('afterend', section);
+  } else if (lab && lab.parentElement) {
+    lab.insertAdjacentElement('beforebegin', section);
+  } else if (footer && footer.parentElement) {
+    footer.insertAdjacentElement('beforebegin', section);
+  } else {
+    shell.append(section);
+  }
+
+  // Relocate the already-wired button; moving the node preserves its existing click listener.
+  const oldStack = button.closest('.bench-action-stack');
+  let feedback = byId('engineBenchmarkFeedback');
+  if (!feedback) {
+    feedback = document.createElement('div');
+    feedback.id = 'engineBenchmarkFeedback';
+    feedback.className = 'bench-run-feedback';
+    feedback.setAttribute('role','status');
+    feedback.setAttribute('aria-live','polite');
+    feedback.textContent = 'Not measured yet. Run the benchmark to record all three case timings.';
+  }
+  const action = byId('engineRuntimeAction');
+  action.append(button, feedback);
+  if (oldStack && !oldStack.contains(button) && !oldStack.contains(feedback)) oldStack.remove();
+  else if (oldStack && oldStack !== action && oldStack.children.length === 0) oldStack.remove();
+  const intro = $('.benchmark-intro', benchmark);
+  if (intro && !intro.querySelector('button')) intro.classList.add('benchmark-intro-no-action');
+  const note = $('.benchmark-note', benchmark);
+  if (note) {
+    const span = $('span:last-child', note);
+    if (span) span.innerHTML = '<strong>Keep the comparison honest.</strong> Human triage durations come from paired stopwatch trials or values you enter. Machine processing time is measured separately in the Engine Runtime section below.';
+  }
+
+  const defaultRows = () => scenarios.map(s => {
+    const row = byId(`bench-${s.id}`);
+    const title = $('.bench-title', row)?.textContent.trim() || s.title;
+    const meta = $('.bench-sub', row)?.textContent.trim() || `${s.events} events · ${s.gaps} parsing gaps · synthetic dataset`;
+    const runtimeText = $('.bench-engine', row)?.textContent || '';
+    const match = runtimeText.match(/([0-9]+(?:\.[0-9]+)?)\s*ms/i);
+    const eventMatch = meta.match(/(\d+)\s+events?/i);
+    const gapMatch = meta.match(/(\d+)\s+parsing gaps?/i);
+    return {scenario_id:s.id,title,description:s.description,events:eventMatch?Number(eventMatch[1]):s.events,gaps:gapMatch?Number(gapMatch[1]):s.gaps,tracefuse_pipeline_ms:match?Number(match[1]):null,integrity_ok:null,passed:null,meta};
+  });
+  function latestData() {
+    try {
+      if (typeof benchmarkData !== 'undefined' && benchmarkData && Array.isArray(benchmarkData.scenarios)) return benchmarkData.scenarios;
+    } catch (_) {}
+    return defaultRows();
+  }
+  function node(tag, className, value) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (value !== undefined) el.textContent = String(value);
+    return el;
+  }
+  function fmtMs(ms) { return ms < 10 ? `${ms.toFixed(3)} ms` : `${ms.toFixed(2)} ms`; }
+  function setFeedback(kind, message) {
+    feedback.className = 'bench-run-feedback' + (kind ? ` is-${kind}` : '');
+    feedback.textContent = message;
+  }
+  function renderResults() {
+    const rows = latestData();
+    const measured = rows.filter(s => typeof s.tracefuse_pipeline_ms === 'number' && Number.isFinite(s.tracefuse_pipeline_ms) && s.tracefuse_pipeline_ms >= 0);
+    const total = measured.reduce((sum, s) => sum + s.tracefuse_pipeline_ms, 0);
+    const mean = measured.length ? total / measured.length : null;
+    const checkAware = rows.some(s => typeof s.integrity_ok === 'boolean' || typeof s.passed === 'boolean');
+    const checks = rows.filter(s => s.integrity_ok === true && s.passed === true).length;
+    const validationText = byId('benchmarkStatus')?.textContent || '';
+    const validationMatch = validationText.match(/(\d+)\s*\/\s*(\d+)\s+synthetic checks passed/i);
+    byId('engineMetricCases').textContent = `${measured.length} / ${rows.length || 3}`;
+    byId('engineMetricTotal').textContent = measured.length ? fmtMs(total) : '—';
+    byId('engineMetricMean').textContent = mean !== null ? fmtMs(mean) : '—';
+    byId('engineMetricChecks').textContent = checkAware ? `${checks} / ${rows.length}` : validationMatch ? `${validationMatch[1]} / ${validationMatch[2]}` : 'Not reported';
+    const stampMatch = feedback.textContent.match(/(\d{1,2}:\d{2}:\d{2}\s*(?:AM|PM)?)/i);
+    byId('engineBenchmarkLastRun').textContent = stampMatch ? `Last run · ${stampMatch[1].trim()}` : (measured.length ? 'Latest result loaded' : 'No completed run yet');
+    const max = measured.length ? Math.max(...measured.map(s => s.tracefuse_pipeline_ms), 0.001) : 0;
+    const grid = byId('engineBenchmarkResults');
+    grid.replaceChildren();
+    scenarios.forEach((def, index) => {
+      const item = rows.find(s => String(s.scenario_id || '') === def.id) || {};
+      const ms = typeof item.tracefuse_pipeline_ms === 'number' && Number.isFinite(item.tracefuse_pipeline_ms) && item.tracefuse_pipeline_ms >= 0 ? item.tracefuse_pipeline_ms : null;
+      const card = node('article','engine-case-card');
+      const top = node('div','engine-case-top');
+      top.append(node('span','engine-case-index',String(index + 1).padStart(2,'0')));
+      const statusText = ms === null ? 'Awaiting measurement' : item.integrity_ok === true && item.passed === true ? 'Checks passed' : item.integrity_ok === false || item.passed === false ? 'Review result' : 'Runtime measured';
+      const status = node('span','engine-case-status',statusText);
+      if (ms === null) status.classList.add('is-pending');
+      else if (item.integrity_ok === true && item.passed === true) status.classList.add('is-pass');
+      else if (item.integrity_ok === false || item.passed === false) status.classList.add('is-review');
+      top.append(status); card.append(top);
+      card.append(node('h5','engine-case-title',item.title || def.title));
+      card.append(node('p','engine-case-description',def.description));
+      const facts = node('div','engine-case-facts');
+      const metaText = item.meta || ($('.bench-sub', byId(`bench-${def.id}`))?.textContent.trim() || '');
+      const evt = Number.isFinite(Number(item.events)) ? Number(item.events) : def.events;
+      const gap = Number.isFinite(Number(item.gaps)) ? Number(item.gaps) : def.gaps;
+      const f1 = node('div','engine-case-fact'); f1.append(node('span','','Events'),node('strong','',evt));
+      const f2 = node('div','engine-case-fact'); f2.append(node('span','','Parsing gaps'),node('strong','',gap));
+      facts.append(f1,f2); card.append(facts);
+      const runtime = node('div','engine-case-runtime');
+      runtime.append(node('span','engine-case-runtime-label','Measured pipeline time'),node('strong','engine-case-runtime-value',ms === null ? 'Not measured yet' : fmtMs(ms)));
+      card.append(runtime);
+      const pct = ms !== null && max > 0 ? Math.max(0,Math.min(100,ms/max*100)) : 0;
+      const track = node('div','engine-case-track'); track.setAttribute('role','progressbar'); track.setAttribute('aria-label',`Runtime for ${item.title || def.title} relative to the slowest measured case`); track.setAttribute('aria-valuemin','0'); track.setAttribute('aria-valuemax','100'); track.setAttribute('aria-valuenow',String(Math.round(pct)));
+      track.append(node('div','engine-case-bar')); track.firstElementChild.style.width = `${pct}%`; card.append(track);
+      card.append(node('p','engine-case-scale',ms === null ? 'Run the benchmark to capture this case’s duration.' : `${pct.toFixed(1)}% of the slowest measured case in this run`));
+      grid.append(card);
+    });
+    if (measured.length && !feedback.textContent.includes('Completed')) setFeedback('success',`Loaded ${measured.length}/${rows.length} individual runtimes · ${fmtMs(total)} combined.`);
+  }
+  // Hide the old per-scenario runtime badge; the machine results now live only in this section.
+  benchmark.classList.add('engine-runtime-separated');
+  const rowsRoot = byId('benchmarkRows');
+  if (rowsRoot) {
+    new MutationObserver(() => renderResults()).observe(rowsRoot,{childList:true});
+  }
+  button.addEventListener('click', () => {
+    window.setTimeout(() => {
+      const status = byId('benchmarkStatus')?.textContent || '';
+      if (/stop the (current |running )?human trial|stop the running timer/i.test(status)) {
+        setFeedback('error',status);
+      } else if (/engine run complete|pipeline timings measured|scenario timings recorded/i.test(status)) {
+        const measured = latestData().filter(item => typeof item.tracefuse_pipeline_ms === 'number' && Number.isFinite(item.tracefuse_pipeline_ms));
+        const total = measured.reduce((sum,item) => sum + item.tracefuse_pipeline_ms,0);
+        setFeedback('success',`Completed ${measured.length}/3 measurements · ${fmtMs(total)} combined · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`);
+      } else {
+        setFeedback('running','Measuring 3 synthetic incidents… individual results will appear when the run completes.');
+      }
+    },0);
+  });
+  window.addEventListener('tracefuse:benchmark-complete', event => {
+    const d = event.detail || {};
+    renderResults();
+    if (Number.isFinite(d.totalMs)) setFeedback('success',`Completed ${d.count || 3}/3 measurements · ${fmtMs(d.totalMs)} combined · ${d.completedAt || 'run complete'}`);
+  });
+  // Preserve a clear label even when older variants rewrite it in their finally handler.
+  new MutationObserver(() => {
+    if (!button.disabled && /Measure engine runtime/i.test(button.textContent)) button.innerHTML = '<span class="bench-action-icon" aria-hidden="true">↻</span> Run 3-case benchmark';
+  }).observe(button,{childList:true,subtree:true,characterData:true});
+  renderResults();
 })();
 </script>
 </body>
