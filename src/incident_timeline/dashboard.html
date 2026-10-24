@@ -1135,6 +1135,26 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   @media(max-width:720px){#timelineConfidenceLab .tlab-head{grid-template-columns:1fr;gap:14px}#timelineConfidenceLab .tlab-head .tlab-btn{justify-self:start;width:auto}#timelineConfidenceLab .tlab-metrics{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:0;padding:4px 0}#timelineConfidenceLab .tlab-metric{padding:12px 10px 12px 0}#timelineConfidenceLab .tlab-metric:nth-child(odd){margin-right:12px;border-right:1px solid var(--line,#343a32)}#timelineConfidenceLab .tlab-metric:nth-child(even){margin-right:0;padding-right:0;border-right:0}#timelineConfidenceLab .tlab-metric:nth-child(5){border-right:0}#timelineConfidenceLab .tlab-metric-label{min-height:0}#timelineConfidenceLab .tlab-metric-value{font-size:24px}#timelineConfidenceLab .tlab-workbench{grid-template-columns:1fr}#timelineConfidenceLab .tlab-card{padding:16px}#timelineConfidenceLab .tlab-source-grid{grid-template-columns:1fr}#timelineConfidenceLab .tlab-ui-disclosure>summary{grid-template-columns:minmax(0,1fr) auto 9px;gap:8px}#timelineConfidenceLab .tlab-ui-disclosure-count{font-size:8px}#timelineConfidenceLab .tlab-filters{flex-direction:column;align-items:stretch}#timelineConfidenceLab .tlab-filters select{max-width:none;width:100%}#timelineConfidenceLab .tlab-table{min-width:920px}}
   @media(prefers-reduced-motion:reduce){#timelineConfidenceLab .tlab-ui-disclosure-arrow,#timelineConfidenceLab .tlab-btn,#timelineConfidenceLab .tlab-source-card{transition:none}#timelineConfidenceLab .tlab-source-card:hover{transform:none}}
 </style>
+
+<style id="tracefuse-engine-test-cta-style">
+  .shell > #timelineConfidenceLab{order:7!important}.shell > #engineTestCta{order:8!important}.shell > footer.footer{order:9!important}
+  .engine-test-cta{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:24px;margin:34px 0 0;padding:clamp(24px,4vw,42px);overflow:hidden;border:1px solid var(--line,#30342b);border-radius:13px;background:radial-gradient(ellipse at 95% 0%,rgba(216,255,99,.105),transparent 38%),linear-gradient(135deg,#151914,#10120f 65%);}
+  .engine-test-cta:before{content:"";position:absolute;z-index:-1;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,var(--tf-lime,#d8ff63),rgba(216,255,99,.08));}
+  .engine-test-cta-copy{min-width:0;max-width:780px}.engine-test-cta-kicker{display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--tf-sage,#a9b89a);font-size:13px;font-weight:750;letter-spacing:.13em;text-transform:uppercase}
+  .engine-test-cta-kicker-mark{display:inline-grid;place-items:center;width:31px;height:31px;border:1px solid var(--line,#30342b);border-radius:8px;color:var(--tf-lime,#d8ff63);font-size:16px}
+  .engine-test-cta h3{margin:15px 0 9px;color:var(--text,#edf0e6);font-size:clamp(26px,3.4vw,40px);line-height:1.12;letter-spacing:-.04em;font-weight:690}
+  .engine-test-cta p{max-width:760px;margin:0;color:var(--muted,#a7aa9d);font-size:16px;line-height:1.75}
+  .engine-test-cta-proof{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;color:var(--muted,#a7aa9d);font-size:13px;line-height:1.5}
+  .engine-test-cta-proof span{display:inline-flex;align-items:center;gap:7px}.engine-test-cta-proof span:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--tf-lime,#d8ff63)}
+  .engine-test-cta-action{display:flex;flex-direction:column;align-items:flex-end;gap:9px;max-width:250px}
+  .engine-test-cta-link{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:54px;padding:13px 17px;border:1px solid var(--tf-lime,#d8ff63);border-radius:8px;background:var(--tf-lime,#d8ff63);color:#171a12;text-decoration:none;font-size:16px;font-weight:760;white-space:nowrap;transition:transform .18s ease,background .18s ease}
+  .engine-test-cta-link:hover{transform:translateY(-2px);background:#e4ff9a}.engine-test-cta-link:focus-visible{outline:3px solid var(--text,#edf0e6);outline-offset:3px}
+  .engine-test-cta-action small{max-width:230px;color:var(--muted,#a7aa9d);font-size:13px;line-height:1.55;text-align:right}
+  .benchmark-intro-no-action{grid-template-columns:minmax(0,1fr)!important}
+  @media(max-width:760px){.engine-test-cta{grid-template-columns:minmax(0,1fr);gap:22px;padding:23px 18px}.engine-test-cta-action{align-items:stretch;max-width:none}.engine-test-cta-link{width:100%;white-space:normal}.engine-test-cta-action small{text-align:left;max-width:none}.engine-test-cta p{font-size:15px}}
+  @media(prefers-reduced-motion:reduce){.engine-test-cta-link{transition:none}.engine-test-cta-link:hover{transform:none}}
+</style>
+
 </head>
 <body>
 <div class="shell">
@@ -1250,6 +1270,17 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
       <div class="tlab-tie-grid" id="tlabTieGroups"><div class="empty">Checking normalized timestamps…</div></div>
       <p class="tlab-quiet-note">A lack of exact ties does not prove that all clocks were synchronized. The lab does not assume an uncertainty range when the source does not provide one.</p>
     </section>
+  </section>
+
+
+  <section class="engine-test-cta" id="engineTestCta" aria-labelledby="engineTestCtaHeading">
+    <div class="engine-test-cta-copy">
+      <div class="engine-test-cta-kicker"><span class="engine-test-cta-kicker-mark" aria-hidden="true">↗</span><span>Beyond this investigation</span><span>·</span><span>Controlled synthetic tests</span></div>
+      <h3 id="engineTestCtaHeading">Curious how TRACEFUSE performs?</h3>
+      <p>Explore the engine behind the investigation. Run controlled security scenarios, inspect per-case processing times, and verify whether the normalized timelines match their expected outputs—all in an isolated test workspace.</p>
+      <div class="engine-test-cta-proof" aria-label="Engine lab capabilities"><span>Three synthetic incidents</span><span>Per-case timings</span><span>Integrity and timeline checks</span></div>
+    </div>
+    <div class="engine-test-cta-action"><a class="engine-test-cta-link" href="/engine-test">Explore the Engine Lab <span aria-hidden="true">→</span></a><small>Uses temporary synthetic cases. Your active incident and evidence remain untouched.</small></div>
   </section>
 
   <footer class="footer">TRACEFUSE · Local investigation dashboard · Keep evidence exports with the case records</footer>
@@ -2400,5 +2431,35 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   renderResults();
 })();
 </script>
+
+<script id="tracefuse-engine-test-separation">
+(() => {
+  'use strict';
+  const byId = id => document.getElementById(id);
+  const benchmark = byId('triageBenchmark');
+  const legacyEngineSection = byId('engineRuntimeSection');
+  if (legacyEngineSection) legacyEngineSection.remove();
+  const legacyButton = byId('runEngineBenchmark');
+  if (legacyButton && legacyButton.isConnected) {
+    const actionStack = legacyButton.closest('.bench-action-stack');
+    if (actionStack && benchmark && benchmark.contains(actionStack)) actionStack.remove();
+    else legacyButton.remove();
+  }
+  const intro = benchmark?.querySelector('.benchmark-intro');
+  if (intro) intro.classList.add('benchmark-intro-no-action');
+  const note = benchmark?.querySelector('.benchmark-note span:last-child');
+  if (note) note.innerHTML = '<strong>Keep the comparison honest.</strong> Human triage durations come from paired stopwatch trials or values you enter. Synthetic engine tests run separately in the Engine Validation Lab and are never presented as analyst triage time.';
+  const status = byId('benchmarkStatus');
+  if (status && /run the engine benchmark|engine pipeline timings measured on synthetic inputs/i.test(status.textContent)) {
+    status.textContent = 'Record both manual and TRACEFUSE-assisted human triage times for equivalent investigation tasks.';
+  }
+  const cta = byId('engineTestCta');
+  const lab = byId('timelineConfidenceLab');
+  const footer = document.querySelector('.shell > footer.footer, footer.footer');
+  if (cta && lab?.parentElement) lab.insertAdjacentElement('afterend', cta);
+  else if (cta && footer?.parentElement) footer.insertAdjacentElement('beforebegin', cta);
+})();
+</script>
+
 </body>
 </html>

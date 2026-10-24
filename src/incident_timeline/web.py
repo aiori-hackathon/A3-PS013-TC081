@@ -133,6 +133,33 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 html_path = Path(__file__).with_name("dashboard.html")
                 self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
                 return
+            if url.path in ("/engine-test", "/engine-test/"):
+                html_path = Path(__file__).with_name("engine_test.html")
+                if not html_path.is_file():
+                    raise FileNotFoundError("engine_test.html is missing from the incident_timeline package")
+                self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
+                return
+            if url.path == "/api/benchmark/scenarios":
+                from .scenarios import SCENARIOS
+                catalog = [{
+                    "scenario_id": scenario_id,
+                    "title": spec["title"],
+                    "description": spec["description"],
+                    "host": spec["host"],
+                    "input_files": list(spec["logs"]),
+                    "source_count": len(spec["logs"]),
+                    "expected_event_count": spec["expected"]["event_count"],
+                    "expected_actions": spec["expected"]["ordered_actions"],
+                    "required_indicator_count": len(spec["expected"].get("must_include", [])),
+                    "expected_http_statuses": spec["expected"].get("http_statuses"),
+                    "synthetic_data": True,
+                } for scenario_id, spec in SCENARIOS.items()]
+                self._send(200, _json_bytes({
+                    "synthetic_data": True,
+                    "important": "These are controlled synthetic scenarios, not real incident evidence.",
+                    "scenarios": catalog,
+                }))
+                return
             if url.path == "/api/summary":
                 self._send(200, _json_bytes(self._summary()))
                 return
@@ -168,23 +195,41 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 self._send(200, _json_bytes(report))
                 return
             if url.path == "/api/benchmark":
-                # Run on disposable synthetic cases. Never touch the active case or its evidence.
-                from .scenarios import create_demo_cases
+                # Runs use disposable synthetic case folders. Never touch the active case.
+                from .scenarios import SCENARIOS, create_demo_cases
+                scenario_filter = (params.get("scenario") or [""])[0].strip()
+                if scenario_filter and scenario_filter not in SCENARIOS:
+                    raise ValueError(f"unknown scenario_id: {scenario_filter}")
+                selected = [scenario_filter] if scenario_filter else None
                 with tempfile.TemporaryDirectory(prefix="tracefuse-benchmark-") as tmp_dir:
-                    results = create_demo_cases(Path(tmp_dir) / "scenarios")
-                scenarios = [{
-                    "scenario_id": r["scenario_id"],
-                    "title": r["title"],
-                    "events": r["event_count"],
-                    "gaps": r["gap_count"],
-                    "tracefuse_pipeline_ms": r["tracefuse_elapsed_ms"],
-                    "integrity_ok": r["integrity_ok"],
-                    "passed": r["passed"],
-                    "synthetic_data": True,
-                } for r in results]
+                    results = create_demo_cases(Path(tmp_dir) / "scenarios", scenario_ids=selected)
+                scenarios = []
+                for result in results:
+                    spec = SCENARIOS[result["scenario_id"]]
+                    scenarios.append({
+                        "scenario_id": result["scenario_id"],
+                        "title": result["title"],
+                        "description": result["description"],
+                        "host": result["host"],
+                        "input_files": result["input_files"],
+                        "source_count": result["source_count"],
+                        "expected_event_count": result["expected_event_count"],
+                        "events": result["event_count"],
+                        "gaps": result["gap_count"],
+                        "tracefuse_pipeline_ms": result["tracefuse_elapsed_ms"],
+                        "integrity_ok": result["integrity_ok"],
+                        "checks": result["checks"],
+                        "expected_action_counts": result["expected_action_counts"],
+                        "actual_action_counts": result["actual_action_counts"],
+                        "expected_timeline": result["expected_timeline"],
+                        "actual_timeline": result["actual_timeline"],
+                        "passed": result["passed"],
+                        "synthetic_data": True,
+                    })
                 self._send(200, _json_bytes({
-                    "method": "wall-clock measurement from synthetic input preparation and evidence collection/hash through normalized timeline construction",
-                    "note": "This is machine processing time, not human triage time. Human times are recorded separately in the dashboard.",
+                    "scope": "single-scenario" if scenario_filter else "full-suite",
+                    "method": "Per-case wall-clock measurement from synthetic input preparation and evidence collection/hash through normalized timeline construction. Expected-output and integrity validation run after the timed processing interval.",
+                    "note": "Machine processing time is not human triage time. The run uses temporary synthetic cases and does not alter the active investigation or its evidence.",
                     "scenarios": scenarios,
                 }))
                 return

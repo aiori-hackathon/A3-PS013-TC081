@@ -47,3 +47,27 @@ def test_demo_generation_can_be_rerun_into_the_same_output_folder(tmp_path: Path
     for result in second:
         case_meta = json.loads((Path(result["case_path"]) / "case.json").read_text(encoding="utf-8"))
         assert len(case_meta["sources"]) == len(SCENARIOS[result["scenario_id"]]["logs"])
+
+
+def test_demo_generation_can_run_one_selected_scenario(tmp_path: Path) -> None:
+    selected = "02-web-exploit-to-server-access"
+    results = create_demo_cases(tmp_path / "single-demo", scenario_ids=[selected])
+    assert len(results) == 1
+    result = results[0]
+    assert result["scenario_id"] == selected
+    assert result["passed"] is True
+    assert result["source_count"] == 2
+    assert result["input_files"] == ["access.log", "auth.log"]
+    assert result["checks"]["expected_timeline"]["passed"] is True
+    assert result["checks"]["evidence_integrity"]["passed"] is True
+    manifest = json.loads((tmp_path / "single-demo" / "manifest.json").read_text(encoding="utf-8"))
+    assert [scenario["scenario_id"] for scenario in manifest["scenarios"]] == [selected]
+
+
+def test_demo_generation_rejects_unknown_or_empty_scenario_selection(tmp_path: Path) -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="unknown scenario_id"):
+        create_demo_cases(tmp_path / "unknown", scenario_ids=["not-a-real-scenario"])
+    with pytest.raises(ValueError, match="at least one scenario_id"):
+        create_demo_cases(tmp_path / "empty", scenario_ids=[])
