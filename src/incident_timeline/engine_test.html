@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>TRACEFUSE | Engine Validation Lab</title>
+  <style>
+    :root{--bg:#0b0d0a;--panel:#141712;--panel-raised:#191d16;--line:#30372b;--text:#eef1e8;--muted:#a4ab9b;--sage:#bdc9ad;--lime:#d8ff63;--amber:#e5bd78;--red:#eb8a84;--radius:12px;--shadow:0 18px 48px rgba(0,0,0,.18)}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 88% -5%,rgba(216,255,99,.07),transparent 31%),var(--bg);color:var(--text);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit}.shell{width:min(1260px,100%);margin:0 auto;padding:24px clamp(16px,3.4vw,44px) 64px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:22px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;text-decoration:none}.brand-mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid #4a583b;border-radius:10px;background:rgba(216,255,99,.07);color:var(--lime);font-weight:900;font-size:20px}.brand-name{font-size:17px;font-weight:800;letter-spacing:.16em}.brand-sub{color:var(--muted);font-size:13px}.back-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--sage);font-size:14px;font-weight:700}.back-link:hover{color:var(--lime)}.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr);gap:35px;align-items:end;padding:clamp(38px,6vw,74px) 0 34px}.eyebrow{display:flex;align-items:center;gap:10px;color:var(--sage);font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.eyebrow:before{content:"";width:24px;height:2px;background:var(--lime)}h1,h2,h3,h4,p{margin-top:0}.hero h1{max-width:780px;margin:16px 0;font-size:clamp(38px,5.6vw,66px);line-height:1.02;letter-spacing:-.055em;font-weight:720}.hero h1 span{color:var(--lime)}.hero-copy{max-width:740px;margin:0;color:var(--muted);font-size:18px;line-height:1.75}.hero-side{border-left:1px solid var(--line);padding:5px 0 5px 22px}.hero-side-label{color:var(--lime);font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.hero-side p{margin:9px 0 0;color:var(--muted);font-size:15px;line-height:1.8}.lab-actions{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:19px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(135deg,rgba(216,255,99,.04),transparent 45%),var(--panel);box-shadow:var(--shadow)}.action-copy{flex:1 1 300px;min-width:0}.action-copy strong{display:block;font-size:17px}.action-copy p{margin:4px 0 0;color:var(--muted);font-size:14px}.action-controls{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.btn{min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 15px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raised);color:var(--text);font-size:15px;font-weight:750;text-decoration:none;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}.btn:hover:not(:disabled){transform:translateY(-1px);border-color:#77845f}.btn-primary{background:var(--lime);border-color:var(--lime);color:#171b10}.btn-primary:hover:not(:disabled){background:#e4ff9a;border-color:#e4ff9a}.btn:disabled{opacity:.5;cursor:wait;transform:none}.select-wrap{display:grid;gap:5px;min-width:220px}.select-wrap label{color:var(--muted);font-size:13px;font-weight:700}.select-wrap select{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0c0f0a;color:var(--text);font-size:15px}.status-line{display:flex;align-items:flex-start;gap:11px;margin:14px 0 30px;padding:13px 15px;border-left:2px solid var(--sage);background:rgba(255,255,255,.025);color:var(--muted);font-size:14px;line-height:1.65}.status-line:before{content:"i";flex:0 0 21px;width:21px;height:21px;display:grid;place-items:center;border:1px solid #4b5543;border-radius:50%;color:var(--lime);font-size:13px;font-weight:800}.status-line.is-running{border-color:var(--lime);color:var(--text)}.status-line.is-error{border-color:var(--red);color:var(--red)}.status-line.is-success{border-color:var(--lime)}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:40px 0 16px}.section-kicker{color:var(--sage);font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.section-head h2{margin:5px 0 4px;font-size:clamp(24px,3.2vw,34px);letter-spacing:-.035em;line-height:1.2}.section-head p{max-width:760px;margin:0;color:var(--muted);font-size:15px;line-height:1.7}.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.metric{min-width:0;padding:19px 18px 19px 0}.metric+.metric{padding-left:18px;border-left:1px solid var(--line)}.metric-label{color:var(--muted);font-size:13px;line-height:1.5}.metric-value{margin-top:6px;font-size:clamp(25px,2.8vw,35px);font-weight:750;letter-spacing:-.045em;line-height:1.18;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.metric-value.accent{color:var(--lime)}.metric-sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5}.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;align-items:stretch}.scenario-card{display:flex;flex-direction:column;min-width:0;padding:19px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(160deg,rgba(255,255,255,.018),transparent 42%),var(--panel);transition:border-color .2s ease,transform .2s ease}.scenario-card:hover{border-color:#576349;transform:translateY(-2px)}.scenario-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.scenario-index{color:var(--lime);font:800 13px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em}.status-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;font-weight:750;white-space:nowrap}.status-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}.status-pill.pass{border-color:#435239;color:var(--lime);background:rgba(216,255,99,.035)}.status-pill.fail{border-color:#66403b;color:var(--red)}.scenario-card h3{margin:17px 0 8px;font-size:20px;line-height:1.3;letter-spacing:-.025em}.scenario-description{min-height:5.4em;margin:0 0 16px;color:var(--muted);font-size:15px;line-height:1.7}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px}.chip{display:inline-flex;max-width:100%;padding:5px 8px;border:1px solid #384031;border-radius:6px;color:var(--sage);background:#10130e;font-size:12px;line-height:1.4;overflow-wrap:anywhere}.input-files{margin:0 0 15px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.input-files h4{margin:0 0 7px;color:var(--muted);font-size:12px;letter-spacing:.07em;text-transform:uppercase}.input-file-list{display:flex;flex-wrap:wrap;gap:6px}.input-file{font:13px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--text);background:#0d100b;border:1px solid var(--line);border-radius:5px;padding:4px 7px;overflow-wrap:anywhere}.result-block{margin-top:auto;padding-top:5px}.case-result-top{display:flex;align-items:end;justify-content:space-between;gap:10px}.case-runtime-label{color:var(--muted);font-size:13px}.case-runtime{font-size:clamp(26px,2vw,32px);font-weight:780;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.case-runtime.pending{color:#79816f;font-size:20px}.case-track{height:9px;margin:12px 0 8px;border-radius:99px;overflow:hidden;background:#262c22}.case-bar{height:100%;width:0;border-radius:inherit;background:var(--lime);transition:width .55s cubic-bezier(.2,.7,.2,1)}.case-bar.no-result{background:#515a48}.case-scale{margin:0 0 14px;color:var(--muted);font-size:12px}.case-card-actions{display:flex;gap:8px;flex-wrap:wrap}.case-card-actions .btn{flex:1 1 auto;min-height:42px;padding:9px 11px;font-size:14px}.checks{display:grid;gap:7px;margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--line)}.check-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:start;color:var(--muted);font-size:13px;line-height:1.5}.check-mark{font-weight:900}.check-row.pass .check-mark{color:var(--lime)}.check-row.fail .check-mark{color:var(--red)}.check-row .check-state{font-size:12px;font-weight:750}.details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.details summary{cursor:pointer;color:var(--sage);font-size:14px;font-weight:750}.detail-inner{margin-top:12px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail-box{min-width:0;padding:11px;border:1px solid var(--line);border-radius:7px;background:#0e110c}.detail-box h4{margin:0 0 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.detail-box ul{margin:0;padding-left:18px;font-size:13px}.detail-box li{margin:3px 0;overflow-wrap:anywhere}.detail-box pre{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0}.history-panel{margin-top:38px;border-top:1px solid var(--line);padding-top:25px}.history-head{display:flex;align-items:end;justify-content:space-between;gap:14px}.history-head h2{margin:5px 0;font-size:25px;letter-spacing:-.03em}.history-head p{margin:0;color:var(--muted);font-size:14px}.history-list{display:grid;margin-top:14px}.history-row{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(90px,.6fr));gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.history-title{font-weight:740;font-size:14px}.history-date{margin-top:3px;color:var(--muted);font-size:12px}.history-value{font-size:14px;font-variant-numeric:tabular-nums}.history-sub{display:block;color:var(--muted);font-size:12px;line-height:1.5}.history-empty{padding:18px 0;color:var(--muted);font-size:14px}.method-note{margin-top:25px;padding:16px 18px;border-left:2px solid var(--sage);background:rgba(255,255,255,.025);color:var(--muted);font-size:14px;line-height:1.75}.method-note strong{color:var(--text)}.footer{margin-top:38px;padding-top:20px;border-top:1px solid var(--line);color:#8d9682;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.footer a{color:var(--sage);text-decoration:none}.footer a:hover{color:var(--lime)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:980px){.hero{grid-template-columns:1fr;gap:22px}.hero-side{border-left:0;border-top:1px solid var(--line);padding:18px 0 0}.scenario-grid{grid-template-columns:1fr 1fr}.scenario-card:last-child{grid-column:1/-1}.scenario-card:last-child .scenario-description{min-height:0}}
+    @media(max-width:680px){.shell{padding:17px 14px 42px}.topbar{align-items:flex-start}.brand-mark{width:38px;height:38px}.brand-name{font-size:15px}.brand-sub{font-size:12px}.back-link{font-size:13px}.hero{padding:35px 0 24px}.hero h1{font-size:clamp(37px,11vw,49px)}.hero-copy{font-size:16px}.lab-actions{padding:15px}.action-controls{display:grid;width:100%;grid-template-columns:1fr}.select-wrap{min-width:0}.action-controls .btn{width:100%}.summary-grid{grid-template-columns:1fr 1fr}.metric{padding:14px 10px 15px 0}.metric:nth-child(2),.metric:nth-child(4){padding-left:12px;border-left:1px solid var(--line)}.metric:nth-child(3),.metric:nth-child(4){border-top:1px solid var(--line)}.metric:nth-child(3){padding-top:15px}.metric:nth-child(4){padding-top:15px}.scenario-grid{grid-template-columns:1fr}.scenario-card:last-child{grid-column:auto}.scenario-description{min-height:0}.detail-grid{grid-template-columns:1fr}.history-head{align-items:flex-start;flex-direction:column}.history-row{grid-template-columns:minmax(0,1fr) minmax(70px,.6fr);gap:8px}.history-row .history-col:nth-child(3),.history-row .history-col:nth-child(4){grid-column:auto}.history-row .history-col:nth-child(2){text-align:right}.footer{flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.scenario-card,.btn,.case-bar{transition:none!important}.scenario-card:hover,.btn:hover{transform:none}}
+  </style>
+<style id="scenario-card-height-fix">
+  /* Keep cards at their own content height. Opening one card's details must
+     not stretch sibling cards in the same CSS grid row. */
+  .scenario-grid { align-items: start; }
+  .scenario-card { align-self: start; height: fit-content; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Return to TRACEFUSE investigation dashboard"><span class="brand-mark">T</span><span><span class="brand-name">TRACEFUSE</span><br><span class="brand-sub">Engine Validation Lab</span></span></a>
+    <a class="back-link" href="/">← Back to investigation</a>
+  </header>
+
+  <section class="hero" aria-labelledby="pageTitle">
+    <div>
+      <div class="eyebrow">Controlled test environment · Synthetic evidence</div>
+      <h1 id="pageTitle">Test the engine.<br><span>Inspect the evidence.</span></h1>
+      <p class="hero-copy">Run TRACEFUSE against repeatable synthetic incidents. Inspect each processing time, compare the generated timeline with expected outputs, and see whether evidence integrity checks pass.</p>
+    </div>
+    <aside class="hero-side">
+      <div class="hero-side-label">Isolated by design</div>
+      <p>Every run is built in a temporary workspace. It does not alter the incident currently open in the investigation dashboard, its source evidence, or its custody records.</p>
+    </aside>
+  </section>
+
+  <section class="lab-actions" aria-label="Run engine tests">
+    <div class="action-copy"><strong>Choose the scope of your test</strong><p>The full suite runs all three cases sequentially. A single-case run is useful when inspecting one specific parser and timeline outcome.</p></div>
+    <div class="action-controls">
+      <button class="btn btn-primary" id="runSuite" type="button">▶ Run full suite</button>
+      <div class="select-wrap"><label for="scenarioSelect">Single scenario</label><select id="scenarioSelect"><option value="">Loading scenarios…</option></select></div>
+      <button class="btn" id="runSelected" type="button">Run selected case</button>
+    </div>
+  </section>
+  <div class="status-line" id="runStatus" role="status" aria-live="polite">Loading the scenario catalog…</div>
+
+  <section aria-labelledby="resultsHeading">
+    <div class="section-head"><div><div class="section-kicker">Latest run · measured values only</div><h2 id="resultsHeading">Run summary</h2><p>Summary values describe the most recent run only. If you run one scenario, the totals below cover that scenario rather than the whole suite.</p></div></div>
+    <div class="summary-grid" aria-label="Latest test summary">
+      <article class="metric"><div class="metric-label">Cases measured in this run</div><div class="metric-value" id="metricCases">—</div><div class="metric-sub" id="metricCasesSub">No run completed yet</div></article>
+      <article class="metric"><div class="metric-label">Sum of pipeline times</div><div class="metric-value accent" id="metricTotal">—</div><div class="metric-sub">Sum of per-case timed intervals</div></article>
+      <article class="metric"><div class="metric-label">Mean per measured case</div><div class="metric-value" id="metricMean">—</div><div class="metric-sub">Sum divided by measured cases</div></article>
+      <article class="metric"><div class="metric-label">Scenarios passing all checks</div><div class="metric-value" id="metricPassed">—</div><div class="metric-sub" id="metricPassedSub">Validation runs after timing stops</div></article>
+    </div>
+  </section>
+
+  <section aria-labelledby="scenarioHeading">
+    <div class="section-head"><div><div class="section-kicker">Scenario catalogue</div><h2 id="scenarioHeading">What is the engine being tested on?</h2><p>Each card explains the synthetic incident, the input log files, the expected timeline size, and the checks used to validate the output.</p></div></div>
+    <div class="scenario-grid" id="scenarioGrid" aria-live="polite"><div class="history-empty">Loading scenario definitions…</div></div>
+  </section>
+
+  <section class="history-panel" aria-labelledby="historyHeading">
+    <div class="history-head"><div><div class="section-kicker">Repeatability</div><h2 id="historyHeading">Recent runs</h2><p>Run summaries are stored in this browser only. They are not case evidence and are not uploaded.</p></div><button class="btn" id="clearHistory" type="button">Clear local history</button></div>
+    <div class="history-list" id="historyList"><div class="history-empty">No runs recorded in this browser yet.</div></div>
+  </section>
+
+  <div class="method-note"><strong>How to read these timings.</strong> The per-case interval includes preparing synthetic input files, evidence collection and hashing, and normalized timeline construction. Expected-output checks and integrity verification are evaluated after that timed interval. This is machine processing time—not human triage time—and the total can vary with system load and filesystem conditions. Internal stages are not timed separately.</div>
+  <footer class="footer"><span>TRACEFUSE · Engine Validation Lab · Synthetic test data only</span><a href="/">Return to the active investigation →</a></footer>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const HISTORY_KEY = 'tracefuse-engine-test-history-v1';
+  const RUNS_TO_KEEP = 8;
+  const state = {catalog: [], latestByScenario: new Map(), busy: false};
+  const checkLabels = {
+    event_count: 'Expected event count',
+    action_sequence: 'Expected action sequence',
+    action_counts: 'Action counts',
+    expected_timeline: 'Exact normalized timeline',
+    required_indicators: 'Required evidence indicators',
+    http_statuses: 'HTTP response statuses',
+    evidence_integrity: 'Evidence integrity'
+  };
+  function node(tag, className, value) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    if (value !== undefined && value !== null) el.textContent = String(value);
+    return el;
+  }
+  function fmtMs(value) {
+    if (!Number.isFinite(value)) return '—';
+    if (value < 1000) return `${value.toFixed(3)} ms`;
+    return `${(value / 1000).toFixed(3)} s`;
+  }
+  function when(value) {
+    try { return new Date(value).toLocaleString([], {year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+    catch { return String(value || 'Unknown time'); }
+  }
+  async function request(url) {
+    const response = await fetch(url, {cache:'no-store', headers:{'Accept':'application/json'}});
+    let payload;
+    try { payload = await response.json(); } catch { throw new Error(`Server returned a non-JSON response (${response.status}).`); }
+    if (!response.ok) throw new Error(payload.error || `Request failed (${response.status}).`);
+    return payload;
+  }
+  function historyRead() {
+    try { const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); return Array.isArray(parsed) ? parsed.slice(0,RUNS_TO_KEEP) : []; }
+    catch { return []; }
+  }
+  function historyWrite(rows) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(rows.slice(0,RUNS_TO_KEEP))); return true; }
+    catch { return false; }
+  }
+  function setStatus(kind, message) {
+    const el = $('runStatus'); el.className = 'status-line' + (kind ? ` is-${kind}` : ''); el.textContent = message;
+  }
+  function setBusy(busy) {
+    state.busy = busy;
+    $('runSuite').disabled = busy;
+    $('runSelected').disabled = busy || !$('scenarioSelect').value;
+    $('scenarioSelect').disabled = busy;
+    for (const button of document.querySelectorAll('[data-run-scenario]')) button.disabled = busy;
+    $('runSuite').textContent = busy ? 'Running full suite…' : '▶ Run full suite';
+    $('runSelected').textContent = busy ? 'Running…' : 'Run selected case';
+  }
+  function populateSelect() {
+    const select = $('scenarioSelect'); select.replaceChildren();
+    for (const scenario of state.catalog) {
+      const option = document.createElement('option'); option.value = scenario.scenario_id; option.textContent = scenario.title; select.append(option);
+    }
+    if (state.catalog.length) $('runSelected').disabled = state.busy ? true : false;
+  }
+  function createCheckRow(label, passed, suffix='') {
+    const row = node('div', 'check-row ' + (passed ? 'pass' : 'fail'));
+    row.append(node('span','check-mark',passed ? '✓' : '×'));
+    row.append(node('span','',label));
+    row.append(node('span','check-state',suffix || (passed ? 'PASS' : 'REVIEW')));
+    return row;
+  }
+  function renderScenarioCard(definition, result) {
+    const card = node('article','scenario-card');
+    const top = node('div','scenario-top'); top.append(node('span','scenario-index',definition.scenario_id.slice(0,2)));
+    const status = node('span','status-pill',!result ? 'Not run' : result.passed ? 'All checks passed' : 'Review needed');
+    if (result) status.classList.add(result.passed ? 'pass' : 'fail');
+    top.append(status); card.append(top);
+    card.append(node('h3','',definition.title));
+    card.append(node('p','scenario-description',definition.description));
+    const chips = node('div','chips');
+    chips.append(node('span','chip',`${definition.source_count} input source${definition.source_count===1?'':'s'}`));
+    chips.append(node('span','chip',`${definition.expected_event_count} expected events`));
+    chips.append(node('span','chip',`${definition.required_indicator_count} required indicators`));
+    if (definition.expected_http_statuses) chips.append(node('span','chip',`${definition.expected_http_statuses.length} expected HTTP statuses`));
+    card.append(chips);
+    const files = node('div','input-files'); files.append(node('h4','','Input log files'));
+    const fileList = node('div','input-file-list');
+    for (const name of definition.input_files || []) fileList.append(node('span','input-file',name));
+    files.append(fileList); card.append(files);
+    const resultBlock = node('div','result-block');
+    const resultTop = node('div','case-result-top');
+    const runtimeLabel = node('span','case-runtime-label','Measured pipeline time');
+    const runtime = node('strong','case-runtime' + (!result ? ' pending' : ''),result ? fmtMs(result.tracefuse_pipeline_ms) : 'Not measured');
+    resultTop.append(runtimeLabel,runtime); resultBlock.append(resultTop);
+    const track = node('div','case-track'); track.setAttribute('role','progressbar'); track.setAttribute('aria-label',`Relative pipeline time for ${definition.title}`); track.setAttribute('aria-valuemin','0'); track.setAttribute('aria-valuemax','100');
+    const bar = node('div','case-bar' + (!result ? ' no-result' : ''));
+    const latestRows = Array.from(state.latestByScenario.values()).filter(x => Number.isFinite(x.tracefuse_pipeline_ms));
+    const maximum = latestRows.length ? Math.max(...latestRows.map(x => x.tracefuse_pipeline_ms),0.001) : 0;
+    const width = result && maximum ? Math.min(100,(result.tracefuse_pipeline_ms/maximum)*100) : 0;
+    bar.style.width = `${width}%`; track.setAttribute('aria-valuenow',String(Math.round(width))); track.append(bar); resultBlock.append(track);
+    resultBlock.append(node('p','case-scale',result ? `${width.toFixed(1)}% of the slowest result currently displayed` : 'Run this scenario to measure its processing time.'));
+    const actions = node('div','case-card-actions');
+    const run = node('button','btn','Run this scenario'); run.type='button'; run.dataset.runScenario=definition.scenario_id; run.disabled=state.busy; run.addEventListener('click',()=>runBenchmark(definition.scenario_id)); actions.append(run);
+    resultBlock.append(actions); card.append(resultBlock);
+    if (result && result.checks) {
+      const checks = node('div','checks');
+      for (const [key, check] of Object.entries(result.checks)) {
+        if (!check || typeof check.passed !== 'boolean') continue;
+        const label = checkLabels[key] || key.replaceAll('_',' ');
+        let suffix = check.passed ? 'PASS' : 'REVIEW';
+        if (key === 'event_count') suffix = `${check.actual} / ${check.expected}`;
+        else if (key === 'required_indicators') suffix = check.passed ? `${check.expected_count} found` : `${check.missing?.length || 0} missing`;
+        checks.append(createCheckRow(label,check.passed,suffix));
+      }
+      card.append(checks);
+      const details = document.createElement('details'); details.className='details';
+      const summary = node('summary','','Inspect expected vs observed output'); details.append(summary);
+      const detailGrid = node('div','detail-grid');
+      const expectedBox = node('div','detail-box'); expectedBox.append(node('h4','','Expected action counts'));
+      const expectedList = node('pre','',JSON.stringify(result.expected_action_counts || {},null,2)); expectedBox.append(expectedList);
+      const observedBox = node('div','detail-box'); observedBox.append(node('h4','','Observed action counts'));
+      const observedList = node('pre','',JSON.stringify(result.actual_action_counts || {},null,2)); observedBox.append(observedList);
+      detailGrid.append(expectedBox,observedBox); details.append(detailGrid);
+      const timelineBox = node('div','detail-box'); timelineBox.style.marginTop='10px'; timelineBox.append(node('h4','','Normalized timeline comparison'));
+      const timelineWrap = node('div','', 'Expected and observed timestamp/action sequences; no raw evidence lines are included in this report.'); timelineWrap.style.color='var(--muted)'; timelineWrap.style.fontSize='13px'; timelineWrap.style.marginBottom='8px'; timelineBox.append(timelineWrap);
+      const expectedTimeline = node('pre','',JSON.stringify(result.expected_timeline || [],null,2));
+      const actualTimeline = node('pre','',JSON.stringify(result.actual_timeline || [],null,2));
+      timelineBox.append(node('h4','','Expected'),expectedTimeline,node('h4','','Observed'),actualTimeline); details.append(timelineBox);
+      card.append(details);
+    }
+    return card;
+  }
+  function renderScenarioGrid() {
+    const grid=$('scenarioGrid'); grid.replaceChildren();
+    for (const definition of state.catalog) grid.append(renderScenarioCard(definition,state.latestByScenario.get(definition.scenario_id) || null));
+  }
+  function updateSummary(data) {
+    const scenarios=data.scenarios || [];
+    const measured=scenarios.filter(s=>Number.isFinite(s.tracefuse_pipeline_ms));
+    const total=measured.reduce((sum,s)=>sum+s.tracefuse_pipeline_ms,0);
+    const passed=scenarios.filter(s=>s.passed===true).length;
+    $('metricCases').textContent=`${measured.length} / ${scenarios.length || 0}`;
+    $('metricCasesSub').textContent=data.scope==='full-suite'?'Full synthetic suite':'Selected synthetic scenario';
+    $('metricTotal').textContent=measured.length?fmtMs(total):'—';
+    $('metricMean').textContent=measured.length?fmtMs(total/measured.length):'—';
+    $('metricPassed').textContent=measured.length?`${passed} / ${measured.length}`:'—';
+    $('metricPassedSub').textContent=measured.length?'All checks must pass for a scenario to pass':'Validation has not run';
+    return {measured,total,passed};
+  }
+  function runScopeKey(data) {
+    return `${data.scope}:${(data.scenarios||[]).map(s=>s.scenario_id).sort().join(',')}`;
+  }
+  function renderHistory() {
+    const history=historyRead(), list=$('historyList'); list.replaceChildren();
+    if (!history.length) { list.append(node('div','history-empty','No runs recorded in this browser yet.')); return; }
+    for (const run of history) {
+      const row=node('div','history-row');
+      const titleCol=node('div','history-col'); titleCol.append(node('div','history-title',run.label)); titleCol.append(node('div','history-date',when(run.at))); row.append(titleCol);
+      const timeCol=node('div','history-col'); timeCol.append(node('div','history-value',fmtMs(run.total_ms))); timeCol.append(node('span','history-sub','sum of pipeline times')); row.append(timeCol);
+      const checkCol=node('div','history-col'); checkCol.append(node('div','history-value',`${run.passed}/${run.count}`)); checkCol.append(node('span','history-sub','scenarios passed')); row.append(checkCol);
+      const scopeCol=node('div','history-col'); scopeCol.append(node('div','history-value',run.scope==='full-suite'?'Full suite':'Single case')); scopeCol.append(node('span','history-sub',run.scenario_ids.join(', '))); row.append(scopeCol);
+      list.append(row);
+    }
+  }
+  function recordRun(data, totals) {
+    const scopeKey=runScopeKey(data), old=historyRead();
+    const comparable=old.find(item=>item.scope_key===scopeKey);
+    const current={at:new Date().toISOString(),scope:data.scope,scope_key:scopeKey,label:data.scope==='full-suite'?'Full synthetic suite':`Single case · ${data.scenarios[0]?.title || 'unknown scenario'}`,scenario_ids:data.scenarios.map(s=>s.scenario_id),total_ms:Number(totals.total.toFixed(3)),passed:totals.passed,count:totals.measured.length};
+    const saved=historyWrite([current,...old]);
+    renderHistory();
+    if (comparable) {
+      const delta=current.total_ms-comparable.total_ms;
+      const direction=Math.abs(delta)<.001?'essentially unchanged':`${fmtMs(Math.abs(delta))} ${delta>0?'longer':'shorter'}`;
+      setStatus('success',`Run complete: ${current.count} scenario(s), ${current.passed} passed. The sum of measured processing times is ${fmtMs(current.total_ms)}; compared with the previous matching run, it was ${direction}. Runtime variation alone does not establish a code improvement.` + (saved?'':' Browser storage is unavailable, so this run was not saved to local history.'));
+    } else {
+      setStatus('success',`Run complete: ${current.count} scenario(s), ${current.passed} passed. Sum of measured pipeline intervals: ${fmtMs(current.total_ms)}.` + (saved?'':' Browser storage is unavailable, so this run was not saved to local history.'));
+    }
+  }
+  async function runBenchmark(scenarioId=null) {
+    if (state.busy) return;
+    setBusy(true);
+    setStatus('running',scenarioId ? 'Preparing one synthetic incident in a temporary workspace…' : 'Preparing the three synthetic incidents in a temporary workspace…');
+    try {
+      const url='/api/benchmark'+(scenarioId?'?scenario='+encodeURIComponent(scenarioId):'');
+      const data=await request(url);
+      if (!Array.isArray(data.scenarios) || !data.scenarios.length) throw new Error('The benchmark returned no scenario results.');
+      // Cards always reflect the latest run scope. If one scenario is run, prior
+      // results for unrelated scenarios must not look like part of that run.
+      state.latestByScenario.clear();
+      for (const result of data.scenarios) state.latestByScenario.set(result.scenario_id,result);
+      renderScenarioGrid();
+      const totals=updateSummary(data);
+      recordRun(data,totals);
+      if (!data.scenarios.every(s=>s.synthetic_data===true)) setStatus('error','The engine test did not identify all returned inputs as synthetic. Review this server response before presenting it.');
+    } catch (error) {
+      setStatus('error',`The engine test failed: ${error.message}`);
+    } finally {
+      setBusy(false);
+      $('runSelected').disabled=!$('scenarioSelect').value;
+      renderScenarioGrid();
+    }
+  }
+  async function initialise() {
+    try {
+      const data=await request('/api/benchmark/scenarios');
+      state.catalog=Array.isArray(data.scenarios)?data.scenarios:[];
+      if (!state.catalog.length) throw new Error('The server returned no scenario definitions.');
+      populateSelect(); renderScenarioGrid();
+      setStatus('success','Ready. Choose the full suite or run one scenario. Every test uses disposable synthetic inputs and validates the generated output after the timed processing interval.');
+    } catch(error) {
+      setStatus('error',`Could not load the scenario catalogue: ${error.message}`);
+      $('scenarioGrid').replaceChildren(node('div','history-empty','Scenario definitions are unavailable. Check the local TRACEFUSE server and reload this page.'));
+    }
+    renderHistory();
+  }
+  $('runSuite').addEventListener('click',()=>runBenchmark());
+  $('runSelected').addEventListener('click',()=>{const id=$('scenarioSelect').value;if(id)runBenchmark(id);});
+  $('scenarioSelect').addEventListener('change',()=>{$('runSelected').disabled=state.busy||!$('scenarioSelect').value;});
+  $('clearHistory').addEventListener('click',()=>{try{localStorage.removeItem(HISTORY_KEY);}catch{}renderHistory();setStatus('', 'Local run history cleared. No case evidence or engine data was changed.');});
+  initialise();
+})();
+</script>
+</body>
+</html>

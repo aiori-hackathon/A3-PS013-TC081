@@ -11,8 +11,9 @@ import json
 import os
 import shutil
 import stat
+import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from .evidence import Case, collect, verify
 from .pipeline import build_timeline
@@ -117,8 +118,25 @@ def _remove_readonly(func: Any, path: str, _exc: Any) -> None:
     func(path)
 
 
-def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
-    """Write input logs, expected results, and parsed, ready-to-open demo cases."""
+def create_demo_cases(
+    output_dir: str | Path,
+    scenario_ids: Iterable[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Run all synthetic scenarios, or a selected subset, in an isolated output folder.
+
+    Each selected scenario is deterministic and independent. The elapsed time covers
+    synthetic input preparation, evidence collection/hash, and normalized timeline
+    construction; validation checks are evaluated after timing stops.
+    """
+    if scenario_ids is None:
+        selected_ids = list(SCENARIOS)
+    else:
+        selected_ids = list(dict.fromkeys(scenario_ids))
+        if not selected_ids:
+            raise ValueError("at least one scenario_id must be selected")
+        unknown = [scenario_id for scenario_id in selected_ids if scenario_id not in SCENARIOS]
+        if unknown:
+            raise ValueError(f"unknown scenario_id: {unknown[0]}")
     root = Path(output_dir).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     manifest = {
@@ -129,7 +147,10 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
     }
     results: list[dict[str, Any]] = []
 
-    for scenario_id, spec in SCENARIOS.items():
+    for scenario_id in selected_ids:
+        spec = SCENARIOS[scenario_id]
+        # Measures the synthetic evidence-to-timeline workflow, not analyst triage time.
+        scenario_started = time.perf_counter()
         scenario_dir = root / scenario_id
         inputs_dir = scenario_dir / "inputs"
         case_dir = scenario_dir / "case"
@@ -161,6 +182,7 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
                     allow_duplicate=True)
 
         build = build_timeline(case, actor="tracefuse-synthetic-demo")
+        tracefuse_elapsed_ms = (time.perf_counter() - scenario_started) * 1000.0
         event_dicts = [event.to_dict() for event in build.events]
         actions = [event.action for event in build.events]
         actual_timeline = [{"ts_utc": event.to_dict()["ts_utc"], "action": event.action} for event in build.events]
@@ -168,29 +190,62 @@ def create_demo_cases(output_dir: str | Path) -> list[dict[str, Any]]:
         for action in actions:
             counts[action] = counts.get(action, 0) + 1
         all_text = "\n".join(event.raw_line for event in build.events)
-        passed = (len(event_dicts) == expected["event_count"] and actions == expected["ordered_actions"]
-                  and counts == expected["action_counts"] and actual_timeline == expected["expected_timeline"])
-        for phrase in expected.get("must_include", []):
-            passed = passed and phrase in all_text
+        missing_indicators = [phrase for phrase in expected.get("must_include", []) if phrase not in all_text]
+        statuses = [event.extra.get("status") for event in build.events if event.action == "http_request"]
+        checks: dict[str, dict[str, Any]] = {
+            "event_count": {
+                "passed": len(event_dicts) == expected["event_count"],
+                "expected": expected["event_count"], "actual": len(event_dicts),
+            },
+            "action_sequence": {
+                "passed": actions == expected["ordered_actions"],
+                "expected": expected["ordered_actions"], "actual": actions,
+            },
+            "action_counts": {
+                "passed": counts == expected["action_counts"],
+                "expected": expected["action_counts"], "actual": counts,
+            },
+            "expected_timeline": {
+                "passed": actual_timeline == expected["expected_timeline"],
+                "expected_events": len(expected["expected_timeline"]),
+                "matching": actual_timeline == expected["expected_timeline"],
+            },
+            "required_indicators": {
+                "passed": not missing_indicators,
+                "expected_count": len(expected.get("must_include", [])),
+                "missing": missing_indicators,
+            },
+        }
         if "http_statuses" in expected:
-            statuses = [event.extra.get("status") for event in build.events if event.action == "http_request"]
-            passed = passed and statuses == expected["http_statuses"]
+            checks["http_statuses"] = {
+                "passed": statuses == expected["http_statuses"],
+                "expected": expected["http_statuses"], "actual": statuses,
+            }
+        integrity_ok = verify(case, record=False).ok
+        checks["evidence_integrity"] = {"passed": integrity_ok}
+        passed = all(check_result["passed"] for check_result in checks.values())
 
         check = {
             "scenario_id": scenario_id,
             "title": spec["title"],
+            "description": spec["description"],
+            "host": spec["host"],
+            "input_files": list(spec["logs"]),
+            "source_count": len(spec["logs"]),
+            "expected_event_count": expected["event_count"],
             "case_path": str(case_dir),
             "inputs_path": str(inputs_dir),
             "event_count": len(event_dicts),
             "gap_count": build.summary["gaps"],
+            "tracefuse_elapsed_ms": round(tracefuse_elapsed_ms, 3),
             "actual_action_counts": counts,
             "expected_action_counts": expected["action_counts"],
             "actual_timeline": actual_timeline,
             "expected_timeline": expected["expected_timeline"],
+            "checks": checks,
             "passed": bool(passed),
-            "integrity_ok": verify(case, record=False).ok,
+            "integrity_ok": integrity_ok,
         }
-        check["passed"] = check["passed"] and check["integrity_ok"]
         (scenario_dir / "run-result.json").write_text(json.dumps(check, indent=2) + "\n", encoding="utf-8")
         results.append(check)
         manifest["scenarios"].append({"scenario_id": scenario_id, "title": spec["title"], "case_path": f"{scenario_id}/case", "inputs_path": f"{scenario_id}/inputs", "expected_path": f"{scenario_id}/expected.json", "run_result_path": f"{scenario_id}/run-result.json", "passed": check["passed"]})
