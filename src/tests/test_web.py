@@ -229,3 +229,61 @@ def test_serving_a_folder_of_cases_switches_with_the_case_parameter(tmp_path: Pa
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_engine_validation_page_and_scenario_catalog(tmp_path: Path) -> None:
+    create_demo_cases(tmp_path / "demos")
+    case_path = tmp_path / "demos" / "01-brute-force-to-sudo" / "case"
+    server, thread, base = _serve({"case_root": case_path.resolve()})
+    try:
+        with urlopen(base + "/engine-test") as response:
+            page = response.read().decode("utf-8")
+            assert response.headers.get_content_type() == "text/html"
+        assert "Engine Validation Lab" in page
+        assert "Run full suite" in page
+        assert "Run selected case" in page
+        assert "Recent runs" in page
+
+        catalogue = _get(base + "/api/benchmark/scenarios")
+        assert catalogue["synthetic_data"] is True
+        assert len(catalogue["scenarios"]) == 3
+        assert catalogue["scenarios"][0]["input_files"] == ["auth.log"]
+        assert catalogue["scenarios"][1]["expected_event_count"] == 8
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_benchmark_endpoint_supports_full_suite_and_single_scenario(tmp_path: Path) -> None:
+    create_demo_cases(tmp_path / "demos")
+    case_path = tmp_path / "demos" / "01-brute-force-to-sudo" / "case"
+    server, thread, base = _serve({"case_root": case_path.resolve()})
+    try:
+        full = _get(base + "/api/benchmark")
+        assert full["scope"] == "full-suite"
+        assert len(full["scenarios"]) == 3
+        assert all(result["synthetic_data"] is True for result in full["scenarios"])
+        assert all(result["integrity_ok"] is True for result in full["scenarios"])
+        assert all(result["passed"] is True for result in full["scenarios"])
+        for result in full["scenarios"]:
+            assert result["tracefuse_pipeline_ms"] >= 0
+            assert result["checks"]["expected_timeline"]["passed"] is True
+            assert result["checks"]["evidence_integrity"]["passed"] is True
+            assert "case_path" not in result and "inputs_path" not in result
+
+        one = _get(base + "/api/benchmark?scenario=03-account-persistence")
+        assert one["scope"] == "single-scenario"
+        assert len(one["scenarios"]) == 1
+        assert one["scenarios"][0]["scenario_id"] == "03-account-persistence"
+        assert one["scenarios"][0]["input_files"] == ["auth.log"]
+
+        try:
+            urlopen(base + "/api/benchmark?scenario=invalid-scenario")
+            assert False, "expected HTTP 400 for unknown scenario"
+        except HTTPError as exc:
+            assert exc.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
