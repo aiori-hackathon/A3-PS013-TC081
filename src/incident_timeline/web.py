@@ -13,7 +13,7 @@ from typing import Any
 from .evidence import Case, EvidenceError, check_source, verify, verify_chain
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
-from .parsers import read_lines
+from .time_analysis import build_time_analysis
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -114,16 +114,15 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             evidence_path.relative_to(self.case.root.resolve())
         except ValueError as exc:
             raise EvidenceError("Evidence path escaped the case directory; refusing to read it") from exc
-        # Read lines exactly as the parser did (same .gz handling, line splitting
-        # and decoding) so line N here is the line N the event cites.
-        for current, line in read_lines(evidence_path):
-            if current == line_no:
-                return {
-                    "source_id": sid, "source_file": source.get("original_name"),
-                    "line_no": line_no, "raw_line": line,
-                    "file_sha256": collect_record.get("sha256"),
-                    "integrity_verified": True,
-                }
+        with evidence_path.open("r", encoding="utf-8", errors="replace") as fh:
+            for current, line in enumerate(fh, start=1):
+                if current == line_no:
+                    return {
+                        "source_id": sid, "source_file": source.get("original_name"),
+                        "line_no": line_no, "raw_line": line.rstrip("\r\n"),
+                        "file_sha256": collect_record.get("sha256"),
+                        "integrity_verified": True,
+                    }
         raise ValueError(f"line {line_no} does not exist in evidence source {sid}")
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler contract
@@ -134,8 +133,105 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 html_path = Path(__file__).with_name("dashboard.html")
                 self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
                 return
+            if url.path in ("/engine-test", "/engine-test/"):
+                html_path = Path(__file__).with_name("engine_test.html")
+                if not html_path.is_file():
+                    raise FileNotFoundError("engine_test.html is missing from the incident_timeline package")
+                self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
+                return
+            if url.path == "/api/benchmark/scenarios":
+                from .scenarios import SCENARIOS
+                catalog = [{
+                    "scenario_id": scenario_id,
+                    "title": spec["title"],
+                    "description": spec["description"],
+                    "host": spec["host"],
+                    "input_files": list(spec["logs"]),
+                    "source_count": len(spec["logs"]),
+                    "expected_event_count": spec["expected"]["event_count"],
+                    "expected_actions": spec["expected"]["ordered_actions"],
+                    "required_indicator_count": len(spec["expected"].get("must_include", [])),
+                    "expected_http_statuses": spec["expected"].get("http_statuses"),
+                    "synthetic_data": True,
+                } for scenario_id, spec in SCENARIOS.items()]
+                self._send(200, _json_bytes({
+                    "synthetic_data": True,
+                    "important": "These are controlled synthetic scenarios, not real incident evidence.",
+                    "scenarios": catalog,
+                }))
+                return
             if url.path == "/api/summary":
                 self._send(200, _json_bytes(self._summary()))
+                return
+            if url.path == "/api/time-analysis":
+                # Read-only diagnostics. Clock-offset previews are computed in memory;
+                # this endpoint never updates case metadata, normalized events, or custody.
+                try:
+                    limit = min(max(int((params.get("limit") or ["100"])[0]), 1), 200)
+                    offset = max(int((params.get("offset") or ["0"])[0]), 0)
+                except ValueError as exc:
+                    raise ValueError("limit and offset must be integers") from exc
+                source_filter = (params.get("source_id") or [""])[0] or None
+                issues_only_text = (params.get("issues_only") or ["0"])[0].strip().lower()
+                if issues_only_text not in ("0", "1", "true", "false", "yes", "no"):
+                    raise ValueError("issues_only must be a boolean value")
+                issues_only = issues_only_text in ("1", "true", "yes")
+                preview_source_id = (params.get("preview_source_id") or [""])[0] or None
+                preview_offset_text = (params.get("preview_offset_s") or [""])[0]
+                preview_offset_s = None
+                if preview_offset_text != "":
+                    try:
+                        preview_offset_s = float(preview_offset_text)
+                    except ValueError as exc:
+                        raise ValueError("preview_offset_s must be a finite number") from exc
+                event_path = self.case.output_dir / "events.jsonl"
+                if not event_path.is_file():
+                    self._events()  # raise the standard, actionable missing-timeline error
+                report = build_time_analysis(
+                    self.case, list(load_events(event_path)), limit=limit, offset=offset,
+                    source_filter=source_filter, issues_only=issues_only,
+                    preview_source_id=preview_source_id, preview_offset_s=preview_offset_s,
+                )
+                self._send(200, _json_bytes(report))
+                return
+            if url.path == "/api/benchmark":
+                # Runs use disposable synthetic case folders. Never touch the active case.
+                from .scenarios import SCENARIOS, create_demo_cases
+                scenario_filter = (params.get("scenario") or [""])[0].strip()
+                if scenario_filter and scenario_filter not in SCENARIOS:
+                    raise ValueError(f"unknown scenario_id: {scenario_filter}")
+                selected = [scenario_filter] if scenario_filter else None
+                with tempfile.TemporaryDirectory(prefix="tracefuse-benchmark-") as tmp_dir:
+                    results = create_demo_cases(Path(tmp_dir) / "scenarios", scenario_ids=selected)
+                scenarios = []
+                for result in results:
+                    spec = SCENARIOS[result["scenario_id"]]
+                    scenarios.append({
+                        "scenario_id": result["scenario_id"],
+                        "title": result["title"],
+                        "description": result["description"],
+                        "host": result["host"],
+                        "input_files": result["input_files"],
+                        "source_count": result["source_count"],
+                        "expected_event_count": result["expected_event_count"],
+                        "events": result["event_count"],
+                        "gaps": result["gap_count"],
+                        "tracefuse_pipeline_ms": result["tracefuse_elapsed_ms"],
+                        "integrity_ok": result["integrity_ok"],
+                        "checks": result["checks"],
+                        "expected_action_counts": result["expected_action_counts"],
+                        "actual_action_counts": result["actual_action_counts"],
+                        "expected_timeline": result["expected_timeline"],
+                        "actual_timeline": result["actual_timeline"],
+                        "passed": result["passed"],
+                        "synthetic_data": True,
+                    })
+                self._send(200, _json_bytes({
+                    "scope": "single-scenario" if scenario_filter else "full-suite",
+                    "method": "Per-case wall-clock measurement from synthetic input preparation and evidence collection/hash through normalized timeline construction. Expected-output and integrity validation run after the timed processing interval.",
+                    "note": "Machine processing time is not human triage time. The run uses temporary synthetic cases and does not alter the active investigation or its evidence.",
+                    "scenarios": scenarios,
+                }))
                 return
             if url.path == "/api/events":
                 all_events = filter_event_dicts(self._events(), self._filters(params))
