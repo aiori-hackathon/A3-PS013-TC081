@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import gzip
 import tempfile
 import sys
 import re
@@ -20,6 +21,7 @@ from .exports import export_json, export_pdf, filter_event_dicts, load_case_expo
 from .models import load_events
 from .time_analysis import build_time_analysis
 from .pipeline import build_timeline
+from .findings import detect as detect_findings, entities as summarize_entities
 
 def resolve_app_case(cases_root: Path, case_id: str) -> Path:
     """Resolve uploaded cases and synthetic demo cases safely."""
@@ -54,6 +56,25 @@ def resolve_app_case(cases_root: Path, case_id: str) -> Path:
 
     raise FileNotFoundError("Investigation not found")
 
+
+def discover_cases(cases_root: Path | str) -> dict[str, Path]:
+    """Return valid case directories under a root, keyed by their folder name."""
+    root = Path(cases_root).expanduser().resolve()
+    found: dict[str, Path] = {}
+    if not root.is_dir():
+        return found
+    for case_file in sorted(root.glob("*/case.json")):
+        candidate = case_file.parent.resolve()
+        if candidate.parent == root:
+            found[candidate.name] = candidate
+    # Demo/test cases are stored as <root>/<scenario>/case/case.json.
+    for case_file in sorted(root.glob("*/case/case.json")):
+        candidate = case_file.parent.resolve()
+        if candidate.is_relative_to(root):
+            found[candidate.parent.name] = candidate
+    return found
+
+
 def _json_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False).encode("utf-8")
 
@@ -63,6 +84,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
 
     case_root: Path
     cases_root: Path | None = None
+    case_roots: dict[str, Path] | None = None
     app_mode: bool = False
 
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -71,6 +93,13 @@ class TracefuseHandler(BaseHTTPRequestHandler):
 
     @property
     def case(self) -> Case:
+        params = parse_qs(urlsplit(self.path).query)
+        selected = (params.get("case") or [""])[0]
+        if self.case_roots is not None and selected:
+            root = self.case_roots.get(selected)
+            if root is None:
+                raise FileNotFoundError("Investigation not found")
+            return Case.open(root)
         if self.app_mode:
             params = parse_qs(urlsplit(self.path).query)
             case_id = (params.get("case") or [""])[0]
@@ -165,16 +194,29 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             evidence_path.relative_to(self.case.root.resolve())
         except ValueError as exc:
             raise EvidenceError("Evidence path escaped the case directory; refusing to read it") from exc
-        with evidence_path.open("r", encoding="utf-8", errors="replace") as fh:
-            for current, line in enumerate(fh, start=1):
-                if current == line_no:
-                    return {
-                        "source_id": sid, "source_file": source.get("original_name"),
-                        "line_no": line_no, "raw_line": line.rstrip("\r\n"),
-                        "file_sha256": collect_record.get("sha256"),
-                        "integrity_verified": True,
-                    }
-        raise ValueError(f"line {line_no} does not exist in evidence source {sid}")
+        # Verify the collected bytes above before decoding. Gzip evidence is
+        # stored compressed (its hash must remain the hash of those exact bytes),
+        # but the viewer must display the same logical lines the parser saw.
+        try:
+            if evidence_path.suffix.lower() == ".gz":
+                with gzip.open(evidence_path, "rb") as fh:
+                    content = fh.read()
+            else:
+                content = evidence_path.read_bytes()
+        except (OSError, EOFError) as exc:
+            raise EvidenceError(f"Could not read collected evidence for {sid}: {exc}") from exc
+        lines = content.split(b"\n")
+        if lines and lines[-1] == b"":
+            lines.pop()
+        lines = [line[:-1] if line.endswith(b"\r") else line for line in lines]
+        if line_no > len(lines):
+            raise ValueError(f"line {line_no} does not exist in evidence source {sid}")
+        return {
+            "source_id": sid, "source_file": source.get("original_name"),
+            "line_no": line_no, "raw_line": lines[line_no - 1].decode("utf-8", errors="replace"),
+            "file_sha256": collect_record.get("sha256"),
+            "integrity_verified": True,
+        }
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler contract
         url = urlsplit(self.path)
@@ -270,7 +312,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 if not self.app_mode or case_dir.parent != self.cases_root.resolve() or not (case_dir / "case.json").is_file():
                     self._fail(404, "Investigation not found"); return
                 html_path = Path(__file__).with_name("dashboard.html")
-                case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const u=new URL(typeof input==="string"?input:input.url,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
+                case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const target=(typeof input==="string"||input instanceof URL)?input.toString():input.url;const u=new URL(target,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
                 html = html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>")
                 self._send(200, html.encode("utf-8"), "text/html; charset=utf-8"); return
             if self.app_mode and url.path == "/demo":
@@ -391,8 +433,49 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                     "scenarios": scenarios,
                 }))
                 return
+            if url.path == "/api/cases":
+                roots = self.case_roots or discover_cases(self.cases_root or self.case_root)
+                self._send(200, _json_bytes({"cases": [{"id": name, "path": str(path)} for name, path in roots.items()]}))
+                return
+            if url.path == "/api/insights":
+                events = self._events()
+                findings = detect_findings(events)
+                activity = [{"ts_utc": e.get("ts_utc"), "count": 1, "event_id": e.get("event_id"), "action": e.get("action")} for e in events]
+                self._send(200, _json_bytes({"findings": findings, "entities": summarize_entities(events), "activity": {"points": activity, "sampled": False}}))
+                return
+            if url.path == "/api/custody":
+                records = self.case.read_custody()
+                chain_errors = verify_chain(self.case)
+                previous = "0" * 64
+                rendered = []
+                from .evidence import _record_hash
+                for i, record in enumerate(records, start=1):
+                    errors = []
+                    if record.get("seq") != i: errors.append("sequence number mismatch")
+                    if record.get("prev_sha256") != previous: errors.append("link to previous record is broken")
+                    if _record_hash(record) != record.get("record_sha256"): errors.append("contents do not match its hash")
+                    fields = {k: v for k, v in record.items() if k not in {"seq", "ts_utc", "action", "actor", "tool", "prev_sha256", "record_sha256"} and k != "original_path"}
+                    rendered.append({"seq": i, "ts_utc": record.get("ts_utc"), "action": record.get("action"), "actor": record.get("actor"), "fields": fields, "ok": not errors, "errors": errors})
+                    previous = record.get("record_sha256", "")
+                self._send(200, _json_bytes({"chain_ok": not chain_errors, "errors": chain_errors, "records": rendered}))
+                return
+            if url.path == "/api/gaps":
+                try:
+                    limit = min(max(int((params.get("limit") or ["100"])[0]), 1), 500)
+                    offset = max(int((params.get("offset") or ["0"])[0]), 0)
+                except ValueError as exc:
+                    raise ValueError("limit and offset must be integers") from exc
+                gap_path = self.case.output_dir / "gaps.jsonl"
+                gaps = [json.loads(line) for line in gap_path.read_text(encoding="utf-8").splitlines() if line.strip()] if gap_path.is_file() else []
+                self._send(200, _json_bytes({"gaps": gaps[offset:offset + limit], "total": len(gaps), "offset": offset, "limit": limit}))
+                return
             if url.path == "/api/events":
                 all_events = filter_event_dicts(self._events(), self._filters(params))
+                requested_ids = (params.get("ids") or [""])[0]
+                if requested_ids:
+                    wanted = set(requested_ids.split(","))
+                    all_events = [e for e in all_events if e.get("event_id") in wanted]
+                    all_events.sort(key=lambda e: requested_ids.split(",").index(e.get("event_id")))
                 try:
                     limit = min(max(int((params.get("limit") or ["50"])[0]), 1), 500)
                     offset = max(int((params.get("offset") or ["0"])[0]), 0)
@@ -405,6 +488,14 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 return
             if url.path == "/export/events.json":
                 report = load_case_export(self.case.root, self._filters(params))
+                requested_ids = (params.get("ids") or [""])[0]
+                if requested_ids:
+                    wanted = set(requested_ids.split(","))
+                    full_events = self._events()
+                    full_findings = detect_findings(full_events)
+                    report["events"] = [e for e in report["events"] if e.get("event_id") in wanted]
+                    report["findings"] = [f for f in full_findings
+                                           if wanted.intersection(f.get("event_ids", []))]
                 filename = f"tracefuse-{safe_case_filename(str(report['case_id']))}-timeline.json"
                 self._send(200, _json_bytes(report), "application/json; charset=utf-8", filename)
                 return
@@ -421,7 +512,8 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         except EvidenceError as exc:
             self._fail(409, str(exc))
         except FileNotFoundError as exc:
-            self._fail(404, str(exc))
+            status = 400 if "case" in url.query.lower() else 404
+            self._fail(status, str(exc))
         except RuntimeError as exc:
             self._fail(501, str(exc))
         except Exception as exc:  # prevent tracebacks from being rendered to remote clients
