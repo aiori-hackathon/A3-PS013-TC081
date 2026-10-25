@@ -1295,12 +1295,25 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
     for (const id of filters) { const v = $(id).value; if (v) p.set(id, id === 'start' || id === 'end' ? new Date(v).toISOString() : v); }
     return p;
   }
-  function setExportLinks() { const q = apiFilters().toString(); $('jsonExport').href='/export/events.json'+(q?'?'+q:''); $('pdfExport').href='/export/report.pdf'+(q?'?'+q:''); }
+
+function setExportLinks() {
+  const params = apiFilters();
+  const caseMatch = window.location.pathname.match(/\/case\/(CASE-[a-f0-9]{12})/i);
+
+  if (caseMatch) {
+    params.set('case', caseMatch[1]);
+  }
+
+  const query = params.toString();
+  $('jsonExport').href = '/export/events.json' + (query ? '?' + query : '');
+  $('pdfExport').href = '/export/report.pdf' + (query ? '?' + query : '');
+}
   function addOptions(id, values, firstLabel) {
     const el = $(id), selected = el.value; el.replaceChildren(new Option(firstLabel,''));
     for (const value of values) el.add(new Option(value, value));
     if ([...el.options].some(o => o.value === selected)) el.value = selected;
   }
+  
   function fmtTime(s) { if(!s) return 'Time unavailable'; try{return new Date(s).toLocaleString(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'UTC'})+' UTC';}catch{return s;} }
   function text(tag, value, cls) { const el=document.createElement(tag); if(cls)el.className=cls; el.textContent=value==null||value===''?'-':String(value); return el; }
   // Reveal dashboard sections and dynamically rendered evidence/scenario rows only when they enter view.
