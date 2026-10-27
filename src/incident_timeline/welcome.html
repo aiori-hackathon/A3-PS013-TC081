@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#11140f"><title>TRACEFUSE — Start an investigation</title>
+<link rel="stylesheet" href="/welcome.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+</head>
+<body>
+<div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+<header class="topbar"><a class="brand" href="/" aria-label="TRACEFUSE home"><span class="brand-mark">✳</span> TRACEFUSE</a><span class="local-pill"><i></i> LOCAL INVESTIGATION WORKSPACE</span></header>
+<main class="wrap">
+<section class="hero" aria-labelledby="hero-title">
+<p class="eyebrow intro">EVIDENCE-PRESERVING INCIDENT RECONSTRUCTION</p>
+<h1 id="hero-title" class="intro">Make sense of the <span>evidence.</span><br>Reconstruct the incident.</h1>
+<p class="lede intro">Bring your own logs into a structured investigation, or explore TRACEFUSE with controlled synthetic scenarios. Your workflow starts here.</p>
+<div class="choice-grid">
+<article class="choice upload-choice intro">
+<div class="choice-top"><span class="icon-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg></span><span class="step">01 / INVESTIGATE</span></div>
+<h2>Use your own evidence</h2><p>Upload supported activity logs. TRACEFUSE will preserve the original bytes, record hashes, parse the sources, and build a normalized timeline.</p>
+<ul class="benefits"><li>Multiple log files per case</li><li>Per-source format and timezone settings</li><li>Original evidence kept separate from results</li></ul>
+<button id="open-upload" class="button button-primary" type="button">Start an investigation <span>↗</span></button>
+</article>
+<article class="choice demo-choice intro">
+<div class="choice-top"><span class="icon-tile icon-outline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21zM4 5.5V21m4-13h8m-8 4h8"/></svg></span><span class="step">02 / EXPLORE</span></div>
+<h2>Test the engine</h2><p>Explore synthetic security incidents, inspect reconstructed events, and see how the engine validates expected timelines—without using real incident data.</p>
+<ul class="benefits"><li>Brute-force login and privileged access</li><li>Web exploit indicators and server access</li><li>Account creation and persistence</li></ul>
+<a class="button button-secondary" href="/engine-test">Open Engine Validation Lab <span>↗</span></a>
+<p class="fallback-link">Or <a href="/demo">open a demo investigation directly</a>.</p>
+</article>
+</div>
+<div class="trust-row intro"><span><b>01</b> Preserve originals</span><span><b>02</b> Normalize timestamps</span><span><b>03</b> Trace findings to evidence</span></div>
+</section>
+</main>
+<footer class="footer"><span>TRACEFUSE / FORENSIC WORKSPACE</span><span>Local demo mode · Synthetic data is clearly labelled</span></footer>
+<div id="upload-modal" class="modal" aria-hidden="true">
+<div class="modal-backdrop" data-close></div><section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+<div class="modal-head"><div><p class="eyebrow">NEW CASE</p><h2 id="upload-title">Bring in your evidence.</h2><p class="modal-lede">Choose the logs, then confirm how each source should be interpreted.</p></div><button type="button" class="close-button" data-close aria-label="Close upload form">×</button></div>
+<form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+<label class="field-label" for="case-name">Investigation name</label><input id="case-name" name="case_name" maxlength="100" placeholder="e.g. Web server incident — 24 Oct" required>
+<div class="source-picker"><label class="dropzone" for="log-files"><span class="drop-icon">↑</span><strong>Choose individual log files</strong><span>.log, .txt, .gz · 25 MB total</span><input id="log-files" type="file" multiple accept=".log,.txt,.gz"></label><div class="folder-picker"><span class="folder-copy"><strong>Or select an entire folder</strong><small>TRACEFUSE will include supported log files inside the folder and its subfolders.</small></span><button id="choose-folder" class="button button-secondary" type="button">Choose folder ↗</button><input id="log-folder" type="file" webkitdirectory directory multiple hidden></div></div>
+<div id="file-settings" class="file-settings" aria-live="polite"></div>
+<div class="upload-note"><span>◇</span><p>Files are copied into a case-specific evidence folder and hashed before parsing. This demo server is intended for local use; don't upload sensitive production logs to a publicly exposed instance.</p></div>
+<div class="form-actions"><button type="button" class="button button-secondary" data-close>Cancel</button><button type="submit" id="submit-upload" class="button button-primary">Preserve & build timeline <span>↗</span></button></div>
+<p id="upload-error" class="upload-error" role="alert"></p>
+</form></section></div>
+<script>
+(()=>{
+const modal=document.getElementById('upload-modal'), open=document.getElementById('open-upload'), input=document.getElementById('log-files'), folderInput=document.getElementById('log-folder'), chooseFolder=document.getElementById('choose-folder'), settings=document.getElementById('file-settings'), form=document.getElementById('upload-form'), error=document.getElementById('upload-error'), submit=document.getElementById('submit-upload');
+let selectedFiles=[];
+chooseFolder.addEventListener('click',()=>folderInput.click());
+function supported(file){return /\.(log|txt|gz)$/i.test(file.name)}
+function renderFiles(files){selectedFiles=files.filter(supported);settings.replaceChildren();if(!selectedFiles.length){error.textContent=files.length?'No supported .log, .txt, or .gz files were found in that selection.':'';return}if(selectedFiles.length<files.length){error.textContent=`Included ${selectedFiles.length} supported log file(s); skipped ${files.length-selectedFiles.length} other file(s).`}else{error.textContent=''}selectedFiles.forEach((file,i)=>{const row=document.createElement('div');row.className='file-row';const title=document.createElement('strong');title.textContent=file.webkitRelativePath||file.name;const size=document.createElement('span');size.textContent=(file.size/1024).toFixed(1)+' KB';const typeLabel=document.createElement('label');typeLabel.textContent='Log format';const type=document.createElement('select');type.name='type_'+i;type.required=true;[['auth','Linux authentication / syslog'],['syslog','System log (syslog)'],['access','Web access log (Nginx / Apache)'],['apache','Apache access log'],['nginx','Nginx access log']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;type.append(o)});if(/access|nginx|apache/i.test(file.name))type.value='access';const tzLabel=document.createElement('label');tzLabel.textContent='Source timezone';const tz=document.createElement('input');tz.name='tz_'+i;tz.placeholder='UTC, Asia/Kolkata, +05:30';tz.value='UTC';const hostLabel=document.createElement('label');hostLabel.textContent='Host (optional)';const host=document.createElement('input');host.name='host_'+i;host.placeholder='e.g. web01';row.append(title,size,typeLabel,type,tzLabel,tz,hostLabel,host);settings.append(row);const fileInput=document.createElement('input');fileInput.type='file';fileInput.name='file_'+i;fileInput.hidden=true;const dt=new DataTransfer();dt.items.add(file);fileInput.files=dt.files;row.append(fileInput)})}
+input.addEventListener('change',()=>{folderInput.value='';renderFiles([...input.files])});
+folderInput.addEventListener('change',()=>{input.value='';renderFiles([...folderInput.files])});
+function resetUploadForm(){
+  form.reset();
+  input.value='';
+  folderInput.value='';
+  selectedFiles=[];
+  settings.replaceChildren();
+  error.textContent='';
+  submit.disabled=false;
+  submit.innerHTML='Preserve & build timeline <span>↗</span>';
+}
+function close(){resetUploadForm();modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
+open.addEventListener('click',()=>{modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');document.getElementById('case-name').focus()});modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',close));document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+
+form.addEventListener('submit',e=>{e.preventDefault();error.textContent='';const files=selectedFiles;if(!files.length){error.textContent='Choose log files or select a folder containing supported logs.';return}if(files.reduce((n,f)=>n+f.size,0)>25*1024*1024){error.textContent='The combined upload must be 25 MB or less.';return}const data=new FormData(form);data.delete('log-files');submit.disabled=true;submit.textContent='Preserving evidence…';fetch('/upload',{method:'POST',body:data}).then(async r=>{if(r.redirected){location.href=r.url;return}const d=await r.json().catch(()=>({}));throw new Error(d.error||'Upload could not be processed')}).catch(err=>{error.textContent=err.message;submit.disabled=false;submit.innerHTML='Preserve & build timeline <span>↗</span>'})});
+window.addEventListener('load',()=>{const nodes=document.querySelectorAll('.intro');if(window.gsap){gsap.set(nodes,{y:22,opacity:0});gsap.to(nodes,{y:0,opacity:1,duration:.85,stagger:.12,ease:'power3.out',clearProps:'transform'});gsap.from('.brand-mark',{rotate:-90,scale:.4,duration:1,ease:'back.out(1.7)'});gsap.from('.ambient',{scale:.7,opacity:0,duration:1.4,stagger:.2,ease:'power2.out'});}else{nodes.forEach((el,i)=>{el.style.animationDelay=(i*.1)+'s';el.classList.add('fallback-reveal')})}});
+})();
+</script>
+</body></html>

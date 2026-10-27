@@ -421,6 +421,14 @@
     @media(max-width:1050px){.content{grid-template-columns:1fr}.side{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:720px){.topbar{padding-bottom:14px;margin-bottom:18px}.hero{gap:12px}.content{gap:12px}.timeline-panel{padding:13px}.bench-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bench-metric-highlight{grid-column:auto}.benchmark-intro h3{font-size:22px}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.tf-reveal-enabled .tf-reveal,.tf-reveal-enabled .tf-reveal.is-visible{opacity:1;transform:none;transition:none;animation:none}.btn,.smallbtn,.bench-timer,.stat,.panel,.event,.bench-control,.bench-metric{transition:none}}
+
+    /* Original evidence reference: clear provenance and accessible sizing. */
+    .evidence-reference{display:flex;align-items:center;flex-wrap:wrap;gap:7px 10px;margin-top:10px;padding:10px 12px;border:1px solid rgba(216,255,99,.22);border-radius:10px;background:rgba(216,255,99,.045);min-width:0}
+    .evidence-reference-label{font-size:12px;font-weight:800;line-height:1.5;color:var(--blue)}
+    .evidence-reference-source{font-size:11px;font-weight:650;color:var(--text);overflow-wrap:anywhere}
+    .evidence-reference-help{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--muted)}
+    .evidence-reference .evidence-btn{font-size:12px;padding:5px 8px;border:1px solid rgba(216,255,99,.25);border-radius:7px}
+    @media(max-width:720px){.evidence-reference{align-items:flex-start;flex-direction:column}.evidence-reference-label{font-size:13px}.evidence-reference-source,.evidence-reference-help{font-size:12px}}
   </style>
 <style>
     .bench-timerline{flex-wrap:wrap}
@@ -1155,6 +1163,24 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   @media(prefers-reduced-motion:reduce){.engine-test-cta-link{transition:none}.engine-test-cta-link:hover{transform:none}}
 </style>
 
+
+<style id="tracefuse-sidebar-layout-fix">
+  /* Give evidence metadata enough room to remain readable beside the timeline. */
+  @media (min-width: 1051px) {
+    .content { grid-template-columns: minmax(0, 1fr) minmax(330px, 360px); gap: 20px; }
+    .side { min-width: 0; }
+    .side .panel { min-width: 0; padding: 18px; }
+    .source { min-width: 0; }
+    .source-name { font-size: 13px; line-height: 1.45; }
+    .source-type { font-size: 12px; }
+    .hash { font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; word-break: break-word; }
+  }
+  @media (min-width: 1051px) and (max-width: 1240px) {
+    .content { grid-template-columns: minmax(0, 1fr) 330px; gap: 14px; }
+    .timeline-panel { padding: 16px; }
+    .side .panel { padding: 14px; }
+  }
+</style>
 </head>
 <body>
 <div class="shell">
@@ -1295,12 +1321,25 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
     for (const id of filters) { const v = $(id).value; if (v) p.set(id, id === 'start' || id === 'end' ? new Date(v).toISOString() : v); }
     return p;
   }
-  function setExportLinks() { const q = apiFilters().toString(); $('jsonExport').href='/export/events.json'+(q?'?'+q:''); $('pdfExport').href='/export/report.pdf'+(q?'?'+q:''); }
+
+function setExportLinks() {
+  const params = apiFilters();
+  const caseMatch = window.location.pathname.match(/\/case\/(CASE-[a-f0-9]{12})/i);
+
+  if (caseMatch) {
+    params.set('case', caseMatch[1]);
+  }
+
+  const query = params.toString();
+  $('jsonExport').href = '/export/events.json' + (query ? '?' + query : '');
+  $('pdfExport').href = '/export/report.pdf' + (query ? '?' + query : '');
+}
   function addOptions(id, values, firstLabel) {
     const el = $(id), selected = el.value; el.replaceChildren(new Option(firstLabel,''));
     for (const value of values) el.add(new Option(value, value));
     if ([...el.options].some(o => o.value === selected)) el.value = selected;
   }
+  
   function fmtTime(s) { if(!s) return 'Time unavailable'; try{return new Date(s).toLocaleString(undefined,{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'UTC'})+' UTC';}catch{return s;} }
   function text(tag, value, cls) { const el=document.createElement(tag); if(cls)el.className=cls; el.textContent=value==null||value===''?'-':String(value); return el; }
   // Reveal dashboard sections and dynamically rendered evidence/scenario rows only when they enter view.
@@ -1348,7 +1387,7 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
       for(const [label,value,cls] of [['Source',e.source_id,''],['Outcome',e.outcome||'unknown',e.outcome||''],['Host',e.host||'unknown',''],['Type',e.source_type||'log','']]){const tag=text('span',`${label}: ${value}`,'tag '+cls);tags.append(tag);}
       article.append(tags); article.append(text('div',e.message||e.raw_line||'No message parsed','event-message'));
       const meta=document.createElement('div');meta.className='event-meta';meta.append(text('span',`Actor: ${e.user||'—'}`),text('span',`Source IP: ${e.src_ip||'—'}`),text('span',`Process: ${e.process||'—'}`));
-      const line=document.createElement('span');line.append(document.createTextNode(`Evidence: ${e.source_id}:${e.line_no} `));const btn=text('button','View original line','evidence-btn');btn.type='button';btn.addEventListener('click',async()=>{let pre=article.querySelector('.raw-line');if(pre&&pre.classList.contains('show')){pre.classList.remove('show');btn.textContent='View original line';return;}if(!pre){pre=document.createElement('pre');pre.className='raw-line';article.append(pre);}pre.textContent='Checking hash and loading original evidence…';pre.classList.add('show');btn.textContent='Hide original line';try{const u=new URL('/api/evidence',location.origin);u.searchParams.set('source_id',e.source_id);u.searchParams.set('line_no',e.line_no);const r=await fetch(u);const data=await r.json();if(!r.ok)throw new Error(data.error||'Evidence could not be verified');pre.textContent=`File: ${data.source_file}\nLine: ${data.line_no}\nFile SHA-256: ${data.file_sha256}\n\n${data.raw_line}`;}catch(err){pre.textContent=`Evidence unavailable: ${err.message}`;}});line.append(btn);meta.append(line);article.append(meta);box.append(article);
+      const line=document.createElement('div');line.className='evidence-reference';const label=document.createElement('strong');label.className='evidence-reference-label';label.textContent=`Original evidence · Line ${e.line_no}`;line.append(label);const sourceHint=document.createElement('span');sourceHint.className='evidence-reference-source';sourceHint.textContent=`Source ${e.source_id}`;const sourceInfo=(state.summary?.sources||[]).find(s=>s.source_id===e.source_id);if(sourceInfo?.original_name)sourceHint.textContent+=` · ${sourceInfo.original_name}`;sourceHint.title='The source file and line that this timeline event was parsed from.';line.append(sourceHint);const help=document.createElement('span');help.className='evidence-reference-help';help.textContent='This reference lets you verify the event against the preserved log.';line.append(help);const btn=text('button','View original line','evidence-btn');btn.type='button';btn.addEventListener('click',async()=>{let pre=article.querySelector('.raw-line');if(pre&&pre.classList.contains('show')){pre.classList.remove('show');btn.textContent='View original line';return;}if(!pre){pre=document.createElement('pre');pre.className='raw-line';article.append(pre);}pre.textContent='Checking hash and loading original evidence…';pre.classList.add('show');btn.textContent='Hide original line';try{const u=new URL('/api/evidence',location.origin);u.searchParams.set('source_id',e.source_id);u.searchParams.set('line_no',e.line_no);const caseMatch=location.pathname.match(/\/case\/(CASE-[a-f0-9]{12})\/?$/i);const activeCase=window.TRACEFUSE_CASE_ID||(caseMatch&&caseMatch[1]);if(activeCase)u.searchParams.set('case',activeCase);const r=await fetch(u);const data=await r.json();if(!r.ok)throw new Error(data.error||'Evidence could not be verified');pre.textContent=`File: ${data.source_file}\nLine: ${data.line_no}\nFile SHA-256: ${data.file_sha256}\n\n${data.raw_line}`;}catch(err){pre.textContent=`Evidence unavailable: ${err.message}`;}});line.append(btn);meta.append(line);article.append(meta);box.append(article);
     }
     observeReveals(box);
   }
@@ -1797,7 +1836,11 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
     if(!event){box.append(safeText('div','Choose an event in the table to inspect its timestamp basis.','tlab-detail-empty'));return;}
     const top=document.createElement('div');top.className='tlab-detail-top';
     const identity=document.createElement('div');identity.append(safeText('div',event.event_id,'tlab-detail-id'),safeText('div',event.action,'tlab-detail-action'));
-    top.append(identity,safeText('span',`line ${event.line_no}`,'tlab-status'));
+    const evidenceRef=document.createElement('div');evidenceRef.className='tlab-evidence-reference';
+    evidenceRef.append(safeText('div',`Original evidence · Line ${event.line_no}`,'tlab-evidence-title'));
+    evidenceRef.append(safeText('div',`${event.source_id||'Source unavailable'} · ${event.source_file||'Source filename unavailable'}`,'tlab-evidence-source'));
+    evidenceRef.append(safeText('p','This line number points to the original log record used to create this timeline event. Use “View original line” in the timeline event to inspect the preserved record.','tlab-evidence-help'));
+    top.append(identity,evidenceRef);
     box.append(top,renderFlags(event));
     const grid=document.createElement('div');grid.className='tlab-time-grid';
     for(const [label,value] of [
@@ -2240,6 +2283,13 @@ a, .eyebrow, .evidence-btn { color: var(--tf-lime); }
   .shell .brand p,.shell .stat .sub,.shell .panel-head p,.shell .event-time,.shell .tag,.shell .event-meta,.shell .source-type,.shell .bench-sub,.shell .bench-engine,.shell .bench-metric-sub,.shell .bench-status,.shell .bench-method,.shell .footer { font-size:13px !important; line-height:1.6 !important; }
   .shell .hash,.shell .raw-line,.shell .tlab-table,.shell .tlab-table th,.shell .tlab-table td { font-size:13px !important; line-height:1.6 !important; }
   @media (prefers-reduced-motion: reduce) { #engineRuntimeSection .engine-case-card,#engineRuntimeSection .engine-case-bar { transition:none !important; } }
+  /* Evidence reference: make the source and line number unmistakable. */
+  #timelineConfidenceLab .tlab-detail-top{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;}
+  #timelineConfidenceLab .tlab-evidence-reference{width:100%;padding:18px 20px;border:1px solid rgba(216,255,99,.45);border-left:5px solid var(--tf-lime,#d8ff63);border-radius:12px;background:linear-gradient(110deg,rgba(216,255,99,.10),rgba(216,255,99,.025));}
+  #timelineConfidenceLab .tlab-evidence-title{font-size:clamp(19px,2vw,24px);font-weight:850;line-height:1.3;letter-spacing:-.025em;color:var(--text);}
+  #timelineConfidenceLab .tlab-evidence-source{margin-top:8px;font-size:16px;font-weight:750;line-height:1.5;color:var(--tf-lime,#d8ff63);overflow-wrap:anywhere;}
+  #timelineConfidenceLab .tlab-evidence-help{margin:10px 0 0;font-size:15px;line-height:1.65;color:var(--muted);max-width:80ch;}
+  @media(max-width:720px){#timelineConfidenceLab .tlab-evidence-reference{padding:15px;}#timelineConfidenceLab .tlab-evidence-title{font-size:20px}#timelineConfidenceLab .tlab-evidence-source{font-size:15px}#timelineConfidenceLab .tlab-evidence-help{font-size:14px}}
 </style>
 <script id="tracefuse-engine-runtime-separated-v3">
 (() => {
