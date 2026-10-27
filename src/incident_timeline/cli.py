@@ -19,7 +19,7 @@ from .evidence import SOURCE_TYPES, Case, EvidenceError, collect, verify
 from .pipeline import anchor_skew, apply_skew, build_timeline, estimate_case_skew
 from .skew import SkewEstimate
 from .scenarios import create_demo_cases
-from .web import serve_case
+from .web import serve_app, serve_case
 
 
 def _cmd_collect(args: argparse.Namespace) -> int:
@@ -184,6 +184,12 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("--host", default="127.0.0.1", help="interface to bind (default: localhost only)")
     w.add_argument("--port", type=int, default=8765, help="local dashboard port (default: 8765)")
     w.set_defaults(func=_cmd_serve)
+
+    a = sub.add_parser("app", help="launch the TRACEFUSE web application with upload and demo workflows")
+    a.add_argument("--host", default="127.0.0.1", help="interface to bind (default: localhost only)")
+    a.add_argument("--port", type=int, default=8765, help="port to serve the web app on")
+    a.add_argument("--cases-dir", default="cases/web-app", help="directory for uploaded investigations")
+    a.set_defaults(func=lambda args: serve_app(host=args.host, port=args.port, cases_dir=args.cases_dir) or 0)
 
     d = sub.add_parser("demo", help="generate and validate three synthetic incident scenarios")
     d.add_argument("--output", default="cases/demo-scenarios", help="output directory (default: cases/demo-scenarios)")
