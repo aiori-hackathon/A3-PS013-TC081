@@ -12,7 +12,7 @@ Python 3.11+. The log-ingestion engine and local web server use the standard lib
 | `skew.py` | Clock-skew estimation between two sources, automatic or from an analyst-chosen pair of lines. |
 | `pipeline.py` | Checks hashes, parses the evidence copies, applies skew, merges and writes the outputs. |
 | `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs and an ATT&CK technique. |
-| `web.py` / `dashboard.html` | Read-only local dashboard: findings, activity chart, entity pivots, custody-chain viewer, search and filters, original-line lookup. Serves one case or a folder of cases. |
+| `web.py` / `dashboard.html` | Read-only local dashboard: findings, entity pivots, custody-chain viewer, search and filters, original-line lookup. Serves one case or a folder of cases. |
 | `exports.py` | Filter-aware JSON export and paginated PDF investigation report with findings and full evidence references. |
 | `scenarios.py` | Generates and validates three deterministic synthetic incident cases. |
 | `cli.py` | Command-line interface, including `serve` and `demo`. |

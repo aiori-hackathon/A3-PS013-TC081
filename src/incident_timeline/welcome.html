@@ -1,73 +1,227 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#11140f"><title>TRACEFUSE — Start an investigation</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0c0b">
+<title>TRACEFUSE · Incident reconstruction from logs</title>
+<link rel="stylesheet" href="/tracefuse.css">
 <link rel="stylesheet" href="/welcome.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 </head>
 <body>
-<div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-<header class="topbar"><a class="brand" href="/" aria-label="TRACEFUSE home"><span class="brand-mark">✳</span> TRACEFUSE</a><span class="local-pill"><i></i> LOCAL INVESTIGATION WORKSPACE</span></header>
-<main class="wrap">
-<section class="hero" aria-labelledby="hero-title">
-<p class="eyebrow intro">EVIDENCE-PRESERVING INCIDENT RECONSTRUCTION</p>
-<h1 id="hero-title" class="intro">Make sense of the <span>evidence.</span><br>Reconstruct the incident.</h1>
-<p class="lede intro">Bring your own logs into a structured investigation, or explore TRACEFUSE with controlled synthetic scenarios. Your workflow starts here.</p>
-<div class="choice-grid">
-<article class="choice upload-choice intro">
-<div class="choice-top"><span class="icon-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg></span><span class="step">01 / INVESTIGATE</span></div>
-<h2>Use your own evidence</h2><p>Upload supported activity logs. TRACEFUSE will preserve the original bytes, record hashes, parse the sources, and build a normalized timeline.</p>
-<ul class="benefits"><li>Multiple log files per case</li><li>Per-source format and timezone settings</li><li>Original evidence kept separate from results</li></ul>
-<button id="open-upload" class="button button-primary" type="button">Start an investigation <span>↗</span></button>
-</article>
-<article class="choice demo-choice intro">
-<div class="choice-top"><span class="icon-tile icon-outline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21zM4 5.5V21m4-13h8m-8 4h8"/></svg></span><span class="step">02 / EXPLORE</span></div>
-<h2>Test the engine</h2><p>Explore synthetic security incidents, inspect reconstructed events, and see how the engine validates expected timelines—without using real incident data.</p>
-<ul class="benefits"><li>Brute-force login and privileged access</li><li>Web exploit indicators and server access</li><li>Account creation and persistence</li></ul>
-<a class="button button-secondary" href="/engine-test">Open Engine Validation Lab <span>↗</span></a>
-<p class="fallback-link">Or <a href="/demo">open a demo investigation directly</a>.</p>
-</article>
-</div>
-<div class="trust-row intro"><span><b>01</b> Preserve originals</span><span><b>02</b> Normalize timestamps</span><span><b>03</b> Trace findings to evidence</span></div>
-</section>
-</main>
-<footer class="footer"><span>TRACEFUSE / FORENSIC WORKSPACE</span><span>Local demo mode · Synthetic data is clearly labelled</span></footer>
-<div id="upload-modal" class="modal" aria-hidden="true">
-<div class="modal-backdrop" data-close></div><section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="upload-title">
-<div class="modal-head"><div><p class="eyebrow">NEW CASE</p><h2 id="upload-title">Bring in your evidence.</h2><p class="modal-lede">Choose the logs, then confirm how each source should be interpreted.</p></div><button type="button" class="close-button" data-close aria-label="Close upload form">×</button></div>
-<form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-<label class="field-label" for="case-name">Investigation name</label><input id="case-name" name="case_name" maxlength="100" placeholder="e.g. Web server incident — 24 Oct" required>
-<div class="source-picker"><label class="dropzone" for="log-files"><span class="drop-icon">↑</span><strong>Choose individual log files</strong><span>.log, .txt, .gz · 25 MB total</span><input id="log-files" type="file" multiple accept=".log,.txt,.gz"></label><div class="folder-picker"><span class="folder-copy"><strong>Or select an entire folder</strong><small>TRACEFUSE will include supported log files inside the folder and its subfolders.</small></span><button id="choose-folder" class="button button-secondary" type="button">Choose folder ↗</button><input id="log-folder" type="file" webkitdirectory directory multiple hidden></div></div>
-<div id="file-settings" class="file-settings" aria-live="polite"></div>
-<div class="upload-note"><span>◇</span><p>Files are copied into a case-specific evidence folder and hashed before parsing. This demo server is intended for local use; don't upload sensitive production logs to a publicly exposed instance.</p></div>
-<div class="form-actions"><button type="button" class="button button-secondary" data-close>Cancel</button><button type="submit" id="submit-upload" class="button button-primary">Preserve & build timeline <span>↗</span></button></div>
-<p id="upload-error" class="upload-error" role="alert"></p>
-</form></section></div>
-<script>
-(()=>{
-const modal=document.getElementById('upload-modal'), open=document.getElementById('open-upload'), input=document.getElementById('log-files'), folderInput=document.getElementById('log-folder'), chooseFolder=document.getElementById('choose-folder'), settings=document.getElementById('file-settings'), form=document.getElementById('upload-form'), error=document.getElementById('upload-error'), submit=document.getElementById('submit-upload');
-let selectedFiles=[];
-chooseFolder.addEventListener('click',()=>folderInput.click());
-function supported(file){return /\.(log|txt|gz)$/i.test(file.name)}
-function renderFiles(files){selectedFiles=files.filter(supported);settings.replaceChildren();if(!selectedFiles.length){error.textContent=files.length?'No supported .log, .txt, or .gz files were found in that selection.':'';return}if(selectedFiles.length<files.length){error.textContent=`Included ${selectedFiles.length} supported log file(s); skipped ${files.length-selectedFiles.length} other file(s).`}else{error.textContent=''}selectedFiles.forEach((file,i)=>{const row=document.createElement('div');row.className='file-row';const title=document.createElement('strong');title.textContent=file.webkitRelativePath||file.name;const size=document.createElement('span');size.textContent=(file.size/1024).toFixed(1)+' KB';const typeLabel=document.createElement('label');typeLabel.textContent='Log format';const type=document.createElement('select');type.name='type_'+i;type.required=true;[['auth','Linux authentication / syslog'],['syslog','System log (syslog)'],['access','Web access log (Nginx / Apache)'],['apache','Apache access log'],['nginx','Nginx access log']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;type.append(o)});if(/access|nginx|apache/i.test(file.name))type.value='access';const tzLabel=document.createElement('label');tzLabel.textContent='Source timezone';const tz=document.createElement('input');tz.name='tz_'+i;tz.placeholder='UTC, Asia/Kolkata, +05:30';tz.value='UTC';const hostLabel=document.createElement('label');hostLabel.textContent='Host (optional)';const host=document.createElement('input');host.name='host_'+i;host.placeholder='e.g. web01';row.append(title,size,typeLabel,type,tzLabel,tz,hostLabel,host);settings.append(row);const fileInput=document.createElement('input');fileInput.type='file';fileInput.name='file_'+i;fileInput.hidden=true;const dt=new DataTransfer();dt.items.add(file);fileInput.files=dt.files;row.append(fileInput)})}
-input.addEventListener('change',()=>{folderInput.value='';renderFiles([...input.files])});
-folderInput.addEventListener('change',()=>{input.value='';renderFiles([...folderInput.files])});
-function resetUploadForm(){
-  form.reset();
-  input.value='';
-  folderInput.value='';
-  selectedFiles=[];
-  settings.replaceChildren();
-  error.textContent='';
-  submit.disabled=false;
-  submit.innerHTML='Preserve & build timeline <span>↗</span>';
-}
-function close(){resetUploadForm();modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('modal-open')}
-open.addEventListener('click',()=>{modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');document.getElementById('case-name').focus()});modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',close));document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+<header class="topbar">
+  <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#d8ff63"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+  <span class="topbar-note"><i class="tf-dot" aria-hidden="true"></i>Running locally on this machine</span>
+</header>
 
-form.addEventListener('submit',e=>{e.preventDefault();error.textContent='';const files=selectedFiles;if(!files.length){error.textContent='Choose log files or select a folder containing supported logs.';return}if(files.reduce((n,f)=>n+f.size,0)>25*1024*1024){error.textContent='The combined upload must be 25 MB or less.';return}const data=new FormData(form);data.delete('log-files');submit.disabled=true;submit.textContent='Preserving evidence…';fetch('/upload',{method:'POST',body:data}).then(async r=>{if(r.redirected){location.href=r.url;return}const d=await r.json().catch(()=>({}));throw new Error(d.error||'Upload could not be processed')}).catch(err=>{error.textContent=err.message;submit.disabled=false;submit.innerHTML='Preserve & build timeline <span>↗</span>'})});
-window.addEventListener('load',()=>{const nodes=document.querySelectorAll('.intro');if(window.gsap){gsap.set(nodes,{y:22,opacity:0});gsap.to(nodes,{y:0,opacity:1,duration:.85,stagger:.12,ease:'power3.out',clearProps:'transform'});gsap.from('.brand-mark',{rotate:-90,scale:.4,duration:1,ease:'back.out(1.7)'});gsap.from('.ambient',{scale:.7,opacity:0,duration:1.4,stagger:.2,ease:'power2.out'});}else{nodes.forEach((el,i)=>{el.style.animationDelay=(i*.1)+'s';el.classList.add('fallback-reveal')})}});
+<main class="wrap">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow">Evidence-preserving incident reconstruction</p>
+      <h1 id="hero-title">Reconstruct the incident. Keep every line traceable.</h1>
+      <p class="lede">TRACEFUSE preserves your original logs, normalizes every timestamp to UTC and merges them into one timeline. Each finding cites the exact source lines behind it, so every conclusion can be checked.</p>
+      <div class="hero-actions">
+        <button id="open-upload" class="tf-btn tf-btn--primary tf-btn--lg" type="button">Start an investigation</button>
+        <a class="tf-btn tf-btn--lg" href="/demo">Open a demo investigation</a>
+      </div>
+      <p class="hero-aside">Want to see how the engine is validated? <a class="tf-link" href="/engine-test">Open the Engine lab</a></p>
+    </div>
+
+    <figure class="specimen" aria-labelledby="specimen-caption">
+      <figcaption id="specimen-caption"><span>Example output</span><span>Synthetic scenario 01</span></figcaption>
+      <div class="specimen-finding">
+        <div class="specimen-head"><span class="tf-badge tf-badge--bad">High</span><span class="specimen-tech">T1078 · Valid Accounts</span></div>
+        <p class="specimen-title">Login as alice after failed attempts</p>
+        <p class="specimen-summary">203.0.113.77 logged in successfully after 3 failed attempts.</p>
+      </div>
+      <ol class="specimen-lines" aria-label="Evidence lines cited by this finding">
+        <li><span class="ln">auth.log:1</span><code>Failed password for invalid user admin from 203.0.113.77</code></li>
+        <li><span class="ln">auth.log:2</span><code>Failed password for root from 203.0.113.77</code></li>
+        <li><span class="ln">auth.log:3</span><code>maximum authentication attempts exceeded for root</code></li>
+        <li><span class="ln">auth.log:4</span><code>Accepted password for alice from 203.0.113.77</code></li>
+      </ol>
+      <div class="specimen-foot"><span>SHA-256 ba009b1c…49e28221</span><span class="ok"><i class="tf-dot" aria-hidden="true"></i>Hash and custody chain verified</span></div>
+    </figure>
+  </section>
+
+  <section class="steps" aria-labelledby="steps-title">
+    <h2 id="steps-title" class="tf-sr-only">How TRACEFUSE works</h2>
+    <ol>
+      <li><h3>Preserve</h3><p>Each file is copied into the case, hashed with SHA-256 and recorded in a hash-chained custody log before anything is parsed.</p></li>
+      <li><h3>Normalize</h3><p>Per-source time zone and clock offset are applied. Assumptions such as an inferred year are flagged, never hidden.</p></li>
+      <li><h3>Trace</h3><p>Every event and finding points to its source file and line, and the original line is re-verified against its hash when you open it.</p></li>
+    </ol>
+  </section>
+</main>
+
+<footer class="footer"><span>TRACEFUSE runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Demo data is synthetic and labelled as such.</span></footer>
+
+<dialog id="upload-modal" class="modal" aria-labelledby="upload-title">
+  <form id="upload-form" method="dialog" novalidate>
+    <header class="modal-head">
+      <div><h2 id="upload-title">New investigation</h2><p class="modal-lede">Add the logs, then confirm how each source should be read.</p></div>
+      <button type="button" class="tf-btn tf-btn--ghost tf-btn--sm close-button" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="modal-body">
+      <div class="tf-field">
+        <label class="tf-label" for="case-name">Investigation name</label>
+        <input class="tf-input" id="case-name" name="case_name" maxlength="100" placeholder="e.g. web01 intrusion, 24 Oct" required autocomplete="off">
+      </div>
+      <div class="dropzone" id="dropzone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5 5 5M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+        <p><strong>Drop log files or a folder here</strong></p>
+        <p class="tf-hint">.log, .txt or .gz · up to 25 MB in total</p>
+        <div class="dropzone-actions">
+          <button id="choose-files" class="tf-btn tf-btn--sm" type="button">Choose files</button>
+          <button id="choose-folder" class="tf-btn tf-btn--sm" type="button">Choose a folder</button>
+        </div>
+        <input id="log-files" type="file" multiple accept=".log,.txt,.gz" hidden>
+        <input id="log-folder" type="file" webkitdirectory directory multiple hidden>
+      </div>
+      <p id="file-summary" class="tf-hint" aria-live="polite"></p>
+      <ul id="file-settings" class="file-settings"></ul>
+      <p class="upload-note">Files are copied into a case-specific evidence folder and hashed before parsing. This server is meant for local use; don't upload sensitive production logs to an exposed instance.</p>
+      <p id="upload-error" class="upload-error" role="alert"></p>
+    </div>
+    <footer class="modal-foot">
+      <button type="button" class="tf-btn" data-close>Cancel</button>
+      <button type="submit" id="submit-upload" class="tf-btn tf-btn--primary">Preserve and build timeline</button>
+    </footer>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  'use strict';
+  const modal = document.getElementById('upload-modal');
+  const form = document.getElementById('upload-form');
+  const fileInput = document.getElementById('log-files');
+  const folderInput = document.getElementById('log-folder');
+  const dropzone = document.getElementById('dropzone');
+  const settings = document.getElementById('file-settings');
+  const summary = document.getElementById('file-summary');
+  const error = document.getElementById('upload-error');
+  const submit = document.getElementById('submit-upload');
+  const caseName = document.getElementById('case-name');
+  const MAX_BYTES = 25 * 1024 * 1024;
+  const FORMATS = [['auth', 'Linux authentication / syslog'], ['syslog', 'System log (syslog)'], ['access', 'Web access log (Nginx / Apache)'], ['apache', 'Apache access log'], ['nginx', 'Nginx access log']];
+  let selected = [];
+  let opener = null;
+
+  const supported = file => /\.(log|txt|gz)$/i.test(file.name);
+  const displayName = file => file.webkitRelativePath || file.name;
+  const formatSize = bytes => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+
+  function addFiles(files) {
+    const incoming = files.filter(supported);
+    const skipped = files.length - incoming.length;
+    const known = new Set(selected.map(s => displayName(s.file) + ':' + s.file.size));
+    for (const file of incoming) {
+      const key = displayName(file) + ':' + file.size;
+      if (known.has(key)) continue;
+      known.add(key);
+      selected.push({ file, type: /access|nginx|apache/i.test(file.name) ? 'access' : 'auth', tz: 'UTC', host: '' });
+    }
+    error.textContent = !incoming.length && files.length ? 'No supported .log, .txt or .gz files were found in that selection.' : skipped ? `Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'}.` : '';
+    render();
+  }
+  function render() {
+    settings.replaceChildren();
+    const total = selected.reduce((n, s) => n + s.file.size, 0);
+    summary.textContent = selected.length ? `${selected.length} file${selected.length === 1 ? '' : 's'} · ${formatSize(total)} of 25 MB` : '';
+    summary.classList.toggle('is-over', total > MAX_BYTES);
+    selected.forEach((item, i) => {
+      const row = el('li', 'file-row');
+      const head = el('div', 'file-head');
+      head.append(el('span', 'file-name', displayName(item.file)), el('span', 'file-size', formatSize(item.file.size)));
+      const remove = el('button', 'tf-btn tf-btn--ghost tf-btn--sm', 'Remove'); remove.type = 'button';
+      remove.setAttribute('aria-label', `Remove ${displayName(item.file)}`);
+      remove.addEventListener('click', () => { selected.splice(i, 1); render(); (settings.querySelector('.file-row button') || caseName).focus(); });
+      head.append(remove);
+      const fields = el('div', 'file-fields');
+      const typeField = el('div', 'tf-field'), typeId = `type-${i}`;
+      const typeLabel = el('label', 'tf-label', 'Log format'); typeLabel.htmlFor = typeId;
+      const type = el('select', 'tf-select'); type.id = typeId;
+      for (const [v, t] of FORMATS) type.add(new Option(t, v));
+      type.value = item.type; type.addEventListener('change', () => { item.type = type.value; });
+      typeField.append(typeLabel, type);
+      const tzField = el('div', 'tf-field'), tzId = `tz-${i}`;
+      const tzLabel = el('label', 'tf-label', 'Source time zone'); tzLabel.htmlFor = tzId;
+      const tz = el('input', 'tf-input'); tz.id = tzId; tz.placeholder = 'UTC, Asia/Kolkata, +05:30'; tz.value = item.tz; tz.autocomplete = 'off';
+      tz.addEventListener('input', () => { item.tz = tz.value; });
+      tzField.append(tzLabel, tz);
+      const hostField = el('div', 'tf-field'), hostId = `host-${i}`;
+      const hostLabel = el('label', 'tf-label', 'Host (optional)'); hostLabel.htmlFor = hostId;
+      const host = el('input', 'tf-input'); host.id = hostId; host.placeholder = 'e.g. web01'; host.value = item.host; host.autocomplete = 'off';
+      host.addEventListener('input', () => { item.host = host.value; });
+      hostField.append(hostLabel, host);
+      fields.append(typeField, tzField, hostField);
+      row.append(head, fields);
+      settings.append(row);
+    });
+  }
+  function reset() {
+    form.reset(); fileInput.value = ''; folderInput.value = '';
+    selected = []; render(); error.textContent = '';
+    caseName.removeAttribute('aria-invalid');
+    submit.disabled = false; submit.removeAttribute('aria-busy'); submit.textContent = 'Preserve and build timeline';
+  }
+  function close() { if (submit.getAttribute('aria-busy') === 'true') return; modal.close(); }
+
+  document.getElementById('open-upload').addEventListener('click', e => { opener = e.currentTarget; modal.showModal(); caseName.focus(); });
+  modal.addEventListener('close', () => { reset(); if (opener) opener.focus(); });
+  modal.addEventListener('cancel', e => { if (submit.getAttribute('aria-busy') === 'true') e.preventDefault(); });
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  modal.querySelectorAll('[data-close]').forEach(n => n.addEventListener('click', close));
+  document.getElementById('choose-files').addEventListener('click', () => fileInput.click());
+  document.getElementById('choose-folder').addEventListener('click', () => folderInput.click());
+  fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+  folderInput.addEventListener('change', () => { addFiles([...folderInput.files]); folderInput.value = ''; });
+
+  async function filesFromEntry(entry, path = '') {
+    if (entry.isFile) return new Promise(resolve => entry.file(f => { try { Object.defineProperty(f, 'webkitRelativePath', { value: path + f.name }); } catch {} resolve([f]); }, () => resolve([])));
+    if (!entry.isDirectory) return [];
+    const reader = entry.createReader(), out = [];
+    for (;;) {
+      const batch = await new Promise(resolve => reader.readEntries(resolve, () => resolve([])));
+      if (!batch.length) break;
+      for (const child of batch) out.push(...await filesFromEntry(child, path + entry.name + '/'));
+    }
+    return out;
+  }
+  ['dragenter', 'dragover'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); dropzone.classList.add('is-over'); }));
+  ['dragleave', 'drop'].forEach(t => dropzone.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || !dropzone.contains(e.relatedTarget)) dropzone.classList.remove('is-over'); }));
+  dropzone.addEventListener('drop', async e => {
+    const items = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+    if (items.length) { const nested = await Promise.all(items.map(entry => filesFromEntry(entry))); addFiles(nested.flat()); }
+    else addFiles([...e.dataTransfer.files]);
+  });
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    error.textContent = '';
+    if (!caseName.value.trim()) { caseName.setAttribute('aria-invalid', 'true'); error.textContent = 'Give the investigation a name.'; caseName.focus(); return; }
+    caseName.removeAttribute('aria-invalid');
+    if (!selected.length) { error.textContent = 'Add at least one supported log file.'; return; }
+    if (selected.reduce((n, s) => n + s.file.size, 0) > MAX_BYTES) { error.textContent = 'The combined upload must be 25 MB or less.'; return; }
+    const data = new FormData();
+    data.append('case_name', caseName.value.trim());
+    selected.forEach((s, i) => { data.append('type_' + i, s.type); data.append('tz_' + i, s.tz); data.append('host_' + i, s.host); data.append('file_' + i, s.file, s.file.name); });
+    submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Preserving evidence…';
+    fetch('/upload', { method: 'POST', body: data }).then(async r => {
+      if (r.redirected) { location.href = r.url; return; }
+      const d = await r.json().catch(() => ({}));
+      throw new Error(d.error || 'The upload could not be processed.');
+    }).catch(err => {
+      error.textContent = err.message;
+      submit.disabled = false; submit.removeAttribute('aria-busy'); submit.textContent = 'Preserve and build timeline';
+    });
+  });
 })();
 </script>
-</body></html>
+</body>
+</html>
