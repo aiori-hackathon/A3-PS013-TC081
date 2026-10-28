@@ -26,10 +26,19 @@ from .findings import detect as detect_findings, entities as summarize_entities
 
 BRAND_MARK_SVG = (
     '<svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true">'
-    '<rect width="28" height="28" rx="7" fill="#d8ff63"/>'
-    '<path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" '
+    '<rect width="28" height="28" rx="7" fill="#75dea6"/>'
+    '<path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" '
     'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 )
+
+# Static assets served from the package directory: URL path -> (relative file, content type).
+STATIC_FILES = {
+    "/tracefuse.css": ("tracefuse.css", "text/css; charset=utf-8"),
+    "/welcome.css": ("welcome.css", "text/css; charset=utf-8"),
+    "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+    "/fonts/inter-latin-var.woff2": ("fonts/inter-latin-var.woff2", "font/woff2"),
+    "/fonts/jetbrains-mono-latin-var.woff2": ("fonts/jetbrains-mono-latin-var.woff2", "font/woff2"),
+}
 
 
 def resolve_app_case(cases_root: Path, case_id: str) -> Path:
@@ -123,12 +132,12 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         return Case(self.case_root)
 
     def _send(self, status: int, body: bytes, content_type: str = "application/json; charset=utf-8",
-              filename: str | None = None) -> None:
+              filename: str | None = None, cache_control: str = "no-store") -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", cache_control)
         self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
         if filename:
             safe = filename.replace('"', "")
@@ -299,8 +308,10 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 html_path = Path(__file__).with_name(html_name)
                 self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
                 return
-            if url.path in ("/welcome.css", "/tracefuse.css"):
-                self._send(200, Path(__file__).with_name(url.path.lstrip("/")).read_bytes(), "text/css; charset=utf-8")
+            if url.path in STATIC_FILES:
+                relative, content_type = STATIC_FILES[url.path]
+                cache = "public, max-age=604800, immutable" if content_type == "font/woff2" else "no-store"
+                self._send(200, (Path(__file__).parent / relative).read_bytes(), content_type, cache_control=cache)
                 return
             if self.app_mode and url.path == "/upload":
                 self.do_POST()
@@ -352,6 +363,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                     '<!doctype html><html lang="en"><head><meta charset="utf-8">'
                     '<meta name="viewport" content="width=device-width,initial-scale=1">'
                     '<title>Demo investigations · TRACEFUSE</title>'
+                    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">'
                     '<link rel="stylesheet" href="/tracefuse.css"><link rel="stylesheet" href="/welcome.css"></head>'
                     '<body class="demo-page"><header class="topbar"><a class="tf-brand" href="/" aria-label="TRACEFUSE home">'
                     + BRAND_MARK_SVG + '<span class="tf-brand-name">TRACEFUSE</span></a></header>'
@@ -549,17 +561,27 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             self._fail(500, "Internal server error; see the local terminal for details")
 
 
-def serve_case(case_path: str | Path, host: str = "127.0.0.1", port: int = 8765) -> None:
-    """Serve the read-only dashboard for one already-parsed case."""
+def case_server_attrs(case_path: str | Path) -> tuple[dict[str, Any], str]:
+    """Handler attributes and a description for serving one case or a folder of cases."""
+    if not (Path(case_path) / "case.json").is_file() and (roots := discover_cases(case_path)):
+        # A folder of cases: the dashboard switches between them with ?case=<name>.
+        return ({"case_root": next(iter(roots.values())), "case_roots": roots},
+                f"{len(roots)} cases in {Path(case_path).resolve()} ({', '.join(roots)})")
     case = Case.open(case_path)
     if not (case.output_dir / "events.jsonl").is_file():
         raise EvidenceError(f"normalized timeline missing; run `incident-timeline parse {case.root}` first")
+    return {"case_root": case.root.resolve()}, f"case {case.load_meta().get('case_id', case.root.name)}"
+
+
+def serve_case(case_path: str | Path, host: str = "127.0.0.1", port: int = 8765) -> None:
+    """Serve the read-only dashboard for one parsed case, or for every case in a folder."""
     if not (Path(__file__).with_name("dashboard.html")).is_file():
         raise FileNotFoundError("dashboard.html is missing from the incident_timeline package")
-    handler_class = type("BoundTracefuseHandler", (TracefuseHandler,), {"case_root": case.root.resolve()})
+    attrs, label = case_server_attrs(case_path)
+    handler_class = type("BoundTracefuseHandler", (TracefuseHandler,), attrs)
     server = ThreadingHTTPServer((host, port), handler_class)
     actual_host, actual_port = server.server_address[:2]
-    print(f"TRACEFUSE dashboard for case {case.load_meta().get('case_id', case.root.name)}")
+    print(f"TRACEFUSE dashboard for {label}")
     print(f"Open http://{actual_host if actual_host not in ('0.0.0.0', '::') else '127.0.0.1'}:{actual_port} in your browser")
     print("Local dashboard is read-only. Press Ctrl+C to stop.")
     try:

@@ -4,19 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#0b0c0b">
+  <meta name="theme-color" content="#090c0a">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <title>TRACEFUSE · Investigation</title>
   <link rel="stylesheet" href="/tracefuse.css">
   <style>
-    /* Investigation dashboard. Tokens and primitives come from /tracefuse.css. */
-    html { scroll-padding-top: 76px; }
-    .skip-link { position: absolute; left: 12px; top: -48px; z-index: 20; padding: 8px 12px; border-radius: var(--tf-radius); background: var(--tf-accent); color: var(--tf-on-accent); font-weight: 600; text-decoration: none; }
+    /* Investigation workspace. Tokens and primitives come from /tracefuse.css. */
+    html { scroll-padding-top: 72px; }
+    .skip-link { position: absolute; left: 12px; top: -48px; z-index: 30; padding: 8px 12px; border-radius: var(--tf-radius); background: var(--tf-accent); color: var(--tf-on-accent); font-weight: 600; text-decoration: none; }
     .skip-link:focus { top: 12px; }
 
-    /* App bar */
-    .appbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--tf-border); background: rgba(11, 12, 11, .94); backdrop-filter: saturate(140%) blur(6px); }
-    .appbar-inner { display: flex; align-items: center; gap: 16px; max-width: var(--tf-max); min-height: 60px; margin: 0 auto; padding: 0 var(--tf-gutter); }
+    /* App bar: functional chrome, not a floating marketing nav */
+    .appbar { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--tf-border); background: rgba(9, 12, 10, .92); backdrop-filter: saturate(140%) blur(8px); box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .02); }
+    .appbar-inner { display: flex; align-items: center; gap: 14px; max-width: var(--tf-max); min-height: 56px; margin: 0 auto; padding: 0 var(--tf-gutter); }
     .appbar .tf-brand-context { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .case-picker { width: auto; min-width: 200px; max-width: 320px; min-height: 32px; padding-top: 4px; padding-bottom: 4px; font-family: var(--tf-mono); font-size: var(--tf-fs-xs); }
     .appbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
     .shell { max-width: var(--tf-max); margin: 0 auto; padding: 28px var(--tf-gutter) 48px; }
@@ -25,37 +27,38 @@
     /* Case header */
     .case-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding-bottom: 24px; border-bottom: 1px solid var(--tf-border); }
     .case-kicker { color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
-    .case-head h1 { margin-top: 4px; font-size: var(--tf-fs-2xl); font-weight: 650; letter-spacing: -.025em; overflow-wrap: anywhere; }
-    .case-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 16px 0 0; }
+    .case-kicker .mono { font-family: var(--tf-mono); font-size: var(--tf-fs-xs); }
+    .case-head h1 { margin-top: 4px; font-size: var(--tf-fs-2xl); font-weight: 640; letter-spacing: -.022em; overflow-wrap: anywhere; }
+    .case-facts { display: flex; flex-wrap: wrap; gap: 10px 32px; margin: 18px 0 0; }
     .case-facts div { min-width: 0; }
     .case-facts dt { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .case-facts dd { margin: 2px 0 0; font-size: var(--tf-fs-md); font-weight: 600; font-variant-numeric: tabular-nums; }
-    .case-facts dd.mono { font-family: var(--tf-mono); font-size: var(--tf-fs-base); font-weight: 500; }
-    .case-facts .tf-link { margin-left: 6px; font-size: var(--tf-fs-sm); }
-    .integrity { display: flex; align-items: flex-start; gap: 12px; max-width: 340px; padding: 14px 16px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-lg); background: var(--tf-surface); }
+    .case-facts dd.mono { font-family: var(--tf-mono); font-size: 14px; font-weight: 500; }
+    .case-facts .tf-link { margin-left: 8px; font-size: var(--tf-fs-sm); }
+    .integrity { display: flex; align-items: flex-start; gap: 12px; max-width: 340px; padding: 14px 16px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-lg); background: var(--tf-surface); box-shadow: var(--tf-shadow-panel); }
     .integrity-icon { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border-radius: 50%; background: var(--tf-surface-3); color: var(--tf-text-3); }
     .integrity-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .integrity strong { display: block; font-size: 14px; font-weight: 600; }
     .integrity span { display: block; margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); line-height: 1.5; }
-    .integrity[data-state="ok"] { border-color: rgba(143, 214, 148, .3); }
+    .integrity[data-state="ok"] { border-color: rgba(181, 219, 122, .3); }
     .integrity[data-state="ok"] .integrity-icon { background: var(--tf-ok-soft); color: var(--tf-ok); }
-    .integrity[data-state="bad"] { border-color: rgba(242, 134, 124, .4); }
+    .integrity[data-state="bad"] { border-color: rgba(255, 136, 139, .4); }
     .integrity[data-state="bad"] .integrity-icon { background: var(--tf-bad-soft); color: var(--tf-bad); }
     .integrity[data-state="bad"] strong { color: var(--tf-bad); }
 
     /* Panels */
-    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--tf-border); }
-    .panel-head h2 { font-size: var(--tf-fs-md); font-weight: 640; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--tf-border); }
+    .panel-head h2 { font-size: var(--tf-fs-md); font-weight: 620; }
     .panel-head p { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
     .panel-count { color: var(--tf-text-3); font-size: var(--tf-fs-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
     /* Findings */
     .finding-list { margin: 0; padding: 0; list-style: none; }
-    .finding { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 4px 16px; padding: 16px 20px; border-top: 1px solid var(--tf-border); }
+    .finding { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 4px 16px; padding: 15px 20px; border-top: 1px solid var(--tf-border); transition: background-color var(--tf-dur) var(--tf-ease); }
     .finding:first-child { border-top: 0; }
     .finding.is-active { background: var(--tf-accent-soft); box-shadow: inset 2px 0 0 var(--tf-accent); }
     .finding-sev { padding-top: 1px; }
-    .finding h3 { font-size: var(--tf-fs-base); font-weight: 620; letter-spacing: -.01em; }
+    .finding h3 { font-size: var(--tf-fs-base); font-weight: 600; letter-spacing: -.008em; }
     .finding-summary { margin-top: 2px; color: var(--tf-text-2); font-size: 14px; overflow-wrap: anywhere; }
     .finding-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .finding-meta a { color: var(--tf-text-2); text-decoration: underline; text-decoration-color: var(--tf-border-strong); text-underline-offset: 3px; }
@@ -63,69 +66,78 @@
     .finding-rule { margin-top: 6px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .finding-action { align-self: center; }
 
-    /* Workspace */
-    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 20px; align-items: start; }
-    .side { display: grid; gap: 16px; min-width: 0; }
+    /* Workspace: reconstruction view + contextual pane */
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 16px; align-items: start; }
 
     /* Filters */
-    .filters { display: grid; grid-template-columns: minmax(220px, 2.2fr) repeat(3, minmax(120px, 1fr)); gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--tf-border); background: var(--tf-surface); }
+    .filters { display: grid; grid-template-columns: minmax(220px, 2.2fr) repeat(3, minmax(120px, 1fr)); gap: 12px; padding: 14px 20px 16px; border-bottom: 1px solid var(--tf-border); }
     .filters .f-range { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .filters .f-reset { grid-column: span 2; display: flex; align-items: flex-end; justify-content: flex-end; }
     .search-wrap { position: relative; }
-    .search-wrap .tf-input { padding-right: 36px; }
-    .search-wrap kbd { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); padding: 0 6px; border: 1px solid var(--tf-border-strong); border-radius: 4px; color: var(--tf-text-3); font-size: 11px; line-height: 18px; pointer-events: none; }
-    .search-wrap .tf-input:focus + kbd { display: none; }
+    .search-wrap .tf-input { padding-right: 38px; }
+    .search-wrap .tf-kbd { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+    .search-wrap .tf-input:focus + .tf-kbd { display: none; }
     .scope-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--tf-border); background: var(--tf-accent-soft); font-size: var(--tf-fs-sm); }
-    .scope-bar strong { font-weight: 620; }
+    .scope-bar strong { font-weight: 600; }
 
     /* Timeline */
+    .timeline-head { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 0 16px; padding: 7px 20px; border-bottom: 1px solid var(--tf-border); background: var(--tf-sunken); color: var(--tf-text-3); font-size: var(--tf-fs-2xs); font-weight: 560; letter-spacing: .02em; }
     .timeline { margin: 0; padding: 0; list-style: none; }
-    .event { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); border-top: 1px solid var(--tf-border); }
+    .timeline:focus { outline: none; }
+    .event { position: relative; display: grid; grid-template-columns: 112px minmax(0, 1fr); border-top: 1px solid var(--tf-border); transition: background-color var(--tf-dur) var(--tf-ease); }
     .event:first-child { border-top: 0; }
-    .event-time { position: relative; padding: 14px 16px 14px 20px; border-right: 1px solid var(--tf-border); }
-    .event-time time { display: block; font-family: var(--tf-mono); font-size: var(--tf-fs-sm); font-variant-numeric: tabular-nums; }
-    .event-time span { display: block; color: var(--tf-text-3); font-size: 11px; }
-    .event-time::after { content: ""; position: absolute; right: -4px; top: 20px; width: 7px; height: 7px; border-radius: 50%; background: var(--tf-text-3); box-shadow: 0 0 0 3px var(--tf-surface); }
-    .event[data-outcome="success"] .event-time::after { background: var(--tf-ok); }
-    .event[data-outcome="failure"] .event-time::after { background: var(--tf-bad); }
+    .event:hover { background: rgba(255, 255, 255, .018); }
     .event[data-cited="high"] { box-shadow: inset 2px 0 0 var(--tf-bad); }
     .event[data-cited="medium"] { box-shadow: inset 2px 0 0 var(--tf-warn); }
-    .event-main { min-width: 0; padding: 12px 20px 14px 18px; }
+    .event.is-selected { background: var(--tf-accent-soft); box-shadow: inset 2px 0 0 var(--tf-accent), inset 0 0 0 1px var(--tf-accent-line); }
+    .event-time { position: relative; padding: 12px 16px 12px 20px; border-right: 1px solid var(--tf-border); }
+    .event-time time { display: block; font-family: var(--tf-mono); font-size: var(--tf-fs-sm); font-variant-numeric: tabular-nums; }
+    .event-time span { display: block; color: var(--tf-text-3); font-size: var(--tf-fs-2xs); }
+    .event-time::after { content: ""; position: absolute; right: -4px; top: 18px; width: 7px; height: 7px; border-radius: 50%; background: var(--tf-text-3); box-shadow: 0 0 0 3px var(--tf-surface); }
+    .event[data-outcome="success"] .event-time::after { background: var(--tf-ok); }
+    .event[data-outcome="failure"] .event-time::after { background: var(--tf-bad); }
+    .event-main { min-width: 0; padding: 10px 20px 12px 18px; }
     .event-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-    .cited-badge .tf-dot { color: var(--tf-text-3); }
-    .cited-badge[data-sev="high"] .tf-dot { color: var(--tf-bad); }
-    .cited-badge[data-sev="medium"] .tf-dot { color: var(--tf-warn); }
-    .event-action { font-family: var(--tf-mono); font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-    .event-message { margin-top: 4px; color: var(--tf-text-2); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
-    .event-meta { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 8px 0 0; font-size: var(--tf-fs-xs); }
+    .event-open { position: static; padding: 0; border: 0; background: none; color: var(--tf-text); font: 600 var(--tf-fs-sm)/1.5 var(--tf-mono); text-align: left; overflow-wrap: anywhere; border-radius: 2px; }
+    .event-open::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+    .event-open:focus-visible { outline: none; }
+    .event-open:focus-visible::after { outline: 2px solid var(--tf-accent); outline-offset: -2px; }
+    .event-message { margin-top: 3px; color: var(--tf-text-2); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+    .event-meta { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 6px 0 0; font-size: var(--tf-fs-xs); }
     .event-meta div { display: flex; gap: 6px; min-width: 0; }
     .event-meta dt { color: var(--tf-text-3); }
     .event-meta dd { margin: 0; color: var(--tf-text-2); font-family: var(--tf-mono); overflow-wrap: anywhere; }
-    .event-evidence { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 10px; font-size: var(--tf-fs-xs); }
-    .event-evidence .ref { color: var(--tf-text-3); font-family: var(--tf-mono); }
-    .event-evidence .tf-link { font-size: var(--tf-fs-xs); }
-    .raw-line { margin: 10px 0 0; padding: 12px 14px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); color: var(--tf-text); font: 12px/1.6 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
-    .raw-line .raw-label { color: var(--tf-text-3); }
-    .raw-line.is-error { border-color: rgba(242, 134, 124, .4); color: var(--tf-bad); }
+    .event-ref { margin-top: 6px; color: var(--tf-text-3); font: var(--tf-fs-xs)/1.5 var(--tf-mono); overflow-wrap: anywhere; }
+    .cited-badge .tf-dot { color: var(--tf-text-3); }
+    .cited-badge[data-sev="high"] .tf-dot { color: var(--tf-bad); }
+    .cited-badge[data-sev="medium"] .tf-dot { color: var(--tf-warn); }
     .pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--tf-border); color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
     .pagination div { display: flex; gap: 8px; }
 
-    /* Side panels */
-    .side-panel .panel-head { padding: 14px 16px; }
-    .side-panel .panel-head h2 { font-size: var(--tf-fs-base); }
-    .side-body { padding: 4px 16px 14px; }
-    .side-sub { margin: 12px 0 4px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; }
+    /* Contextual pane */
+    .side { position: sticky; top: 72px; display: flex; flex-direction: column; max-height: calc(100vh - 88px); overflow: hidden; }
+    .side-tabs { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid var(--tf-border); }
+    .side-tab { flex: 1; min-height: 32px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--tf-radius-sm); background: none; color: var(--tf-text-3); font-size: var(--tf-fs-sm); font-weight: 560; transition: background-color var(--tf-dur) var(--tf-ease), color var(--tf-dur) var(--tf-ease); }
+    .side-tab:hover { color: var(--tf-text); background: var(--tf-surface-2); }
+    .side-tab[aria-selected="true"] { color: var(--tf-text); border-color: #3a463d; background: linear-gradient(180deg, #27302a 0%, var(--tf-surface-2) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 1px 2px rgba(0, 0, 0, .35); }
+    .side-tab .count { margin-left: 6px; color: var(--tf-text-3); font: var(--tf-fs-2xs) var(--tf-mono); }
+    .side-pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    .side-section { padding: 14px 16px 16px; border-top: 1px solid var(--tf-border); }
+    .side-section:first-child { border-top: 0; }
+    .side-section > h2 { font-size: var(--tf-fs-sm); font-weight: 620; }
+    .side-section > p { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .side-sub { margin: 12px 0 4px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 560; }
     .entity-list, .custody-list, .source-list, .gap-list { margin: 0; padding: 0; list-style: none; }
-    .entity { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; margin: 0 -8px; border: 0; border-radius: var(--tf-radius-sm); background: none; text-align: left; }
+    .entity { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; width: calc(100% + 16px); padding: 6px 8px; margin: 0 -8px; border: 0; border-radius: var(--tf-radius-sm); background: none; text-align: left; }
     .entity:hover { background: var(--tf-surface-2); }
     .entity-value { font-family: var(--tf-mono); font-size: var(--tf-fs-sm); overflow-wrap: anywhere; }
     .entity-stats { color: var(--tf-text-3); font-size: var(--tf-fs-xs); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .entity-stats .fail { color: var(--tf-bad); }
-    .entity-cross { grid-column: 1 / -1; margin-top: -2px; color: var(--tf-warn); font-size: 11px; }
-    .source-item { padding: 12px 0; border-top: 1px solid var(--tf-border); }
+    .entity-cross { grid-column: 1 / -1; margin-top: -2px; color: var(--tf-warn); font-size: var(--tf-fs-2xs); }
+    .source-item { padding: 10px 0; border-top: 1px solid var(--tf-border); }
     .source-item:first-child { border-top: 0; }
     .source-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-    .source-name .mono { color: var(--tf-text-3); font-weight: 500; }
+    .source-name .mono { color: var(--tf-text-3); font-family: var(--tf-mono); font-size: var(--tf-fs-xs); font-weight: 500; }
     .source-meta { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .hash-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
     .hash { flex: 1; min-width: 0; padding: 6px 8px; color: var(--tf-text-2); font: 11px/1.55 var(--tf-mono); overflow-wrap: anywhere; }
@@ -135,8 +147,9 @@
     .custody-seq { color: var(--tf-text-3); font-family: var(--tf-mono); font-size: var(--tf-fs-xs); padding-top: 2px; }
     .custody-action { font-weight: 600; }
     .custody-action small { margin-left: 6px; color: var(--tf-text-3); font-family: var(--tf-mono); font-weight: 400; font-size: var(--tf-fs-xs); }
-    .custody-time { grid-column: 2; color: var(--tf-text-3); font-family: var(--tf-mono); font-size: 11px; }
-    .custody-ok { grid-row: 1; grid-column: 3; color: var(--tf-ok); font-size: var(--tf-fs-xs); }
+    .custody-time { grid-column: 2; color: var(--tf-text-3); font-family: var(--tf-mono); font-size: var(--tf-fs-2xs); }
+    .custody-ok { grid-row: 1; grid-column: 3; display: inline-flex; align-items: center; gap: 4px; color: var(--tf-ok); font-size: var(--tf-fs-xs); }
+    .custody-ok svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
     .custody-item.is-broken .custody-ok { color: var(--tf-bad); }
     .custody-errors { grid-column: 2 / -1; color: var(--tf-bad); font-size: var(--tf-fs-xs); }
     .gap-item { padding: 10px 0; border-top: 1px solid var(--tf-border); font-size: var(--tf-fs-xs); }
@@ -144,16 +157,50 @@
     .gap-item .ref { color: var(--tf-text-3); font-family: var(--tf-mono); }
     .gap-item pre { margin: 6px 0 0; padding: 8px; font: 11px/1.5 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 
+    /* Event inspector (desktop pane and mobile sheet share this markup) */
+    .insp-empty { display: grid; gap: 10px; justify-items: start; padding: 24px 16px; color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
+    .insp-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--tf-border); background: var(--tf-sunken); }
+    .insp-bar .tf-shortcuts { margin-right: auto; }
+    .insp-head { padding: 14px 16px; border-bottom: 1px solid var(--tf-border); }
+    .insp-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    .insp-action { font: 600 var(--tf-fs-md)/1.4 var(--tf-mono); overflow-wrap: anywhere; }
+    .insp-message { margin-top: 6px; color: var(--tf-text-2); font-size: 14px; overflow-wrap: anywhere; }
+    .insp-section { padding: 14px 16px; border-bottom: 1px solid var(--tf-border); }
+    .insp-section:last-child { border-bottom: 0; }
+    .insp-section > h3 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; }
+    .insp-section > h3 .tag { color: var(--tf-text-3); font-weight: 500; }
+    .kv { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: var(--tf-fs-sm); }
+    .kv dt { color: var(--tf-text-3); }
+    .kv dd { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; margin: 0; font-family: var(--tf-mono); font-size: var(--tf-fs-xs); line-height: 1.7; overflow-wrap: anywhere; }
+    .kv dd > span { min-width: 0; }
+    .kv dd .tf-badge { font-family: var(--tf-font); }
+    .pivot { flex: 0 0 auto; display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid transparent; border-radius: var(--tf-radius-xs); background: none; color: var(--tf-text-3); }
+    .pivot:hover { border-color: var(--tf-border-strong); background: var(--tf-surface-2); color: var(--tf-text); }
+    .pivot svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .insp-findings { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .insp-findings li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; align-items: start; font-size: var(--tf-fs-sm); }
+    .insp-findings .tf-link { grid-column: 2; justify-self: start; font-size: var(--tf-fs-xs); }
+    .evidence-ref { color: var(--tf-text-2); font: var(--tf-fs-xs)/1.6 var(--tf-mono); overflow-wrap: anywhere; }
+    .raw-line { margin: 8px 0 0; padding: 10px 12px; color: var(--tf-text); font: 12px/1.6 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .raw-line.is-error { border-color: rgba(255, 136, 139, .4); color: var(--tf-bad); }
+    .verify-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+
+    /* Mobile and tablet: inspector opens as a bottom sheet */
+    .sheet { width: 100%; max-width: 640px; max-height: 86vh; margin: auto auto 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; overflow: hidden; }
+    .sheet[open] { display: flex; flex-direction: column; }
+    .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    .sheet .insp-bar { background: var(--tf-surface-2); }
+
     /* Section headers for the secondary tools */
     .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 16px; }
-    .section-head h2 { font-size: var(--tf-fs-lg); font-weight: 650; }
+    .section-head h2 { font-size: var(--tf-fs-lg); font-weight: 640; letter-spacing: -.016em; }
     .section-head p { max-width: 72ch; margin-top: 4px; color: var(--tf-text-2); font-size: 14px; }
     .section-body { padding: 0 20px 20px; }
-    .metric-strip { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); margin: 0; border-top: 1px solid var(--tf-border); border-bottom: 1px solid var(--tf-border); }
-    .metric-strip > div { min-width: 0; padding: 14px 16px 14px 0; }
-    .metric-strip > div + div { padding-left: 16px; border-left: 1px solid var(--tf-border); }
+    .metric-strip { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); margin: 0; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); box-shadow: var(--tf-shadow-recessed); }
+    .metric-strip > div { min-width: 0; padding: 12px 14px; }
+    .metric-strip > div + div { border-left: 1px solid var(--tf-border); }
     .metric-strip dt { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
-    .metric-strip dd { margin: 4px 0 0; font-size: var(--tf-fs-xl); font-weight: 620; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .metric-strip dd { margin: 4px 0 0; font-size: var(--tf-fs-xl); font-weight: 600; letter-spacing: -.02em; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .metric-strip dd.metric-sub { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 400; letter-spacing: 0; line-height: 1.5; }
 
     /* Timeline Confidence Lab */
@@ -164,7 +211,7 @@
     .tlab-card .tf-field + .tf-field, .tlab-card .tlab-time-grid + .tf-field { margin-top: 14px; }
     .tlab-time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
     .tlab-time-value { min-width: 0; padding: 9px 11px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-surface); }
-    .tlab-time-value span { display: block; color: var(--tf-text-3); font-size: 11px; }
+    .tlab-time-value span { display: block; color: var(--tf-text-3); font-size: var(--tf-fs-2xs); }
     .tlab-time-value strong { display: block; margin-top: 2px; font: 500 var(--tf-fs-sm)/1.5 var(--tf-mono); overflow-wrap: anywhere; }
     .tlab-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
     .tlab-preview-status { margin-top: 14px; }
@@ -178,23 +225,23 @@
     .tlab-formula { margin-top: 12px; padding: 10px 12px; border-left: 2px solid var(--tf-accent); background: var(--tf-surface); color: var(--tf-text-2); font-size: var(--tf-fs-xs); line-height: 1.6; overflow-wrap: anywhere; }
     .tlab-disclosure { margin-top: 16px; border-top: 1px solid var(--tf-border); }
     .tlab-disclosure > summary { padding: 14px 0; }
-    .tlab-disclosure > summary .s-title { display: block; font-size: var(--tf-fs-base); font-weight: 620; }
+    .tlab-disclosure > summary .s-title { display: block; font-size: var(--tf-fs-base); font-weight: 600; }
     .tlab-disclosure > summary .s-help { display: block; margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-sm); font-weight: 400; }
     .tlab-disclosure > summary .s-count { color: var(--tf-text-3); font: var(--tf-fs-xs) var(--tf-mono); white-space: nowrap; }
     .tlab-disclosure > summary > span:first-child { flex: 1; min-width: 0; }
     .tlab-disclosure-body { padding-bottom: 16px; }
-    .tlab-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .tlab-source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; }
     .tlab-source-card { min-width: 0; padding: 14px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-bg); }
     .tlab-source-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
     .tlab-source-file { font-weight: 600; overflow-wrap: anywhere; }
-    .tlab-source-file .mono { color: var(--tf-text-3); font-weight: 500; }
+    .tlab-source-file .mono { color: var(--tf-text-3); font-family: var(--tf-mono); font-size: var(--tf-fs-xs); font-weight: 500; }
     .tlab-source-meta { margin-top: 8px; color: var(--tf-text-2); font-size: var(--tf-fs-xs); line-height: 1.7; overflow-wrap: anywhere; }
     .tlab-source-warning { margin-top: 10px; padding: 8px 10px; border-left: 2px solid var(--tf-warn); background: var(--tf-warn-soft); color: var(--tf-text-2); font-size: var(--tf-fs-xs); }
     .tlab-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
     .tlab-toolbar .tf-select { width: auto; min-width: 200px; }
     .tlab-table-wrap { overflow: auto; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-bg); }
     .tlab-table { width: 100%; min-width: 920px; border-collapse: collapse; font-size: var(--tf-fs-sm); }
-    .tlab-table th { position: sticky; top: 0; padding: 9px 12px; border-bottom: 1px solid var(--tf-border); background: var(--tf-surface-2); color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; text-align: left; white-space: nowrap; }
+    .tlab-table th { position: sticky; top: 0; padding: 8px 12px; border-bottom: 1px solid var(--tf-border); background: var(--tf-sunken); color: var(--tf-text-3); font-size: var(--tf-fs-2xs); font-weight: 560; text-align: left; white-space: nowrap; }
     .tlab-table td { padding: 9px 12px; border-bottom: 1px solid var(--tf-border); vertical-align: top; }
     .tlab-table tr:last-child td { border-bottom: 0; }
     .tlab-table tbody tr:hover td { background: var(--tf-surface); }
@@ -203,10 +250,10 @@
     .tlab-mono { font-family: var(--tf-mono); font-size: var(--tf-fs-xs); white-space: nowrap; font-variant-numeric: tabular-nums; }
     .tlab-raw { font-family: var(--tf-mono); font-size: var(--tf-fs-xs); overflow-wrap: anywhere; }
     .tlab-row-source { color: var(--tf-text-2); font-size: var(--tf-fs-xs); }
-    .tlab-rank-shift { margin-top: 2px; color: var(--tf-accent); font-size: 11px; }
+    .tlab-rank-shift { margin-top: 2px; color: var(--tf-accent); font-size: var(--tf-fs-2xs); }
     .tlab-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .tlab-pagination div { display: flex; gap: 8px; }
-    .tlab-tie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+    .tlab-tie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 10px; }
     .tlab-tie { padding: 12px 14px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-bg); font-size: var(--tf-fs-xs); }
     .tlab-tie-time { font-family: var(--tf-mono); font-weight: 600; }
     .tlab-tie-meta { margin: 2px 0 6px; color: var(--tf-text-3); }
@@ -216,14 +263,14 @@
     /* Triage time study */
     .study > summary { display: grid; grid-template-columns: minmax(0, 1fr) 8px; column-gap: 16px; padding: 18px 20px; }
     .study > summary::after { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
-    .study > summary h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: var(--tf-fs-lg); font-weight: 650; }
+    .study > summary h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: var(--tf-fs-lg); font-weight: 640; letter-spacing: -.016em; }
     .study > summary .s-desc { margin-top: 4px; color: var(--tf-text-2); font-size: 14px; }
     .study[open] > summary { border-bottom: 1px solid var(--tf-border); }
     .study-body { padding: 20px; }
     .study-body > * + * { margin-top: 20px; }
     .bench-row { display: grid; grid-template-columns: minmax(200px, .7fr) minmax(0, 1.6fr); gap: 16px 24px; padding: 18px 0; border-top: 1px solid var(--tf-border); }
     .bench-row:first-child { border-top: 0; padding-top: 0; }
-    .bench-title { font-size: var(--tf-fs-base); font-weight: 620; }
+    .bench-title { font-size: var(--tf-fs-base); font-weight: 600; }
     .bench-sub { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .bench-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .bench-control { min-width: 0; }
@@ -239,55 +286,65 @@
     .bench-viz { grid-column: 1 / -1; display: grid; gap: 6px; }
     .bench-barline { display: grid; grid-template-columns: 170px minmax(0, 1fr) 96px; align-items: center; gap: 12px; font-size: var(--tf-fs-xs); }
     .bench-barlabel { color: var(--tf-text-3); }
-    .bench-track { height: 6px; border-radius: 3px; background: var(--tf-surface-3); overflow: hidden; }
+    .bench-track { height: 6px; border-radius: 3px; background: var(--tf-sunken); box-shadow: var(--tf-shadow-recessed); overflow: hidden; }
     .bench-bar { width: 0; height: 100%; background: var(--series); transition: width .3s var(--tf-ease); }
     .bench-barvalue { text-align: right; font-family: var(--tf-mono); color: var(--tf-text-2); }
     .bench-result { margin-top: 6px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .bench-result.positive { color: var(--tf-ok); }
     .bench-result.negative { color: var(--tf-warn); }
-    .bench-summary strong { display: block; font-size: var(--tf-fs-base); font-weight: 620; color: var(--tf-text); }
+    .bench-summary strong { display: block; font-size: var(--tf-fs-base); font-weight: 600; color: var(--tf-text); }
     .bench-summary .tf-note { margin-top: 8px; }
 
     .page-foot { max-width: var(--tf-max); margin: 0 auto; padding: 20px var(--tf-gutter) 36px; border-top: 1px solid var(--tf-border); color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
 
     @media (max-width: 1100px) {
       .workspace { grid-template-columns: minmax(0, 1fr); }
-      .side { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+      .side { position: static; max-height: none; overflow: visible; }
+      .side-tabs { display: none; }
+      #pane-event { display: none !important; }
+      #pane-context { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
+      #pane-context .side-section { border-top: 0; border-left: 1px solid var(--tf-border); }
+      #pane-context .side-section:first-child { border-left: 0; }
       .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .filters .f-search { grid-column: 1 / -1; }
       .filters .f-reset { grid-column: auto; }
       .tlab-workbench { grid-template-columns: minmax(0, 1fr); }
+      .timeline-head .tf-shortcuts { display: none; }
     }
     @media (max-width: 720px) {
       .appbar-inner { flex-wrap: wrap; gap: 8px 12px; padding-top: 10px; padding-bottom: 10px; }
       .appbar .tf-brand-context { display: none; }
       .appbar-actions { width: 100%; margin-left: 0; }
       .appbar-actions .tf-btn { flex: 1; min-width: 0; padding: 0 10px; }
-      .hide-sm { display: none; }
       .appbar-actions .tf-btn--ghost { flex: 0 0 auto; }
+      .hide-sm { display: none; }
       .shell { padding-top: 20px; }
       .case-head { grid-template-columns: minmax(0, 1fr); gap: 16px; }
       .integrity { max-width: none; }
-      .panel-head, .filters, .scope-bar, .pagination { padding-left: 16px; padding-right: 16px; }
+      .panel-head, .filters, .scope-bar, .pagination, .timeline-head { padding-left: 16px; padding-right: 16px; }
       .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .filters .f-range { grid-column: 1 / -1; }
       .filters .f-reset { grid-column: 1 / -1; justify-content: stretch; }
       .filters .f-reset .tf-btn { width: 100%; }
       .finding { grid-template-columns: minmax(0, 1fr); padding: 14px 16px; }
       .finding-action .tf-btn { width: 100%; margin-top: 8px; }
+      .timeline-head { display: none; }
       .event { grid-template-columns: minmax(0, 1fr); }
-      .event-time { display: flex; gap: 8px; align-items: baseline; padding: 12px 16px 0; border-right: 0; }
+      .event-time { display: flex; gap: 8px; align-items: baseline; padding: 11px 16px 0; border-right: 0; }
       .event-time::after { display: none; }
-      .event-main { padding: 4px 16px 14px; }
+      .event-main { padding: 2px 16px 12px; }
       .scope-bar { flex-direction: column; align-items: stretch; }
       .pagination { flex-direction: column; align-items: stretch; }
       .pagination div .tf-btn { flex: 1; }
+      #pane-context { grid-template-columns: minmax(0, 1fr); }
+      #pane-context .side-section { border-left: 0; border-top: 1px solid var(--tf-border); }
+      #pane-context .side-section:first-child { border-top: 0; }
       .section-head { flex-direction: column; padding: 16px; }
       .section-body, .study-body { padding: 0 16px 16px; }
       .study-body { padding-top: 16px; }
       .study > summary { padding: 16px; }
       .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .metric-strip > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+      .metric-strip > div:nth-child(odd) { border-left: 0; }
       .metric-strip > div:nth-child(n+3) { border-top: 1px solid var(--tf-border); }
       .metric-strip dd { font-size: var(--tf-fs-lg); }
       .tlab-time-grid { grid-template-columns: minmax(0, 1fr); }
@@ -296,6 +353,12 @@
       .bench-controls { grid-template-columns: minmax(0, 1fr); }
       .bench-barline { grid-template-columns: minmax(0, 1fr) 84px; }
       .bench-barline .bench-track { grid-column: 1 / -1; grid-row: 2; }
+      .sheet { max-height: 92vh; }
+    }
+    @media (max-width: 360px) {
+      .case-facts { gap: 10px 20px; }
+      .kv { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
+      .kv dd { margin-bottom: 6px; }
     }
   </style>
 </head>
@@ -303,12 +366,14 @@
 <a class="skip-link" href="#timeline">Skip to timeline</a>
 <header class="appbar">
   <div class="appbar-inner">
-    <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#d8ff63"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+    <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#75dea6"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
     <span class="tf-brand-context" id="caseCrumb">Investigation</span>
+    <label class="tf-sr-only" for="casePicker">Investigation</label>
+    <select class="tf-select case-picker" id="casePicker" hidden></select>
     <nav class="appbar-actions" aria-label="Case actions">
       <a class="tf-btn tf-btn--ghost" href="/engine-test">Engine lab</a>
       <a class="tf-btn" id="jsonExport" href="/export/events.json"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span><span class="hide-sm">Export </span>JSON</span></a>
-      <a class="tf-btn tf-btn--primary" id="pdfExport" href="/export/report.pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>PDF report</a>
+      <a class="tf-btn tf-btn--silver" id="pdfExport" href="/export/report.pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>PDF report</a>
     </nav>
   </div>
 </header>
@@ -346,7 +411,7 @@
         <button class="tf-btn tf-btn--ghost tf-btn--sm" id="refresh" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Refresh</button>
       </header>
       <div class="filters" role="search" aria-label="Filter the timeline">
-        <div class="tf-field f-search"><label class="tf-label" for="q">Search events and raw evidence</label><div class="search-wrap"><input class="tf-input" id="q" type="search" placeholder="IP, user, path, message or hash" autocomplete="off" spellcheck="false"><kbd aria-hidden="true">/</kbd></div></div>
+        <div class="tf-field f-search"><label class="tf-label" for="q">Search events and raw evidence</label><div class="search-wrap"><input class="tf-input" id="q" type="search" aria-keyshortcuts="/" placeholder="IP, user, path, message or hash" autocomplete="off" spellcheck="false"><kbd class="tf-kbd" aria-hidden="true">/</kbd></div></div>
         <div class="tf-field"><label class="tf-label" for="source">Source</label><select class="tf-select" id="source"><option value="">All sources</option></select></div>
         <div class="tf-field"><label class="tf-label" for="action">Action</label><select class="tf-select" id="action"><option value="">All actions</option></select></div>
         <div class="tf-field"><label class="tf-label" for="outcome">Outcome</label><select class="tf-select" id="outcome"><option value="">Any outcome</option><option value="success">Success</option><option value="failure">Failure</option></select></div>
@@ -360,27 +425,37 @@
         <span>Showing the evidence for <strong id="scopeTitle"></strong></span>
         <button class="tf-btn tf-btn--sm" id="clearScope" type="button">Show all events</button>
       </div>
+      <div class="timeline-head" aria-hidden="true"><span>Time · UTC</span><span>Event</span><span class="tf-shortcuts"><span>Select a row to inspect it</span></span></div>
       <ol class="timeline" id="timeline" tabindex="-1" aria-labelledby="timelineHeading"><li class="tf-empty">Loading the normalized timeline…</li></ol>
       <footer class="pagination"><span id="pageInfo">—</span><div><button class="tf-btn tf-btn--sm" id="prevPage" type="button">Previous</button><button class="tf-btn tf-btn--sm" id="nextPage" type="button">Next</button></div></footer>
     </section>
 
-    <aside class="side" aria-label="Case context">
-      <section class="tf-panel side-panel" aria-labelledby="entitiesHeading">
-        <header class="panel-head"><div><h2 id="entitiesHeading">Who and where</h2><p>Select one to search for it.</p></div></header>
-        <div class="side-body" id="entities"><p class="tf-empty">Loading…</p></div>
-      </section>
-      <section class="tf-panel side-panel" aria-labelledby="sourcesHeading">
-        <header class="panel-head"><div><h2 id="sourcesHeading">Evidence sources</h2><p>SHA-256 recorded at collection.</p></div></header>
-        <div class="side-body"><ul class="source-list" id="sources"><li class="tf-empty">Loading…</li></ul></div>
-      </section>
-      <section class="tf-panel side-panel" aria-labelledby="custodyHeading">
-        <header class="panel-head"><div><h2 id="custodyHeading">Chain of custody</h2><p>Each record is hashed and linked to the one before it.</p></div></header>
-        <div class="side-body"><div class="custody-status" id="custodyStatus"></div><ol class="custody-list" id="custody"><li class="tf-empty">Loading…</li></ol></div>
-      </section>
-      <section class="tf-panel side-panel" id="gapsPanel" aria-labelledby="gapsHeading" hidden>
-        <header class="panel-head"><div><h2 id="gapsHeading">Unparsed lines</h2><p>Kept with the reason, never dropped.</p></div></header>
-        <div class="side-body"><ul class="gap-list" id="gaps"></ul></div>
-      </section>
+    <aside class="side tf-panel" id="side" aria-label="Details">
+      <div class="side-tabs" role="tablist" aria-label="Details">
+        <button class="side-tab" role="tab" id="tab-event" aria-controls="pane-event" aria-selected="false" tabindex="-1" type="button">Event</button>
+        <button class="side-tab" role="tab" id="tab-context" aria-controls="pane-context" aria-selected="true" type="button">Case context</button>
+      </div>
+      <div class="side-pane" role="tabpanel" id="pane-event" aria-labelledby="tab-event" tabindex="0" hidden>
+        <div id="inspector"></div>
+      </div>
+      <div class="side-pane" role="tabpanel" id="pane-context" aria-labelledby="tab-context" tabindex="0">
+        <section class="side-section" aria-labelledby="entitiesHeading">
+          <h2 id="entitiesHeading">Who and where</h2><p>Select one to search for it.</p>
+          <div id="entities"><p class="tf-empty">Loading…</p></div>
+        </section>
+        <section class="side-section" aria-labelledby="sourcesHeading">
+          <h2 id="sourcesHeading">Evidence sources</h2><p>Original files, with the SHA-256 recorded at collection.</p>
+          <ul class="source-list" id="sources"><li class="tf-empty">Loading…</li></ul>
+        </section>
+        <section class="side-section" aria-labelledby="custodyHeading">
+          <h2 id="custodyHeading">Chain of custody</h2><p>Each record is hashed and linked to the one before it.</p>
+          <div class="custody-status" id="custodyStatus"></div><ol class="custody-list" id="custody"><li class="tf-empty">Loading…</li></ol>
+        </section>
+        <section class="side-section" id="gapsPanel" aria-labelledby="gapsHeading" hidden>
+          <h2 id="gapsHeading">Unparsed lines</h2><p>Kept with the reason, never dropped.</p>
+          <ul class="gap-list" id="gaps"></ul>
+        </section>
+      </div>
     </aside>
   </div>
 
@@ -411,7 +486,7 @@
             <div class="tlab-time-value"><span>Current case setting</span><strong id="tlabConfiguredOffset">—</strong></div>
           </div>
           <div class="tf-field"><label class="tf-label" for="tlabPreviewOffset">Proposed offset (seconds)</label><input class="tf-input" id="tlabPreviewOffset" type="number" step="0.001" inputmode="decimal" value="0" aria-describedby="tlabOffsetHelp"><span class="tf-hint" id="tlabOffsetHelp">Positive means the source clock ran ahead of the reference. TRACEFUSE subtracts the offset to normalize.</span></div>
-          <div class="tlab-actions"><button class="tf-btn tf-btn--primary tf-btn--sm" id="tlabApplyPreview" type="button">Preview shift</button><button class="tf-btn tf-btn--sm" id="tlabClearPreview" type="button">Discard preview</button></div>
+          <div class="tlab-actions"><button class="tf-btn tf-btn--sm" id="tlabApplyPreview" type="button">Preview shift</button><button class="tf-btn tf-btn--ghost tf-btn--sm" id="tlabClearPreview" type="button">Discard preview</button></div>
           <div class="tf-note tlab-preview-status" id="tlabPreviewStatus" role="status" aria-live="polite">No preview active. The ledger shows the stored normalized timeline.</div>
           <p class="tlab-quiet">Never writes to case.json, events.jsonl, the original evidence or the custody chain. To persist a correction, use the skew workflow and rebuild the timeline.</p>
         </section>
@@ -467,6 +542,17 @@
 </main>
 <footer class="page-foot">TRACEFUSE runs locally and never modifies source evidence or custody records. Keep exports with the original case folder; a report is not a replacement for the evidence.</footer>
 
+<dialog class="tf-dialog tf-elevated sheet" id="inspectorSheet" aria-labelledby="sheetTitle">
+  <div class="insp-bar">
+    <h2 id="sheetTitle" class="tf-sr-only">Event details</h2>
+    <span class="tf-shortcuts"><span>Event details</span></span>
+    <button class="tf-btn tf-btn--sm" type="button" data-step="-1">Previous</button>
+    <button class="tf-btn tf-btn--sm" type="button" data-step="1">Next</button>
+    <button class="tf-btn tf-btn--ghost tf-btn--sm tf-btn--icon" type="button" id="sheetClose" aria-label="Close event details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</dialog>
+
 <script>
 (() => {
   'use strict';
@@ -487,10 +573,12 @@
   }
   function activeCase() {
     const m = location.pathname.match(/\/case\/(CASE-[a-f0-9]{12})\/?$/i);
-    return window.TRACEFUSE_CASE_ID || (m && m[1]) || '';
+    return window.TRACEFUSE_CASE_ID || (m && m[1]) || new URLSearchParams(location.search).get('case') || '';
   }
   async function getJSON(url) {
-    const r = await fetch(url, { cache: 'no-store' });
+    const u = new URL(url, location.origin);
+    if (activeCase() && !u.searchParams.has('case')) u.searchParams.set('case', activeCase());
+    const r = await fetch(u, { cache: 'no-store' });
     let d; try { d = await r.json(); } catch { throw new Error(`Unreadable response (HTTP ${r.status})`); }
     if (!r.ok) throw new Error(d.error || `Request failed (HTTP ${r.status})`);
     return d;
@@ -508,7 +596,7 @@
     const jsonQuery = params.toString();
     $('jsonExport').href = '/export/events.json' + (jsonQuery ? '?' + jsonQuery : '');
     $('pdfExport').href = '/export/report.pdf' + (pdfQuery ? '?' + pdfQuery : '');
-    $('pdfExport').title = state.scope ? 'The PDF report covers the filtered timeline and every finding.' : '';
+    $('pdfExport').title = state.scope ? "The PDF report covers the filtered timeline, not only this finding's evidence lines." : '';
   }
   function addOptions(id, values, firstLabel) {
     const node = $(id), selected = node.value;
@@ -658,7 +746,10 @@
         const action = el('span', 'custody-action', r.action);
         const subject = r.fields?.source_id || '';
         if (subject) action.append(el('small', '', subject));
-        li.append(action, el('span', 'custody-ok', r.ok ? 'Verified' : 'Broken'), el('span', 'custody-time', `${utcStamp(r.ts_utc)} UTC`));
+        const okTag = el('span', 'custody-ok');
+        if (r.ok) okTag.innerHTML = CHECK_ICON;
+        okTag.append(document.createTextNode(r.ok ? 'Verified' : 'Broken'));
+        li.append(action, okTag, el('span', 'custody-time', `${utcStamp(r.ts_utc)} UTC`));
         if (!r.ok) li.append(el('span', 'custody-errors', r.errors.join('; ')));
         box.append(li);
       }
@@ -671,6 +762,7 @@
   async function showGaps() {
     const panel = $('gapsPanel'), box = $('gaps');
     panel.hidden = false;
+    showTab('context');
     box.replaceChildren(el('li', 'tf-empty', 'Loading…'));
     try {
       const d = await getJSON('/api/gaps?limit=200');
@@ -686,34 +778,205 @@
     panel.scrollIntoView({ block: 'nearest' });
   }
 
-  /* ---------- Timeline ---------- */
-  async function toggleRaw(e, main, button) {
-    let pre = main.querySelector('.raw-line');
-    if (pre && !pre.hidden) { pre.hidden = true; button.textContent = 'View original line'; button.setAttribute('aria-expanded', 'false'); return; }
-    if (!pre) { pre = el('pre', 'raw-line'); pre.id = `raw-${e.event_id}`.replace(/[^\w-]/g, '_'); main.append(pre); button.setAttribute('aria-controls', pre.id); }
-    pre.hidden = false; pre.classList.remove('is-error');
-    pre.textContent = 'Verifying the source hash and loading the original line…';
-    button.textContent = 'Hide original line'; button.setAttribute('aria-expanded', 'true');
+  /* ---------- Contextual pane tabs ---------- */
+  const desktop = window.matchMedia('(min-width: 1101px)');
+  function showTab(name, focus = false) {
+    for (const key of ['event', 'context']) {
+      const on = key === name;
+      const tab = $('tab-' + key);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      tab.tabIndex = on ? 0 : -1;
+      $('pane-' + key).hidden = !on;
+      if (on && focus) tab.focus();
+    }
+  }
+  for (const key of ['event', 'context']) {
+    $('tab-' + key).addEventListener('click', () => showTab(key));
+    $('tab-' + key).addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); showTab(key === 'event' ? 'context' : 'event', true); }
+    });
+  }
+
+  /* ---------- Event inspector ---------- */
+  const SEARCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>';
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  let evidenceRequest = 0;
+  function fmtOffsetSeconds(v) { const n = Number(v) || 0; return `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(3)} s`; }
+  function isoUtc(s) { const d = new Date(s); return Number.isNaN(d.getTime()) ? String(s || '—') : d.toISOString().replace('T', ' ').replace(/(\.000)?Z$/, '') + ' UTC'; }
+  function kvRow(dl, label, value, pivot) {
+    if (value === undefined || value === null || value === '') return;
+    const dd = el('dd'); const span = el('span'); span.append(value instanceof Node ? value : document.createTextNode(String(value))); dd.append(span);
+    if (pivot) {
+      const b = el('button', 'pivot'); b.type = 'button'; b.innerHTML = SEARCH_ICON; b.title = `Search the timeline for ${value}`;
+      b.setAttribute('aria-label', `Search the timeline for ${value}`);
+      b.addEventListener('click', () => { closeSheet(); clearScope(false); $('q').value = String(value); state.offset = 0; loadEvents(); $('q').focus(); });
+      dd.append(b);
+    }
+    dl.append(el('dt', '', label), dd);
+  }
+  function inspectorBar(index) {
+    const bar = el('div', 'insp-bar');
+    const keys = el('span', 'tf-shortcuts');
+    const nav = el('span'); nav.append(el('kbd', 'tf-kbd', '↑'), el('kbd', 'tf-kbd', '↓'), document.createTextNode(' move'));
+    const esc = el('span'); esc.append(el('kbd', 'tf-kbd', 'Esc'), document.createTextNode(' close'));
+    keys.append(nav, esc);
+    const prev = el('button', 'tf-btn tf-btn--sm', 'Previous'); prev.type = 'button'; prev.disabled = index <= 0;
+    const next = el('button', 'tf-btn tf-btn--sm', 'Next'); next.type = 'button'; next.disabled = index >= (state.events?.length || 0) - 1;
+    prev.addEventListener('click', () => step(-1)); next.addEventListener('click', () => step(1));
+    bar.append(keys, prev, next);
+    return bar;
+  }
+  function renderInspector(box, e, { withBar = true } = {}) {
+    box.replaceChildren();
+    if (!e) {
+      const empty = el('div', 'insp-empty');
+      empty.append(el('p', '', 'Select an event in the timeline to see its normalized time, parsed fields, the findings that cite it and the verified original log line.'));
+      const keys = el('span', 'tf-shortcuts');
+      const nav = el('span'); nav.append(el('kbd', 'tf-kbd', '↑'), el('kbd', 'tf-kbd', '↓'), document.createTextNode(' move between events'));
+      keys.append(nav); empty.append(keys);
+      box.append(empty);
+      return;
+    }
+    const index = state.events.findIndex(x => x.event_id === e.event_id);
+    if (withBar) box.append(inspectorBar(index));
+
+    const head = el('div', 'insp-head');
+    const title = el('div', 'insp-title');
+    title.append(el('span', 'insp-action', e.action || 'unclassified'));
+    if (e.outcome === 'failure') title.append(el('span', 'tf-badge tf-badge--bad', 'Failure'));
+    else if (e.outcome === 'success') title.append(el('span', 'tf-badge tf-badge--ok', 'Success'));
+    head.append(title, el('p', 'insp-message', e.message || 'No message parsed'));
+    box.append(head);
+
+    const time = el('section', 'insp-section');
+    const th = el('h3'); th.append(document.createTextNode('Time'), el('span', 'tag', 'normalized by the parser'));
+    const tdl = el('dl', 'kv');
+    kvRow(tdl, 'UTC', isoUtc(e.ts_utc));
+    kvRow(tdl, 'As recorded', e.ts_raw);
+    const zone = el('span'); zone.append(document.createTextNode(e.tz || 'unknown'));
+    if (e.tz_assumed) { zone.append(document.createTextNode(' ')); zone.append(el('span', 'tf-badge tf-badge--warn', 'Assumed')); }
+    kvRow(tdl, 'Source zone', zone);
+    kvRow(tdl, 'Clock offset', fmtOffsetSeconds(e.skew_offset_s));
+    if (e.year_inferred) kvRow(tdl, 'Year', el('span', 'tf-badge tf-badge--warn', 'Inferred: missing in the log'));
+    time.append(th, tdl); box.append(time);
+
+    const fields = el('section', 'insp-section');
+    const fh = el('h3'); fh.append(document.createTextNode('Parsed fields'), el('span', 'tag', 'derived, not original'));
+    const fdl = el('dl', 'kv');
+    kvRow(fdl, 'User', e.user, true); kvRow(fdl, 'Source IP', e.src_ip, true); kvRow(fdl, 'Host', e.host, true);
+    kvRow(fdl, 'Process', e.process, true); kvRow(fdl, 'PID', e.pid); kvRow(fdl, 'Source type', e.source_type);
+    for (const [k, v] of Object.entries(e.extra || {})) kvRow(fdl, k.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()), typeof v === 'object' ? JSON.stringify(v) : v, k === 'path');
+    kvRow(fdl, 'Event ID', e.event_id);
+    fields.append(fh, fdl); box.append(fields);
+
+    const citing = state.findings.filter(f => (f.event_ids || []).includes(e.event_id));
+    if (citing.length) {
+      const sec = el('section', 'insp-section');
+      sec.append(el('h3', '', `Cited by ${citing.length} finding${citing.length === 1 ? '' : 's'}`));
+      const list = el('ul', 'insp-findings');
+      for (const f of citing) {
+        const sev = SEVERITY[f.severity] || SEVERITY.info;
+        const li = el('li'); li.append(el('span', 'tf-badge ' + sev.badge, sev.label), el('span', '', f.title));
+        const b = el('button', 'tf-link', 'Show all of its evidence'); b.type = 'button';
+        b.addEventListener('click', () => { closeSheet(); setScope(f, true); });
+        li.append(b); list.append(li);
+      }
+      sec.append(list); box.append(sec);
+    }
+
+    const ev = el('section', 'insp-section');
+    const eh = el('h3'); eh.append(document.createTextNode('Original evidence'), el('span', 'tag', 'preserved bytes'));
+    ev.append(eh);
+    const name = e.source_file || sourceName(e.source_id);
+    ev.append(el('p', 'evidence-ref', `${e.source_id}${name ? ' · ' + name : ''} : line ${e.line_no}`));
+    const pre = el('pre', 'raw-line tf-well', 'Re-hashing the source file and loading the original line…');
+    const verify = el('div', 'verify-row');
+    ev.append(pre, verify);
+    if (e.file_sha256) {
+      const row = el('div', 'hash-row');
+      const hash = el('code', 'hash tf-well', e.file_sha256);
+      const copy = el('button', 'tf-btn tf-btn--sm', 'Copy'); copy.type = 'button';
+      copy.setAttribute('aria-label', 'Copy the source file SHA-256');
+      copy.addEventListener('click', () => copyText(e.file_sha256, copy));
+      row.append(hash, copy); ev.append(row);
+    }
+    box.append(ev);
+    loadOriginal(e, pre, verify);
+  }
+  async function loadOriginal(e, pre, verify) {
+    const id = ++evidenceRequest;
     try {
       const u = new URL('/api/evidence', location.origin);
       u.searchParams.set('source_id', e.source_id); u.searchParams.set('line_no', e.line_no);
       if (activeCase()) u.searchParams.set('case', activeCase());
       const d = await getJSON(u);
-      pre.replaceChildren();
-      for (const [label, value] of [['File    ', d.source_file], ['Line    ', d.line_no], ['SHA-256 ', d.file_sha256]]) {
-        pre.append(el('span', 'raw-label', label), document.createTextNode(`${value}\n`));
-      }
-      pre.append(document.createTextNode('\n' + d.raw_line));
+      if (id !== evidenceRequest) return;
+      pre.textContent = d.raw_line;
+      const badge = el('span', 'tf-badge tf-badge--ok'); badge.innerHTML = CHECK_ICON; badge.append(document.createTextNode('Hash verified'));
+      verify.replaceChildren(badge, el('span', '', `${d.source_file} matched its recorded SHA-256 just now`));
     } catch (err) {
+      if (id !== evidenceRequest) return;
       pre.classList.add('is-error');
-      pre.textContent = `Evidence not shown: ${err.message}`;
+      pre.textContent = `Not shown: ${err.message}`;
+      verify.replaceChildren(el('span', 'tf-badge tf-badge--bad', 'Verification failed'));
     }
   }
+
+  const sheet = $('inspectorSheet');
+  let returnFocus = null;
+  function closeSheet() { if (sheet.open) sheet.close(); }
+  sheet.addEventListener('close', () => { if (returnFocus && returnFocus.isConnected) returnFocus.focus(); });
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
+  $('sheetClose').addEventListener('click', () => sheet.close());
+  sheet.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => step(Number(b.dataset.step))));
+
+  function rowButton(id) { return $('timeline').querySelector(`.event[data-id="${CSS.escape(id)}"] .event-open`); }
+  function selectEvent(id, { focusRow = false, reveal = true } = {}) {
+    const e = state.events?.find(x => x.event_id === id);
+    if (!e) return;
+    state.selected = id;
+    for (const li of $('timeline').querySelectorAll('.event')) {
+      const on = li.dataset.id === id;
+      li.classList.toggle('is-selected', on);
+      li.querySelector('.event-open')?.setAttribute('aria-current', on ? 'true' : 'false');
+    }
+    const btn = rowButton(id);
+    if (focusRow && btn) btn.focus({ preventScroll: true });
+    if (reveal && btn) btn.closest('.event').scrollIntoView({ block: 'nearest' });
+    if (desktop.matches) {
+      renderInspector($('inspector'), e);
+      showTab('event');
+      $('pane-event').scrollTop = 0;
+    } else {
+      renderInspector($('sheetBody'), e, { withBar: false });
+      sheet.querySelector('[data-step="-1"]').disabled = state.events.indexOf(e) <= 0;
+      sheet.querySelector('[data-step="1"]').disabled = state.events.indexOf(e) >= state.events.length - 1;
+      if (!sheet.open) { returnFocus = btn; sheet.showModal(); }
+      $('sheetBody').scrollTop = 0;
+    }
+  }
+  function clearSelection() {
+    const btn = state.selected && rowButton(state.selected);
+    state.selected = null;
+    for (const li of $('timeline').querySelectorAll('.event.is-selected')) { li.classList.remove('is-selected'); li.querySelector('.event-open')?.setAttribute('aria-current', 'false'); }
+    renderInspector($('inspector'), null);
+    showTab('context');
+    if (btn) btn.focus({ preventScroll: true });
+  }
+  function step(delta) {
+    if (!state.events?.length) return;
+    const i = state.events.findIndex(x => x.event_id === state.selected);
+    const next = i < 0 ? (delta > 0 ? 0 : state.events.length - 1) : Math.max(0, Math.min(state.events.length - 1, i + delta));
+    selectEvent(state.events[next].event_id, { focusRow: !sheet.open });
+  }
+
+  /* ---------- Timeline ---------- */
   function renderEvents(events) {
     const box = $('timeline'); box.replaceChildren();
     if (!events.length) { box.append(el('li', 'tf-empty', 'No events match these filters.')); return; }
     for (const e of events) {
       const li = el('li', 'event');
+      li.dataset.id = e.event_id;
       li.dataset.outcome = e.outcome || 'unknown';
       const cited = state.citedBy.get(e.event_id);
       if (cited) li.dataset.cited = cited;
@@ -724,29 +987,29 @@
       li.append(time);
       const main = el('div', 'event-main');
       const head = el('div', 'event-head');
-      head.append(el('span', 'event-action', e.action || 'unclassified'));
+      const open = el('button', 'event-open', e.action || 'unclassified'); open.type = 'button';
+      open.setAttribute('aria-label', `${e.action || 'Unclassified event'} at ${when.time} UTC, ${when.date}. Show details`);
+      open.setAttribute('aria-current', 'false');
+      open.addEventListener('click', () => selectEvent(e.event_id, { reveal: false }));
+      head.append(open);
       if (e.outcome === 'failure') head.append(el('span', 'tf-badge tf-badge--bad', 'Failure'));
       else if (e.outcome === 'success') head.append(el('span', 'tf-badge tf-badge--ok', 'Success'));
       if (cited) {
         const tag = el('span', 'tf-badge cited-badge'); tag.dataset.sev = cited;
         tag.append(el('i', 'tf-dot'), document.createTextNode(`${SEVERITY[cited]?.label || 'Info'} finding`));
-        tag.title = 'This event is evidence for a finding above';
         head.append(tag);
       }
       main.append(head, el('p', 'event-message', e.message || e.raw_line || 'No message parsed'));
       const meta = el('dl', 'event-meta');
-      for (const [label, value] of [['User', e.user], ['IP', e.src_ip], ['Process', e.process], ['Host', e.host], ['Type', e.source_type]]) {
+      for (const [label, value] of [['User', e.user], ['IP', e.src_ip], ['Process', e.process], ['Host', e.host]]) {
         if (value === undefined || value === null || value === '') continue;
         const pair = el('div'); pair.append(el('dt', '', label), el('dd', '', value)); meta.append(pair);
       }
       if (meta.childElementCount) main.append(meta);
-      const ev = el('div', 'event-evidence');
-      const name = sourceName(e.source_id);
-      ev.append(el('span', 'ref', `${e.source_id}${name ? ' · ' + name : ''} : line ${e.line_no}`));
-      const btn = el('button', 'tf-link', 'View original line'); btn.type = 'button'; btn.setAttribute('aria-expanded', 'false');
-      btn.addEventListener('click', () => toggleRaw(e, main, btn));
-      ev.append(btn); main.append(ev);
+      const name = e.source_file || sourceName(e.source_id);
+      main.append(el('p', 'event-ref', `${e.source_id}${name ? ' · ' + name : ''} : line ${e.line_no}`));
       li.append(main); box.append(li);
+      if (e.event_id === state.selected) li.classList.add('is-selected');
     }
   }
   async function loadEvents() {
@@ -758,6 +1021,8 @@
       state.total = d.total;
       state.events = d.events;
       renderEvents(d.events);
+      if (state.selected && !d.events.some(e => e.event_id === state.selected)) { state.selected = null; renderInspector($('inspector'), null); showTab('context'); }
+      else if (state.selected && desktop.matches) selectEvent(state.selected, { reveal: false });
       const total = Number(d.total).toLocaleString();
       $('resultCount').textContent = state.scope ? `${total} evidence line${d.total === 1 ? '' : 's'} for this finding` : `${total} event${d.total === 1 ? '' : 's'} match the current filters, sorted by UTC time`;
       const from = d.total ? state.offset + 1 : 0, to = Math.min(state.offset + state.limit, d.total);
@@ -778,8 +1043,8 @@
       if (btn) { btn.textContent = active ? 'Showing evidence' : 'Show evidence'; btn.setAttribute('aria-pressed', active ? 'true' : 'false'); }
     }
   }
-  function setScope(f) {
-    if (state.scope && state.scope.id === f.id) { clearScope(); return; }
+  function setScope(f, keep = false) {
+    if (!keep && state.scope && state.scope.id === f.id) { clearScope(); return; }
     state.scope = { id: f.id, ids: f.event_ids, title: f.title };
     state.offset = 0;
     $('scopeTitle').textContent = f.title;
@@ -811,11 +1076,33 @@
     if (e.key === 'Escape' && $('q').value) { e.preventDefault(); $('q').value = ''; refilter(); }
   });
   document.addEventListener('keydown', e => {
-    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || sheet.open) return;
     const t = e.target;
-    if (t.closest && t.closest('input, select, textarea, [contenteditable="true"]')) return;
-    e.preventDefault(); $('q').focus(); $('q').select();
+    const typing = t.closest && t.closest('input, select, textarea, [contenteditable="true"]');
+    if (e.key === '/' && !typing) { e.preventDefault(); $('q').focus(); $('q').select(); return; }
+    if (typing || !desktop.matches) return;
+    const inTimeline = t.closest && t.closest('#timeline, .insp-bar');
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && (inTimeline || (t === document.body && state.selected))) {
+      e.preventDefault(); step(e.key === 'ArrowDown' ? 1 : -1);
+    } else if (e.key === 'Escape' && state.selected && (inTimeline || t === document.body || (t.closest && t.closest('#side')))) {
+      e.preventDefault(); clearSelection();
+    }
   });
+  desktop.addEventListener('change', () => { if (desktop.matches) { closeSheet(); if (state.selected) selectEvent(state.selected, { reveal: false }); } });
+  async function loadCasePicker() {
+    if (window.TRACEFUSE_CASE_ID) return; // the web app opens one investigation per URL
+    try {
+      const d = await getJSON('/api/cases');
+      if ((d.cases || []).length < 2) return;
+      const picker = $('casePicker'), current = new URLSearchParams(location.search).get('case') || d.cases[0].id;
+      for (const c of d.cases) picker.add(new Option(c.id, c.id));
+      picker.value = current;
+      picker.hidden = false; $('caseCrumb').hidden = true;
+      picker.addEventListener('change', () => { location.search = '?case=' + encodeURIComponent(picker.value); });
+    } catch { /* single-case server */ }
+  }
+  renderInspector($('inspector'), null);
+  loadCasePicker();
   reload();
 
   /* ---------- Triage time study ---------- */
@@ -952,20 +1239,20 @@
       trials[id][mode + 'Seconds'] = seconds;
       $(`trial-${id}-${mode}`).value = (seconds / 60).toFixed(3);
       $(`clock-${id}-${mode}`).textContent = clockText(seconds);
-      timer.textContent = 'Start timer'; timer.setAttribute('aria-pressed', 'false');
+      timer.textContent = 'Start timer'; timer.setAttribute('aria-pressed', 'false'); timer.classList.remove('is-running');
       activeTrial = null; clearInterval(ticker); ticker = null;
       saveTrials(); updateComparison(id); updateAggregate();
       setStatus('Trial recorded in this browser. Repeat each method under equivalent conditions.', 'success');
       return;
     }
     activeTrial = { id, mode, startedAt: Date.now() };
-    timer.textContent = 'Stop timer'; timer.setAttribute('aria-pressed', 'true');
+    timer.textContent = 'Stop timer'; timer.setAttribute('aria-pressed', 'true'); timer.classList.add('is-running');
     setStatus(`${mode === 'manual' ? 'Manual' : 'TRACEFUSE-assisted'} stopwatch running for ${id}.`, 'running');
     ticker = setInterval(tick, 250);
   }
   function resetTrial(id, mode) {
     if (activeTrial && activeTrial.id === id && activeTrial.mode === mode) { activeTrial = null; clearInterval(ticker); ticker = null; }
-    const timer = $(`timer-${id}-${mode}`); timer.textContent = 'Start timer'; timer.setAttribute('aria-pressed', 'false');
+    const timer = $(`timer-${id}-${mode}`); timer.textContent = 'Start timer'; timer.setAttribute('aria-pressed', 'false'); timer.classList.remove('is-running');
     const input = $(`trial-${id}-${mode}`); input.value = '';
     $(`clock-${id}-${mode}`).textContent = '00:00';
     storeInput(id, mode);
