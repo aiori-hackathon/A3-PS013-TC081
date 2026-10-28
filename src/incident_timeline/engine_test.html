@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#0b0c0b">
+  <meta name="theme-color" content="#090c0a">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <title>TRACEFUSE · Engine Validation Lab</title>
   <link rel="stylesheet" href="/tracefuse.css">
   <style>
@@ -29,9 +30,9 @@
     .section-head { margin: 40px 0 16px; }
     .section-head h2 { font-size: var(--tf-fs-lg); font-weight: 650; }
     .section-head p { max-width: 72ch; margin-top: 4px; color: var(--tf-text-2); font-size: 14px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--tf-border); border-bottom: 1px solid var(--tf-border); }
-    .metric { min-width: 0; padding: 16px 16px 16px 0; }
-    .metric + .metric { padding-left: 16px; border-left: 1px solid var(--tf-border); }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); box-shadow: var(--tf-shadow-recessed); }
+    .metric { min-width: 0; padding: 14px 16px; }
+    .metric + .metric { border-left: 1px solid var(--tf-border); }
     .metric-label { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .metric-value { margin-top: 4px; font-size: var(--tf-fs-xl); font-weight: 620; letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
     .metric-sub { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
@@ -53,6 +54,7 @@
     .case-runtime.pending { color: var(--tf-text-3); font: 500 var(--tf-fs-sm) var(--tf-font); }
     .case-track { height: 6px; margin: 10px 0 6px; border-radius: 3px; background: var(--tf-surface-3); overflow: hidden; }
     .case-bar { width: 0; height: 100%; background: var(--tf-accent); transition: width .3s var(--tf-ease); }
+    .case-track { box-shadow: var(--tf-shadow-recessed); background: var(--tf-sunken); }
     .case-scale { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
     .case-card-actions { margin-top: 12px; }
     .case-card-actions .tf-btn { width: 100%; }
@@ -87,7 +89,7 @@
       .action-controls, .action-controls .tf-field { width: 100%; min-width: 0; }
       .action-controls .tf-btn { flex: 1; }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .metric:nth-child(odd) { padding-left: 0; border-left: 0; }
+      .metric:nth-child(odd) { border-left: 0; }
       .metric:nth-child(n+3) { border-top: 1px solid var(--tf-border); }
       .history-head { flex-direction: column; align-items: flex-start; }
       .history-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -98,7 +100,7 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#d8ff63"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+  <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#75dea6"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
   <span class="tf-brand-context">Engine Validation Lab</span>
   <a class="tf-btn tf-btn--ghost back-link" href="/" id="backLink">Home</a>
 </header>
@@ -141,7 +143,7 @@
   </section>
 
   <section class="history-panel" aria-labelledby="historyHeading">
-    <div class="history-head"><div class="section-head" style="margin:0"><h2 id="historyHeading">Recent runs</h2><p>Stored in this browser only. Run summaries are not case evidence and are never uploaded.</p></div><button class="tf-btn tf-btn--sm" id="clearHistory" type="button">Clear local history</button></div>
+    <div class="history-head"><div class="section-head" style="margin:0"><h2 id="historyHeading">Recent runs</h2><p>Stored in this browser only. Run summaries are not case evidence and are never uploaded.</p></div><button class="tf-btn tf-btn--danger tf-btn--sm" id="clearHistory" type="button">Clear local history</button></div>
     <div class="history-list" id="historyList"><div class="history-empty">No runs recorded in this browser yet.</div></div>
   </section>
 
