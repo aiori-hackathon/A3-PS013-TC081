@@ -116,3 +116,44 @@ Severity: **high** = misleads, breaks a workflow or undermines credibility; **me
 - `incident-timeline serve <folder>` fails with "case.json missing", although the README documents a multi-case picker. CLI work; tracked separately.
 - The PDF export ignores a finding's evidence scope (`ids`); the JSON export honours it. The UI says so on the PDF button while a scope is active.
 - Inter is named but not bundled, so rendering falls back to the system UI font. Bundling a WOFF2 locally (allowed by the existing `default-src 'self'` CSP) would make type consistent across machines.
+
+## Second pass: Signal Emerald, tactile controls and the event inspector
+
+**Brand change:** the accent moved from lime `#d8ff63` to Signal Emerald `#75dea6`, with the same logo geometry. Lime read as "hacker green"; emerald stays recognisable but reads as more scientific and credible.
+
+| Area | Change |
+| --- | --- |
+| Tokens | Four surface levels (canvas `#090c0a`, recessed `#0c110e`, panel `#151a17`, elevated `#202722`). Text `#f2f5f2` / `#b8c4bc` / `#96a79c` (every pair ≥ 6:1). Success is `#b5db7a`, a leaf green kept visibly different from brand emerald and always paired with a text label. The input border `#5c6b60` is 3.4:1 against recessed fields, meeting WCAG's 3:1 rule for form-field edges; the brief's `#465449` would have been 2.4:1. |
+| Type | Inter and JetBrains Mono, bundled locally as Latin variable WOFF2 (OFL licences in `fonts/`). They're served from `/fonts/` with long-lived caching; no third-party font requests. |
+| Buttons | A physical construction: outer border, top reflection, lower inset and a 1px press. Five roles: **emerald** for the one main branded action per view, **silver** for the deliverable (PDF report), **graphite** secondary, **ghost** tertiary and **danger**. Pressed (emerald-deep), running (amber), disabled and busy (spinner) states are shared. |
+| Inputs | Recessed wells with an inner shadow, emerald focus ring, plus invalid, disabled and read-only states. |
+| Keycaps | Shown only for shortcuts that exist: `/` search, `↑` `↓` move between events, `Esc` close. |
+| Dialogs | Elevated level-3 surface, 14px radius, a 180ms fade-and-rise, and focus management from native `<dialog>`. |
+| Lighting | One broad, low-opacity emerald glow, only behind the welcome page's product visual. None in the workspace. |
+
+**Workspace:**
+- **Event inspector.** Selecting a timeline row opens a sticky right-hand pane with:
+  - the normalized UTC time next to the timestamp as recorded, the source time zone (with an "Assumed" flag), the clock offset and any inferred year;
+  - the parsed fields, labelled "derived, not original", with search pivots;
+  - the findings that cite the event;
+  - the original log line, shown only after a fresh hash check.
+
+  Arrow keys move between events and Esc closes the pane. Below 1100px the inspector opens as a bottom sheet with Previous/Next buttons and returns focus on close.
+- **Contextual pane tabs.** "Event" and "Case context" (who and where, sources, custody, unparsed lines) replace the stacked sidebar cards.
+- **Timeline.** A column header ("Time · UTC | Event"), stretched row buttons with a visible focus ring, and `aria-current` on the selected row.
+
+**Other pages:**
+- **Welcome.** The headline "Make sense of the evidence. Reconstruct the incident." is restored. A two-path chooser (your own evidence, or synthetic scenarios) sits under it, and the hero visual is built from the workspace's own components, showing scenario 01's real output.
+- **PDF report.** Graphite and deep-emerald palette. Table header labels are now white: they had been black text on a dark header, because the header cells were paragraphs and the table's white-text rule didn't apply to them.
+
+**Fixed:** `incident-timeline serve <folder>` serves every case in the folder, with a case picker in the dashboard app bar, as the README documents.
+
+**Verified:**
+- 91 tests pass.
+- axe-core reports 0 violations on all four pages.
+- No horizontal scroll at 320, 390, 768, 1024 and 1440px.
+- Exercised in Chromium: keyboard navigation, the inspector, the mobile sheet, upload, the case picker, and the original-line hash check.
+
+**Still open:**
+- The PDF report has no findings section (the JSON export does). The README now says so.
+- The brief's command palette, source-explorer pane and resizable split panes were deliberately left out: a single case has about six actions and one or two sources, so they would be decoration.

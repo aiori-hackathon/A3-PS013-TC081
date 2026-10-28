@@ -1,71 +1,114 @@
 /*
- * TRACEFUSE design system
+ * TRACEFUSE design system: Signal Emerald, precision tactile dark.
  * Shared by the welcome page, demo picker, investigation dashboard and engine lab.
  *
  * Principles
- * - Graphite surfaces, one signal colour. Lime (--tf-accent) marks the single
- *   primary action, focus and selection. It is never used for decoration or
- *   to mean "success"; outcomes use the semantic colours below.
+ * - Matte graphite surfaces in four levels: canvas, recessed (inputs, evidence
+ *   wells), panel, elevated (dialogs and sheets). Levels differ by luminance,
+ *   a 1px boundary and a faint top-edge highlight, never by glow.
+ * - Signal Emerald (--tf-accent) is the brand signal: the one main action in a
+ *   view, focus and the current selection. It never means "success"; outcomes
+ *   use the semantic colours, always together with a text label.
+ * - Controls are physical: raised buttons with an upper reflection and lower
+ *   edge that press 1px down, recessed inputs, keycaps for real shortcuts.
  * - Evidence is data: timestamps, IDs, hashes and line references are set in
- *   the mono face so they can be scanned and compared.
- * - One surface elevation (panel) plus a sunken well for raw evidence.
- *   No glows, gradients or hover lifts; state is shown with colour and border.
+ *   the mono face with tabular numerals.
  */
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter-latin-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-latin-var.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --tf-bg: #0b0c0b;
-  --tf-surface: #121411;
-  --tf-surface-2: #191c18;
-  --tf-surface-3: #20241f;
-  --tf-sunken: #080908;
-  --tf-border: #2a2e27;
-  --tf-border-strong: #3b4137;
-  --tf-border-input: #4a5145;
+  /* Surfaces: level 0 canvas, 1 recessed, 2 panel, 3 elevated */
+  --tf-bg: #090c0a;
+  --tf-sunken: #0c110e;
+  --tf-surface: #151a17;
+  --tf-surface-2: #202722;
+  --tf-surface-3: #29312b;
+  --tf-border: #303a33;
+  --tf-border-strong: #465449;
+  --tf-border-input: #5c6b60; /* 3.4:1 against recessed, for form-field edges */
+  --tf-edge-light: rgba(255, 255, 255, .07);
+  --tf-edge-dark: rgba(0, 0, 0, .35);
 
-  /* Text (all pass WCAG AA on every surface above) */
-  --tf-text: #eceee7;
-  --tf-text-2: #b4b9ac;
-  --tf-text-3: #8f9588;
+  /* Text (all ≥ 6:1 on every surface) */
+  --tf-text: #f2f5f2;
+  --tf-text-2: #b8c4bc;
+  --tf-text-3: #96a79c;
+  --tf-text-on-light: #141a16;
 
   /* Brand signal */
-  --tf-accent: #d8ff63;
-  --tf-accent-hover: #e6ff9a;
-  --tf-accent-press: #c6ec50;
-  --tf-on-accent: #151a0c;
-  --tf-accent-soft: rgba(216, 255, 99, .08);
+  --tf-accent: #75dea6;
+  --tf-accent-hover: #97f0bd;
+  --tf-accent-press: #4cb77d;
+  --tf-accent-deep: #153a27;
+  --tf-accent-soft: rgba(117, 222, 166, .08);
+  --tf-accent-line: rgba(117, 222, 166, .38);
+  --tf-on-accent: #141a16;
 
-  /* Semantic */
-  --tf-ok: #8fd694;
-  --tf-ok-soft: rgba(143, 214, 148, .1);
-  --tf-warn: #e8bf6a;
-  --tf-warn-soft: rgba(232, 191, 106, .1);
-  --tf-bad: #f2867c;
-  --tf-bad-soft: rgba(242, 134, 124, .1);
+  /* Silver material */
+  --tf-silver: #e8ece9;
+  --tf-silver-top: #f6f8f6;
+  --tf-silver-bottom: #d6dcd8;
+
+  /* Semantic: never interchangeable with the brand emerald */
+  --tf-ok: #b5db7a;
+  --tf-ok-soft: rgba(181, 219, 122, .1);
+  --tf-warn: #efc779;
+  --tf-warn-soft: rgba(239, 199, 121, .1);
+  --tf-bad: #ff888b;
+  --tf-bad-soft: rgba(255, 136, 139, .1);
+  --tf-info: #8cb9ea;
+  --tf-info-soft: rgba(140, 185, 234, .1);
 
   /* Type */
   --tf-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --tf-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --tf-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --tf-fs-2xs: 11px;
   --tf-fs-xs: 12px;
   --tf-fs-sm: 13px;
   --tf-fs-base: 15px;
   --tf-fs-md: 17px;
-  --tf-fs-lg: 21px;
+  --tf-fs-lg: 22px;
   --tf-fs-xl: 28px;
-  --tf-fs-2xl: clamp(30px, 3.6vw, 40px);
+  --tf-fs-2xl: clamp(30px, 3.4vw, 36px);
+  --tf-fs-hero: clamp(38px, 5.4vw, 66px);
 
-  /* Shape and space (4px grid) */
-  --tf-radius-sm: 5px;
+  /* Shape */
+  --tf-radius-xs: 4px;
+  --tf-radius-sm: 6px;
   --tf-radius: 8px;
   --tf-radius-lg: 12px;
+  --tf-radius-xl: 14px;
   --tf-gutter: clamp(16px, 3vw, 40px);
   --tf-max: 1440px;
 
-  /* Motion: colour and border state changes only */
+  /* Depth */
+  --tf-shadow-raised: inset 0 1px 0 var(--tf-edge-light), 0 1px 2px var(--tf-edge-dark);
+  --tf-shadow-panel: inset 0 1px 0 rgba(255, 255, 255, .035);
+  --tf-shadow-float: inset 0 1px 0 rgba(255, 255, 255, .06), 0 1px 2px rgba(0, 0, 0, .4), 0 24px 64px -12px rgba(0, 0, 0, .7);
+  --tf-shadow-recessed: inset 0 1px 2px rgba(0, 0, 0, .45);
+
+  /* Motion */
   --tf-ease: cubic-bezier(.2, .7, .2, 1);
   --tf-dur: 140ms;
+  --tf-dur-dialog: 180ms;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -75,86 +118,136 @@ body {
   background: var(--tf-bg);
   color: var(--tf-text);
   font: 400 var(--tf-fs-base)/1.6 var(--tf-font);
-  font-feature-settings: "cv11", "ss01";
+  font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-h1, h2, h3, h4, h5 { margin: 0; font-weight: 640; letter-spacing: -.015em; line-height: 1.25; }
+h1, h2, h3, h4, h5 { margin: 0; font-weight: 620; letter-spacing: -.012em; line-height: 1.25; }
 p { margin: 0; }
 a { color: inherit; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-::selection { background: rgba(216, 255, 99, .26); color: var(--tf-text); }
+::selection { background: rgba(117, 222, 166, .3); color: var(--tf-text); }
 :focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 2px; }
-code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .92em; font-variant-numeric: tabular-nums; }
+code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .9em; font-variant-numeric: tabular-nums; font-feature-settings: "zero"; }
 .tf-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 [hidden] { display: none !important; }
 
 /* ---------- Brand ---------- */
-.tf-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--tf-text); }
-.tf-brand-mark { width: 28px; height: 28px; flex: 0 0 28px; display: block; }
-.tf-brand-name { font-size: 14px; font-weight: 700; letter-spacing: .14em; }
+.tf-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--tf-text); border-radius: var(--tf-radius-sm); }
+.tf-brand-mark { width: 26px; height: 26px; flex: 0 0 26px; display: block; }
+.tf-brand-name { font-size: 13px; font-weight: 680; letter-spacing: .16em; }
 .tf-brand-context { color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
 .tf-brand-context::before { content: "/"; margin: 0 10px 0 2px; color: var(--tf-border-strong); }
 
 /* ---------- Buttons ----------
- * One primary per view. Secondary for the other real actions, ghost for
- * low-emphasis utilities, link for inline text actions. Square corners match
- * panels; no pills, gradients, glows, lifts or trailing arrows.
+ * Variants by role, not decoration:
+ *   --primary  emerald, the single main branded action in a view
+ *   --silver   high-contrast utility (the deliverable, e.g. a report)
+ *   default    graphite secondary
+ *   --ghost    tertiary, low emphasis
+ *   --danger   destructive
+ * All variants share the same shape, press physics and focus ring.
  */
 .tf-btn {
   --btn-h: 36px;
+  --btn-bg: linear-gradient(180deg, #27302a 0%, var(--tf-surface-2) 100%);
+  --btn-fg: var(--tf-text);
+  --btn-border: #3a463d;
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), inset 0 -1px 0 rgba(0, 0, 0, .25), 0 1px 2px rgba(0, 0, 0, .4);
+  --btn-shadow-press: inset 0 1px 2px rgba(0, 0, 0, .35);
+  position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: var(--btn-h); padding: 0 14px;
-  border: 1px solid var(--tf-border-strong); border-radius: var(--tf-radius);
-  background: var(--tf-surface-2); color: var(--tf-text);
-  font-size: 14px; font-weight: 600; line-height: 1; letter-spacing: -.005em;
+  border: 1px solid var(--btn-border); border-radius: var(--tf-radius);
+  background: var(--btn-bg); color: var(--btn-fg); box-shadow: var(--btn-shadow);
+  font-size: 13.5px; font-weight: 580; line-height: 1; letter-spacing: -.003em;
   text-decoration: none; white-space: nowrap; user-select: none;
-  transition: background-color var(--tf-dur) var(--tf-ease), border-color var(--tf-dur) var(--tf-ease), color var(--tf-dur) var(--tf-ease);
+  transition: background-color var(--tf-dur) var(--tf-ease), border-color var(--tf-dur) var(--tf-ease), box-shadow var(--tf-dur) var(--tf-ease), transform 80ms var(--tf-ease), filter var(--tf-dur) var(--tf-ease);
 }
-.tf-btn:hover { background: var(--tf-surface-3); border-color: #50574a; }
-.tf-btn:active { background: var(--tf-surface); }
-.tf-btn svg { width: 16px; height: 16px; flex: 0 0 16px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-.tf-btn--primary { background: var(--tf-accent); border-color: var(--tf-accent); color: var(--tf-on-accent); }
-.tf-btn--primary:hover { background: var(--tf-accent-hover); border-color: var(--tf-accent-hover); }
-.tf-btn--primary:active { background: var(--tf-accent-press); border-color: var(--tf-accent-press); }
-.tf-btn--ghost { background: transparent; border-color: transparent; color: var(--tf-text-2); }
-.tf-btn--ghost:hover { background: var(--tf-surface-2); border-color: var(--tf-border); color: var(--tf-text); }
+.tf-btn:hover { --btn-border: #4b594f; filter: brightness(1.08); }
+.tf-btn:active { transform: translateY(1px); box-shadow: var(--btn-shadow-press); filter: brightness(.97); }
+.tf-btn svg { width: 15px; height: 15px; flex: 0 0 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tf-btn--primary {
+  --btn-bg: linear-gradient(180deg, #86e6b3 0%, var(--tf-accent) 100%);
+  --btn-fg: var(--tf-on-accent);
+  --btn-border: #3e9d6a;
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .45), 0 0 0 1px rgba(0, 0, 0, .2);
+  --btn-shadow-press: inset 0 1px 2px rgba(0, 0, 0, .28);
+  font-weight: 640;
+}
+.tf-btn--primary:hover { --btn-border: #4cb77d; --btn-bg: linear-gradient(180deg, #a6f4c8 0%, var(--tf-accent-hover) 100%); filter: none; }
+.tf-btn--primary:active { --btn-bg: linear-gradient(180deg, var(--tf-accent) 0%, var(--tf-accent-press) 100%); filter: none; }
+.tf-btn--silver {
+  --btn-bg: linear-gradient(180deg, var(--tf-silver-top) 0%, var(--tf-silver-bottom) 100%);
+  --btn-fg: var(--tf-text-on-light);
+  --btn-border: #aeb7b1;
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), inset 0 -1px 0 rgba(0, 0, 0, .12), 0 1px 2px rgba(0, 0, 0, .5), 0 0 0 1px rgba(0, 0, 0, .25);
+  --btn-shadow-press: inset 0 1px 2px rgba(0, 0, 0, .22);
+  font-weight: 620;
+}
+.tf-btn--silver:hover { --btn-border: #c3cbc5; --btn-bg: linear-gradient(180deg, #ffffff 0%, var(--tf-silver) 100%); filter: none; }
+.tf-btn--ghost { --btn-bg: transparent; --btn-border: transparent; --btn-shadow: none; --btn-fg: var(--tf-text-2); }
+.tf-btn--ghost:hover { --btn-bg: var(--tf-surface-2); --btn-border: var(--tf-border); --btn-fg: var(--tf-text); filter: none; }
+.tf-btn--ghost:active { box-shadow: none; }
+.tf-btn--danger { --btn-fg: var(--tf-bad); --btn-border: rgba(255, 136, 139, .35); }
+.tf-btn--danger:hover { --btn-border: rgba(255, 136, 139, .6); --btn-bg: linear-gradient(180deg, #33262a 0%, #2a2124 100%); filter: none; }
 .tf-btn--sm { --btn-h: 30px; padding: 0 10px; font-size: var(--tf-fs-sm); }
-.tf-btn--lg { --btn-h: 44px; padding: 0 18px; font-size: var(--tf-fs-base); }
+.tf-btn--lg { --btn-h: 44px; padding: 0 20px; font-size: var(--tf-fs-base); border-radius: 9px; }
+.tf-btn--icon { width: var(--btn-h); padding: 0; }
 .tf-btn--block { width: 100%; }
-.tf-btn:disabled, .tf-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
-.tf-btn:disabled:hover { background: var(--tf-surface-2); border-color: var(--tf-border-strong); }
-.tf-btn--primary:disabled:hover { background: var(--tf-accent); border-color: var(--tf-accent); }
-.tf-btn[aria-busy="true"] { cursor: progress; opacity: .8; }
+.tf-btn:disabled, .tf-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; transform: none; filter: none; }
+.tf-btn[aria-busy="true"] { cursor: progress; }
 .tf-btn[aria-busy="true"]::before {
   content: ""; width: 12px; height: 12px; border-radius: 50%;
   border: 2px solid currentColor; border-right-color: transparent;
   animation: tf-spin .7s linear infinite;
 }
-.tf-btn[aria-pressed="true"] { border-color: var(--tf-warn); color: var(--tf-warn); background: var(--tf-warn-soft); }
+.tf-btn[aria-pressed="true"] {
+  --btn-bg: linear-gradient(180deg, #1a4430 0%, var(--tf-accent-deep) 100%);
+  --btn-border: var(--tf-accent-line); --btn-fg: var(--tf-accent);
+  --btn-shadow: inset 0 1px 2px rgba(0, 0, 0, .35);
+  filter: none;
+}
+.tf-btn.is-running { --btn-fg: var(--tf-warn); --btn-border: rgba(239, 199, 121, .45); --btn-bg: linear-gradient(180deg, #3a3222 0%, #2e2819 100%); --btn-shadow: inset 0 1px 2px rgba(0, 0, 0, .35); }
 .tf-link {
   padding: 0; border: 0; background: none; color: var(--tf-accent);
-  font-weight: 600; text-decoration: underline; text-decoration-color: rgba(216, 255, 99, .35);
-  text-underline-offset: 3px; cursor: pointer;
+  font-weight: 560; text-decoration: underline; text-decoration-color: var(--tf-accent-line);
+  text-underline-offset: 3px; cursor: pointer; border-radius: 2px;
 }
-.tf-link:hover { text-decoration-color: currentColor; }
+.tf-link:hover { color: var(--tf-accent-hover); text-decoration-color: currentColor; }
 
-/* ---------- Form fields ---------- */
+/* ---------- Keycaps (only for shortcuts that exist) ---------- */
+.tf-kbd {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px;
+  border: 1px solid #4a574e; border-bottom-color: #2a322c; border-radius: 5px;
+  background: linear-gradient(180deg, #2c352f 0%, #222a24 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 1px 0 rgba(0, 0, 0, .55), 0 2px 0 -1px #141915;
+  color: var(--tf-text-2); font: 500 11px/1 var(--tf-mono); white-space: nowrap;
+}
+.tf-shortcuts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+.tf-shortcuts span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ---------- Form fields: recessed ---------- */
 .tf-field { display: grid; gap: 6px; min-width: 0; }
-.tf-label { color: var(--tf-text-2); font-size: var(--tf-fs-sm); font-weight: 560; }
+.tf-label { color: var(--tf-text-2); font-size: var(--tf-fs-sm); font-weight: 540; }
 .tf-hint { color: var(--tf-text-3); font-size: var(--tf-fs-xs); line-height: 1.5; }
 .tf-input, .tf-select {
   width: 100%; min-width: 0; min-height: 38px; padding: 8px 11px;
   border: 1px solid var(--tf-border-input); border-radius: var(--tf-radius);
   background: var(--tf-sunken); color: var(--tf-text); font-size: 14px;
+  box-shadow: var(--tf-shadow-recessed);
   transition: border-color var(--tf-dur) var(--tf-ease), box-shadow var(--tf-dur) var(--tf-ease);
 }
-.tf-input::placeholder { color: var(--tf-text-3); }
-.tf-input:hover, .tf-select:hover { border-color: #5f6758; }
-.tf-input:focus, .tf-select:focus { outline: none; border-color: var(--tf-accent); box-shadow: 0 0 0 3px rgba(216, 255, 99, .14); }
+.tf-input::placeholder { color: var(--tf-text-3); opacity: 1; }
+.tf-input:hover, .tf-select:hover { border-color: #728477; }
+.tf-input:focus, .tf-select:focus { outline: none; border-color: var(--tf-accent); box-shadow: var(--tf-shadow-recessed), 0 0 0 3px rgba(117, 222, 166, .18); }
 .tf-input[aria-invalid="true"] { border-color: var(--tf-bad); }
+.tf-input[aria-invalid="true"]:focus { box-shadow: var(--tf-shadow-recessed), 0 0 0 3px rgba(255, 136, 139, .2); }
+.tf-input:disabled, .tf-select:disabled { opacity: .5; cursor: not-allowed; }
+.tf-input[readonly] { border-style: dashed; }
 .tf-select {
-  appearance: none; padding-right: 32px;
+  appearance: none; padding-right: 32px; cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, var(--tf-text-2) 50%), linear-gradient(135deg, var(--tf-text-2) 50%, transparent 50%);
   background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%;
   background-size: 5px 5px; background-repeat: no-repeat;
@@ -164,24 +257,28 @@ code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .92em; 
 .tf-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--tf-accent); }
 
 /* ---------- Surfaces ---------- */
-.tf-panel { min-width: 0; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-lg); background: var(--tf-surface); }
-.tf-well { border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); }
+.tf-panel { min-width: 0; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-lg); background: var(--tf-surface); box-shadow: var(--tf-shadow-panel); }
+.tf-well { border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); box-shadow: var(--tf-shadow-recessed); }
+.tf-elevated { border: 1px solid var(--tf-border-strong); border-radius: var(--tf-radius-xl); background: var(--tf-surface-2); box-shadow: var(--tf-shadow-float); }
 .tf-divider { height: 1px; border: 0; background: var(--tf-border); margin: 0; }
 
-/* ---------- Badges (status only) ---------- */
+/* ---------- Status badges: icon or dot plus text, never colour alone ---------- */
 .tf-badge {
-  display: inline-flex; align-items: center; gap: 6px; padding: 2px 7px;
-  border: 1px solid var(--tf-border-strong); border-radius: var(--tf-radius-sm);
+  display: inline-flex; align-items: center; gap: 6px; padding: 1px 7px;
+  border: 1px solid var(--tf-border-strong); border-radius: var(--tf-radius-xs);
   background: var(--tf-surface-2); color: var(--tf-text-2);
-  font-size: var(--tf-fs-xs); font-weight: 600; line-height: 1.5; white-space: nowrap;
+  font-size: var(--tf-fs-xs); font-weight: 560; line-height: 1.55; white-space: nowrap;
 }
-.tf-badge--ok { color: var(--tf-ok); border-color: rgba(143, 214, 148, .32); background: var(--tf-ok-soft); }
-.tf-badge--warn { color: var(--tf-warn); border-color: rgba(232, 191, 106, .32); background: var(--tf-warn-soft); }
-.tf-badge--bad { color: var(--tf-bad); border-color: rgba(242, 134, 124, .32); background: var(--tf-bad-soft); }
+.tf-badge--ok { color: var(--tf-ok); border-color: rgba(181, 219, 122, .32); background: var(--tf-ok-soft); }
+.tf-badge--warn { color: var(--tf-warn); border-color: rgba(239, 199, 121, .32); background: var(--tf-warn-soft); }
+.tf-badge--bad { color: var(--tf-bad); border-color: rgba(255, 136, 139, .34); background: var(--tf-bad-soft); }
+.tf-badge--info { color: var(--tf-info); border-color: rgba(140, 185, 234, .32); background: var(--tf-info-soft); }
+.tf-badge--brand { color: var(--tf-accent); border-color: var(--tf-accent-line); background: var(--tf-accent-soft); }
+.tf-badge svg { width: 12px; height: 12px; flex: 0 0 12px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .tf-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: currentColor; }
 
-/* ---------- Status / notes ---------- */
-.tf-note { padding: 12px 14px; border: 1px solid var(--tf-border); border-left: 2px solid var(--tf-border-strong); border-radius: var(--tf-radius); background: var(--tf-surface); color: var(--tf-text-2); font-size: var(--tf-fs-sm); line-height: 1.65; }
+/* ---------- Notes and states ---------- */
+.tf-note { padding: 11px 14px; border: 1px solid var(--tf-border); border-left: 2px solid var(--tf-border-strong); border-radius: var(--tf-radius); background: var(--tf-sunken); color: var(--tf-text-2); font-size: var(--tf-fs-sm); line-height: 1.65; }
 .tf-note strong { color: var(--tf-text); font-weight: 600; }
 .tf-note.is-running { border-left-color: var(--tf-accent); color: var(--tf-text); }
 .tf-note.is-success { border-left-color: var(--tf-ok); }
@@ -189,7 +286,7 @@ code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .92em; 
 .tf-empty { padding: 24px 16px; color: var(--tf-text-3); font-size: var(--tf-fs-sm); text-align: center; }
 
 /* ---------- Disclosure ---------- */
-.tf-disclosure > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; }
+.tf-disclosure > summary { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; border-radius: var(--tf-radius-sm); }
 .tf-disclosure > summary::-webkit-details-marker { display: none; }
 .tf-disclosure > summary::after {
   content: ""; width: 8px; height: 8px; flex: 0 0 8px; margin-left: auto;
@@ -198,12 +295,18 @@ code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .92em; 
 }
 .tf-disclosure[open] > summary::after { transform: rotate(225deg) translate(-2px, -2px); }
 
+/* ---------- Dialog (level 3) ---------- */
+.tf-dialog { padding: 0; color: var(--tf-text); }
+.tf-dialog[open] { animation: tf-dialog-in var(--tf-dur-dialog) var(--tf-ease); }
+.tf-dialog::backdrop { background: rgba(4, 6, 5, .74); }
+
 @keyframes tf-spin { to { transform: rotate(360deg); } }
-@keyframes tf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tf-dialog-in { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .tf-btn:active { transform: none; }
 }
 @media (forced-colors: active) {
-  .tf-btn, .tf-badge, .tf-input, .tf-select, .tf-panel { border: 1px solid CanvasText; }
+  .tf-btn, .tf-badge, .tf-input, .tf-select, .tf-panel, .tf-kbd { border: 1px solid CanvasText; }
 }

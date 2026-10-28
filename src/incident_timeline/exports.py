@@ -162,10 +162,11 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
     )
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name="ReportTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=21,
-                              leading=25, textColor=colors.HexColor("#14213d"), alignment=TA_LEFT, spaceAfter=5))
+                              leading=25, textColor=colors.HexColor("#141a16"), alignment=TA_LEFT, spaceAfter=5))
     styles.add(ParagraphStyle(name="SectionHeading", parent=styles["Heading2"], fontSize=12, leading=15,
-                              textColor=colors.HexColor("#1d3557"), spaceBefore=6, spaceAfter=3))
+                              textColor=colors.HexColor("#1f6b45"), spaceBefore=6, spaceAfter=3))
     styles.add(ParagraphStyle(name="SmallText", parent=styles["BodyText"], fontSize=7.5, leading=9))
+    styles.add(ParagraphStyle(name="HeadCell", parent=styles["SmallText"], fontName="Helvetica-Bold", textColor=colors.white))
     styles.add(ParagraphStyle(name="TinyText", parent=styles["BodyText"], fontSize=6.5, leading=8, wordWrap="CJK"))
     styles.add(ParagraphStyle(name="Cell", parent=styles["BodyText"], fontSize=7.2, leading=9, wordWrap="CJK"))
     styles.add(ParagraphStyle(name="CellTiny", parent=styles["BodyText"], fontSize=6.1, leading=7.6, wordWrap="CJK"))
@@ -185,16 +186,16 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
     ]
     overview_table = Table(overview, colWidths=[27 * mm, 75 * mm, 28 * mm, 125 * mm])
     overview_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#edf2f7")),
-        ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#edf2f7")),
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#d5dde8")),
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef2ef")),
+        ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#eef2ef")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#d3dbd5")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
     story.extend([overview_table, Paragraph("Evidence sources", styles["SectionHeading"])])
 
-    source_rows = [[p("Source", "SmallText"), p("Type / host", "SmallText"), p("File", "SmallText"), p("SHA-256", "SmallText")]]
+    source_rows = [[p("Source", "HeadCell"), p("Type / host", "HeadCell"), p("File", "HeadCell"), p("SHA-256", "HeadCell")]]
     for source in report["sources"]:
         source_rows.append([
             p(source.get("source_id"), "TinyText"),
@@ -206,17 +207,17 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
         source_rows.append([p("No sources"), p("-"), p("-"), p("-")])
     source_table = LongTable(source_rows, colWidths=[20 * mm, 38 * mm, 60 * mm, 137 * mm], repeatRows=1)
     source_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1d3557")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e2a22")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d5dde8")),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d3dbd5")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 5),
         ("RIGHTPADDING", (0, 0), (-1, -1), 5), ("TOPPADDING", (0, 0), (-1, -1), 2.5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
     ]))
     story.extend([source_table, Paragraph("Incident timeline", styles["SectionHeading"])])
 
-    timeline_rows = [[p("Time (UTC)", "SmallText"), p("Action / outcome", "SmallText"), p("Actor / source IP", "SmallText"),
-                     p("Evidence reference", "SmallText"), p("Event details and original line", "SmallText")]]
+    timeline_rows = [[p("Time (UTC)", "HeadCell"), p("Action / outcome", "HeadCell"), p("Actor / source IP", "HeadCell"),
+                     p("Evidence reference", "HeadCell"), p("Event details and original line", "HeadCell")]]
     for event in report["events"]:
         ref = event["evidence_reference"]
         who = " / ".join(str(v) for v in (event.get("user"), event.get("src_ip")) if v) or "-"
@@ -236,10 +237,10 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
         timeline_rows.append([p("No events matched the selected filters", "Cell"), p(""), p(""), p(""), p("")])
     timeline_table = LongTable(timeline_rows, colWidths=[37 * mm, 36 * mm, 36 * mm, 74 * mm, 72 * mm], repeatRows=1, hAlign="LEFT")
     timeline_table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1d3557")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e2a22")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d5dde8")),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7f9fc")]),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d3dbd5")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f6f8f6")]),
         ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 4),
         ("RIGHTPADDING", (0, 0), (-1, -1), 4), ("TOPPADDING", (0, 0), (-1, -1), 2.5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
@@ -251,10 +252,10 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
 
     def footer(canvas: Any, document: Any) -> None:
         canvas.saveState()
-        canvas.setStrokeColor(colors.HexColor("#d5dde8"))
+        canvas.setStrokeColor(colors.HexColor("#d3dbd5"))
         canvas.line(14 * mm, 11 * mm, page[0] - 14 * mm, 11 * mm)
         canvas.setFont("Helvetica", 7)
-        canvas.setFillColor(colors.HexColor("#586174"))
+        canvas.setFillColor(colors.HexColor("#5a665e"))
         canvas.drawString(14 * mm, 7 * mm, f"TRACEFUSE | Case {report['case_id']} | Generated {report['generated_utc']}")
         canvas.drawRightString(page[0] - 14 * mm, 7 * mm, f"Page {document.page}")
         canvas.restoreState()

@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 from incident_timeline.scenarios import create_demo_cases
-from incident_timeline.web import TracefuseHandler
+from incident_timeline.web import TracefuseHandler, case_server_attrs
 
 
 def test_dashboard_api_filtering_evidence_and_exports(tmp_path: Path) -> None:
@@ -312,6 +312,32 @@ def test_app_mode_opens_demo_investigations_and_shared_styles(tmp_path: Path) ->
         with urlopen(base + "/tracefuse.css") as response:
             assert response.headers.get_content_type() == "text/css"
             assert b"--tf-accent" in response.read()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_serve_accepts_a_folder_of_cases(tmp_path: Path) -> None:
+    create_demo_cases(tmp_path / "demos")
+    attrs, label = case_server_attrs(tmp_path / "demos")
+    assert sorted(attrs["case_roots"]) == ["01-brute-force-to-sudo", "02-web-exploit-to-server-access", "03-account-persistence"]
+    assert "3 cases" in label
+
+    single, _ = case_server_attrs(tmp_path / "demos" / "01-brute-force-to-sudo" / "case")
+    assert "case_roots" not in single
+
+    server, thread, base = _serve(attrs)
+    try:
+        assert len(_get(base + "/api/cases")["cases"]) == 3
+        for name in attrs["case_roots"]:
+            assert _get(base + "/api/summary?case=" + name)["case_id"] == name
+            assert _get(base + "/api/events?case=" + name)["total"] > 0
+        with urlopen(base + "/fonts/inter-latin-var.woff2") as response:
+            assert response.headers.get_content_type() == "font/woff2"
+            assert "immutable" in response.headers["Cache-Control"]
+        with urlopen(base + "/favicon.svg") as response:
+            assert response.headers.get_content_type() == "image/svg+xml"
     finally:
         server.shutdown()
         server.server_close()
