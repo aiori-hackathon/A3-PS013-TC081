@@ -1,6 +1,6 @@
-# TRACEFUSE Incident Timeline Dashboard
+# ORISECT Incident Timeline Dashboard
 
-TRACEFUSE is our PS-013 hackathon project for reconstructing an incident from system and web logs. The dashboard gives you a simple way to browse the timeline built by the Python engine and check where each event came from.
+ORISECT (formerly TRACEFUSE) is our PS-013 hackathon project for reconstructing an incident from system and web logs. The dashboard gives you a simple way to browse the timeline built by the Python engine and check where each event came from.
 
 ## What does it show?
 
@@ -10,7 +10,7 @@ TRACEFUSE is our PS-013 hackathon project for reconstructing an incident from sy
 - **Chain of custody:** every custody record (collect, verify, parse, skew changes) with its own hash and its link to the record before it, each checked live.
 - **Case summary:** number of events and evidence files, unparsed lines, and the time range covered by the events. If some lines could not be parsed, click the count to see them with the reason. They are kept, never silently dropped.
 - **Evidence sources:** source filenames and their SHA-256 hashes, with a copy button.
-- **Original log lines:** open an event's source line to see what was actually recorded. TRACEFUSE checks the source hash and custody chain before showing it.
+- **Original log lines:** open an event's source line to see what was actually recorded. ORISECT checks the source hash and custody chain before showing it.
 - **Exports:** download the current results as JSON (including the findings, or only one finding's evidence while it is selected) or as a PDF report of the filtered timeline and evidence sources.
 
 The dashboard helps you review a sequence of events; it does not automatically prove that an attack happened or that one event caused another. Findings are leads to check, not conclusions. A successful hash check means the collected evidence matches its recorded hash, not that the original log was complete or genuine.
@@ -64,7 +64,7 @@ Start with **Findings**. Choose **Show evidence** on a finding to narrow the tim
 
 Use the search box to look for a user, IP address, action, message, path, or hash (press `/` to jump to it, `Esc` to clear it). You can also filter by source, action, outcome, or time range. Filters apply as you change them and can be combined; **Clear filters** resets them, and **Refresh** reloads the case. Use the Previous/Next buttons to move through the results.
 
-Select an event to open it in the **Event** panel: its normalized UTC time next to the timestamp as recorded, the source time zone and clock offset, the parsed fields, the findings that cite it, and the original log line. TRACEFUSE re-hashes the source file before showing that line; if the check fails, the line is not shown. Use **↑**/**↓** to move between events and **Esc** to close the panel (on smaller screens the panel opens as a sheet with Previous/Next buttons). Keep the full case folder if you need to investigate a warning.
+Select an event to open it in the **Event** panel: its normalized UTC time next to the timestamp as recorded, the source time zone and clock offset, the parsed fields, the findings that cite it, and the original log line. ORISECT re-hashes the source file before showing that line; if the check fails, the line is not shown. Use **↑**/**↓** to move between events and **Esc** to close the panel (on smaller screens the panel opens as a sheet with Previous/Next buttons). Keep the full case folder if you need to investigate a warning.
 
 **Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover or demo. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
 

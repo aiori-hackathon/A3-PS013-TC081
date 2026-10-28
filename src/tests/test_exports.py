@@ -16,7 +16,7 @@ def test_json_export_contains_traceable_evidence_references(tmp_path: Path) -> N
     case_path = _case(tmp_path)
     output = export_json(case_path, tmp_path / "exports" / "timeline.json")
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["product"] == "TRACEFUSE"
+    assert report["product"] == "ORISECT"
     assert report["integrity"]["verified"] is True
     assert len(report["events"]) == 6
     event = report["events"][0]
