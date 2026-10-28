@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import gzip
+import html
 import tempfile
 import sys
 import re
@@ -22,6 +23,14 @@ from .models import load_events
 from .time_analysis import build_time_analysis
 from .pipeline import build_timeline
 from .findings import detect as detect_findings, entities as summarize_entities
+
+BRAND_MARK_SVG = (
+    '<svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true">'
+    '<rect width="28" height="28" rx="7" fill="#d8ff63"/>'
+    '<path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" '
+    'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+)
+
 
 def resolve_app_case(cases_root: Path, case_id: str) -> Path:
     """Resolve uploaded cases and synthetic demo cases safely."""
@@ -120,7 +129,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
         if filename:
             safe = filename.replace('"', "")
             self.send_header("Content-Disposition", f'attachment; filename="{safe}"')
@@ -157,6 +166,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             })
         return {
             "case_id": metadata.get("case_id", case.root.name),
+            "case_name": metadata.get("case_name"),
             "events": len(events), "source_count": len(source_list),
             "gaps": parsed.get("gaps", 0),
             "first_ts_utc": parsed.get("first_ts_utc") or (events[0].get("ts_utc") if events else None),
@@ -289,8 +299,8 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 html_path = Path(__file__).with_name(html_name)
                 self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
                 return
-            if url.path == "/welcome.css":
-                self._send(200, Path(__file__).with_name("welcome.css").read_bytes(), "text/css; charset=utf-8")
+            if url.path in ("/welcome.css", "/tracefuse.css"):
+                self._send(200, Path(__file__).with_name(url.path.lstrip("/")).read_bytes(), "text/css; charset=utf-8")
                 return
             if self.app_mode and url.path == "/upload":
                 self.do_POST()
@@ -309,12 +319,12 @@ class TracefuseHandler(BaseHTTPRequestHandler):
     if self.cases_root
     else Path("/")
 )
-                if not self.app_mode or case_dir.parent != self.cases_root.resolve() or not (case_dir / "case.json").is_file():
+                if not self.app_mode or not case_dir.is_relative_to(self.cases_root.resolve()) or not (case_dir / "case.json").is_file():
                     self._fail(404, "Investigation not found"); return
                 html_path = Path(__file__).with_name("dashboard.html")
                 case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const target=(typeof input==="string"||input instanceof URL)?input.toString():input.url;const u=new URL(target,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
-                html = html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>")
-                self._send(200, html.encode("utf-8"), "text/html; charset=utf-8"); return
+                page_html = html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>")
+                self._send(200, page_html.encode("utf-8"), "text/html; charset=utf-8"); return
             if self.app_mode and url.path == "/demo":
                 from .scenarios import create_demo_cases
                 results = create_demo_cases(self.cases_root / "demo-scenarios")
@@ -330,8 +340,26 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                         result["title"],
                         bool(result["passed"]),
                     ))
-                cards_html = "".join('<a class="scenario" href="/case/{}"><span class="num">SYNTHETIC SCENARIO</span><strong>{}</strong><span class="status">{}</span></a>'.format(cid, title, "Validation passed" if passed else "Validation needs review") for cid,title,passed in cards)
-                page = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choose a demo case · TRACEFUSE</title><link rel="stylesheet" href="/welcome.css"></head><body class="demo-page"><main class="wrap"><a class="brand" href="/">◈ TRACEFUSE</a><p class="eyebrow">CONTROLLED DEMONSTRATION DATA</p><h1>Choose a scenario.</h1><p class="lede">These incidents are synthetic and isolated from uploaded investigations.</p><div class="scenario-grid">' + cards_html + '</div><a class="back" href="/">← Back to home</a></main></body></html>'
+                cards_html = "".join(
+                    '<li><a class="scenario" href="/case/{}"><span class="scenario-num">{:02d}</span>'
+                    '<span class="scenario-title">{}</span>'
+                    '<span class="tf-badge {}"><i class="tf-dot"></i>{}</span></a></li>'.format(
+                        cid, index, html.escape(title),
+                        "tf-badge--ok" if passed else "tf-badge--warn",
+                        "Validation passed" if passed else "Validation needs review")
+                    for index, (cid, title, passed) in enumerate(cards, start=1))
+                page = (
+                    '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+                    '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                    '<title>Demo investigations · TRACEFUSE</title>'
+                    '<link rel="stylesheet" href="/tracefuse.css"><link rel="stylesheet" href="/welcome.css"></head>'
+                    '<body class="demo-page"><header class="topbar"><a class="tf-brand" href="/" aria-label="TRACEFUSE home">'
+                    + BRAND_MARK_SVG + '<span class="tf-brand-name">TRACEFUSE</span></a></header>'
+                    '<main class="wrap"><p class="eyebrow">Synthetic demonstration data</p><h1>Open a demo investigation</h1>'
+                    '<p class="lede">Each scenario is generated from synthetic logs, validated against its expected timeline, '
+                    'and kept separate from uploaded investigations.</p><ol class="scenario-list">' + cards_html + '</ol>'
+                    '<a class="tf-btn tf-btn--ghost back" href="/">Back to start</a></main></body></html>'
+                )
                 self._send(200, page.encode(), "text/html; charset=utf-8"); return
             if url.path in ("/engine-test", "/engine-test/"):
                 html_path = Path(__file__).with_name("engine_test.html")
@@ -546,7 +574,7 @@ def serve_app(host: str = "127.0.0.1", port: int = 8765, cases_dir: str | Path =
     """Serve the TRACEFUSE onboarding, upload workflow, and case dashboard."""
     root = Path(cases_dir).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
-    for required in ("welcome.html", "welcome.css", "dashboard.html"):
+    for required in ("welcome.html", "welcome.css", "tracefuse.css", "dashboard.html"):
         if not Path(__file__).with_name(required).is_file():
             raise FileNotFoundError(f"{required} is missing from the incident_timeline package")
     handler_class = type("AppTracefuseHandler", (TracefuseHandler,), {"case_root": root, "cases_root": root, "app_mode": True})

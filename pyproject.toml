@@ -18,7 +18,7 @@ dev = ["pytest>=7"]
 incident-timeline = "incident_timeline.cli:main"
 
 [tool.setuptools.package-data]
-incident_timeline = ["dashboard.html", "engine_test.html", "welcome.html", "welcome.css"]
+incident_timeline = ["dashboard.html", "engine_test.html", "welcome.html", "welcome.css", "tracefuse.css"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
