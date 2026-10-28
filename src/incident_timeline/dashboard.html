@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#090c0a">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <title>TRACEFUSE · Investigation</title>
+  <title>ORISECT · Investigation</title>
   <link rel="stylesheet" href="/tracefuse.css">
   <style>
     /* Investigation workspace. Tokens and primitives come from /tracefuse.css. */
@@ -366,7 +366,7 @@
 <a class="skip-link" href="#timeline">Skip to timeline</a>
 <header class="appbar">
   <div class="appbar-inner">
-    <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#75dea6"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+    <a class="tf-brand" href="/" aria-label="ORISECT home"><img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30"><img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12"></a>
     <span class="tf-brand-context" id="caseCrumb">Investigation</span>
     <label class="tf-sr-only" for="casePicker">Investigation</label>
     <select class="tf-select case-picker" id="casePicker" hidden></select>
@@ -485,7 +485,7 @@
             <div class="tlab-time-value"><span>Offset in saved timeline</span><strong id="tlabRecordedOffset">—</strong></div>
             <div class="tlab-time-value"><span>Current case setting</span><strong id="tlabConfiguredOffset">—</strong></div>
           </div>
-          <div class="tf-field"><label class="tf-label" for="tlabPreviewOffset">Proposed offset (seconds)</label><input class="tf-input" id="tlabPreviewOffset" type="number" step="0.001" inputmode="decimal" value="0" aria-describedby="tlabOffsetHelp"><span class="tf-hint" id="tlabOffsetHelp">Positive means the source clock ran ahead of the reference. TRACEFUSE subtracts the offset to normalize.</span></div>
+          <div class="tf-field"><label class="tf-label" for="tlabPreviewOffset">Proposed offset (seconds)</label><input class="tf-input" id="tlabPreviewOffset" type="number" step="0.001" inputmode="decimal" value="0" aria-describedby="tlabOffsetHelp"><span class="tf-hint" id="tlabOffsetHelp">Positive means the source clock ran ahead of the reference. ORISECT subtracts the offset to normalize.</span></div>
           <div class="tlab-actions"><button class="tf-btn tf-btn--sm" id="tlabApplyPreview" type="button">Preview shift</button><button class="tf-btn tf-btn--ghost tf-btn--sm" id="tlabClearPreview" type="button">Discard preview</button></div>
           <div class="tf-note tlab-preview-status" id="tlabPreviewStatus" role="status" aria-live="polite">No preview active. The ledger shows the stored normalized timeline.</div>
           <p class="tlab-quiet">Never writes to case.json, events.jsonl, the original evidence or the custody chain. To persist a correction, use the skew workflow and rebuild the timeline.</p>
@@ -524,7 +524,7 @@
   <details class="tf-panel tf-disclosure study" id="triageBenchmark">
     <summary>
       <h2>Triage time study <span class="tf-badge">Synthetic scenarios</span></h2>
-      <span class="s-desc">Time how long it takes to reach the same findings from raw logs and with TRACEFUSE. <span id="benchMetricCoverageInline">0 of 3 scenarios paired.</span></span>
+      <span class="s-desc">Time how long it takes to reach the same findings from raw logs and with ORISECT. <span id="benchMetricCoverageInline">0 of 3 scenarios paired.</span></span>
     </summary>
     <div class="study-body">
       <p class="tf-note"><strong>Keep the comparison honest.</strong> Times come from your stopwatch trials or values you enter, and stay in this browser. No manual baseline is invented, and machine processing time is measured separately in the Engine lab.</p>
@@ -540,7 +540,7 @@
     </div>
   </details>
 </main>
-<footer class="page-foot">TRACEFUSE runs locally and never modifies source evidence or custody records. Keep exports with the original case folder; a report is not a replacement for the evidence.</footer>
+<footer class="page-foot">ORISECT runs locally and never modifies source evidence or custody records. Keep exports with the original case folder; a report is not a replacement for the evidence.</footer>
 
 <dialog class="tf-dialog tf-elevated sheet" id="inspectorSheet" aria-labelledby="sheetTitle">
   <div class="insp-bar">
@@ -645,7 +645,7 @@
     $('caseTitle').textContent = title;
     $('caseCrumb').textContent = title;
     $('caseKicker').textContent = d.case_name ? `Investigation · ${d.case_id}` : 'Investigation';
-    document.title = `${title} · TRACEFUSE`;
+    document.title = `${title} · ORISECT`;
     $('statEvents').textContent = Number(d.events).toLocaleString();
     $('statSources').textContent = d.source_count;
     $('statGaps').textContent = Number(d.gaps).toLocaleString();
@@ -1210,9 +1210,9 @@
       const meta = el('div');
       meta.append(el('h3', 'bench-title', s.title), el('p', 'bench-sub', `${s.events} events · ${s.gaps} unparsed lines · synthetic`));
       const controls = el('div', 'bench-controls');
-      controls.append(makeTrialControl(id, 'manual', 'Manual triage'), makeTrialControl(id, 'assisted', 'TRACEFUSE-assisted'));
+      controls.append(makeTrialControl(id, 'manual', 'Manual triage'), makeTrialControl(id, 'assisted', 'ORISECT-assisted'));
       const viz = el('div', 'bench-viz');
-      for (const [mode, label] of [['manual', 'Manual'], ['assisted', 'TRACEFUSE-assisted']]) {
+      for (const [mode, label] of [['manual', 'Manual'], ['assisted', 'ORISECT-assisted']]) {
         const line = el('div', 'bench-barline ' + mode);
         const track = el('div', 'bench-track');
         Object.entries({ role: 'progressbar', 'aria-label': `${label} trial, relative to the slower trial`, 'aria-valuemin': '0', 'aria-valuemax': '100' }).forEach(([k, v]) => track.setAttribute(k, v));
@@ -1247,7 +1247,7 @@
     }
     activeTrial = { id, mode, startedAt: Date.now() };
     timer.textContent = 'Stop timer'; timer.setAttribute('aria-pressed', 'true'); timer.classList.add('is-running');
-    setStatus(`${mode === 'manual' ? 'Manual' : 'TRACEFUSE-assisted'} stopwatch running for ${id}.`, 'running');
+    setStatus(`${mode === 'manual' ? 'Manual' : 'ORISECT-assisted'} stopwatch running for ${id}.`, 'running');
     ticker = setInterval(tick, 250);
   }
   function resetTrial(id, mode) {
@@ -1256,7 +1256,7 @@
     const input = $(`trial-${id}-${mode}`); input.value = '';
     $(`clock-${id}-${mode}`).textContent = '00:00';
     storeInput(id, mode);
-    setStatus(`${mode === 'manual' ? 'Manual' : 'TRACEFUSE-assisted'} trial cleared.`);
+    setStatus(`${mode === 'manual' ? 'Manual' : 'ORISECT-assisted'} trial cleared.`);
   }
   renderBenchmarkRows();
 

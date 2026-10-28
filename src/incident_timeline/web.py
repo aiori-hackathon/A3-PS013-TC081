@@ -24,18 +24,20 @@ from .time_analysis import build_time_analysis
 from .pipeline import build_timeline
 from .findings import detect as detect_findings, entities as summarize_entities
 
-BRAND_MARK_SVG = (
-    '<svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true">'
-    '<rect width="28" height="28" rx="7" fill="#75dea6"/>'
-    '<path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" '
-    'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+# Brand lockup used in page headers; the SVGs live in brand/ (dark and ink variants).
+BRAND_LOCKUP_HTML = (
+    '<img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30">'
+    '<img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12">'
 )
 
 # Static assets served from the package directory: URL path -> (relative file, content type).
 STATIC_FILES = {
     "/tracefuse.css": ("tracefuse.css", "text/css; charset=utf-8"),
     "/welcome.css": ("welcome.css", "text/css; charset=utf-8"),
-    "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+    "/favicon.svg": ("brand/orisect-icon.svg", "image/svg+xml"),
+    **{f"/brand/{name}": (f"brand/{name}", "image/svg+xml") for name in (
+        "orisect-mark.svg", "orisect-mark-ink.svg", "orisect-wordmark.svg", "orisect-wordmark-ink.svg",
+        "orisect-lockup.svg", "orisect-lockup-ink.svg", "orisect-icon.svg")},
     "/fonts/inter-latin-var.woff2": ("fonts/inter-latin-var.woff2", "font/woff2"),
     "/fonts/jetbrains-mono-latin-var.woff2": ("fonts/jetbrains-mono-latin-var.woff2", "font/woff2"),
 }
@@ -107,7 +109,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Keep server logs compact and avoid printing query strings/raw event content.
-        sys.stderr.write(f"TRACEFUSE {self.address_string()} - {fmt % args}\n")
+        sys.stderr.write(f"ORISECT {self.address_string()} - {fmt % args}\n")
 
     @property
     def case(self) -> Case:
@@ -125,7 +127,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 match = re.match(r"^/case/(CASE-[a-f0-9]{12})(?:/|$)", urlsplit(self.path).path)
                 case_id = match.group(1) if match else ""
             if not case_id or self.cases_root is None:
-                raise FileNotFoundError("Open an investigation from the TRACEFUSE home page.")
+                raise FileNotFoundError("Open an investigation from the ORISECT home page.")
             root = resolve_app_case(self.cases_root, case_id)
             
             return Case.open(root)
@@ -287,7 +289,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                     host = (fields.get("host_" + idx) or [""])[0].strip() or None
                     temp_file = temp_root / filename
                     temp_file.write_bytes(payload)
-                    collect(case, temp_file, source_type, tz=tz, host=host, actor="tracefuse-web-upload", note="Uploaded through TRACEFUSE web interface.")
+                    collect(case, temp_file, source_type, tz=tz, host=host, actor="tracefuse-web-upload", note="Uploaded through ORISECT web interface.")
             build_timeline(case, actor="tracefuse-web-upload")
             self.send_response(303)
             self.send_header("Location", f"/case/{case_id}")
@@ -296,7 +298,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         except (ValueError, EvidenceError) as exc:
             self._fail(400, str(exc))
         except Exception as exc:
-            print(f"TRACEFUSE upload error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"ORISECT upload error: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._fail(500, "Upload could not be processed. Check the local server log for details.")
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler contract
@@ -362,11 +364,11 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 page = (
                     '<!doctype html><html lang="en"><head><meta charset="utf-8">'
                     '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                    '<title>Demo investigations · TRACEFUSE</title>'
+                    '<title>Demo investigations · ORISECT</title>'
                     '<link rel="icon" href="/favicon.svg" type="image/svg+xml">'
                     '<link rel="stylesheet" href="/tracefuse.css"><link rel="stylesheet" href="/welcome.css"></head>'
-                    '<body class="demo-page"><header class="topbar"><a class="tf-brand" href="/" aria-label="TRACEFUSE home">'
-                    + BRAND_MARK_SVG + '<span class="tf-brand-name">TRACEFUSE</span></a></header>'
+                    '<body class="demo-page"><header class="topbar"><a class="tf-brand" href="/" aria-label="ORISECT home">'
+                    + BRAND_LOCKUP_HTML + '</a></header>'
                     '<main class="wrap"><p class="eyebrow">Synthetic demonstration data</p><h1>Open a demo investigation</h1>'
                     '<p class="lede">Each scenario is generated from synthetic logs, validated against its expected timeline, '
                     'and kept separate from uploaded investigations.</p><ol class="scenario-list">' + cards_html + '</ol>'
@@ -536,11 +538,11 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                     report["events"] = [e for e in report["events"] if e.get("event_id") in wanted]
                     report["findings"] = [f for f in full_findings
                                            if wanted.intersection(f.get("event_ids", []))]
-                filename = f"tracefuse-{safe_case_filename(str(report['case_id']))}-timeline.json"
+                filename = f"orisect-{safe_case_filename(str(report['case_id']))}-timeline.json"
                 self._send(200, _json_bytes(report), "application/json; charset=utf-8", filename)
                 return
             if url.path == "/export/report.pdf":
-                filename = f"tracefuse-{safe_case_filename(self.case.load_meta().get('case_id', self.case.root.name))}-report.pdf"
+                filename = f"orisect-{safe_case_filename(self.case.load_meta().get('case_id', self.case.root.name))}-report.pdf"
                 with tempfile.TemporaryDirectory(prefix="tracefuse-export-") as tmp_dir:
                     path = Path(tmp_dir) / filename
                     export_pdf(self.case.root, path, self._filters(params))
@@ -557,7 +559,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         except RuntimeError as exc:
             self._fail(501, str(exc))
         except Exception as exc:  # prevent tracebacks from being rendered to remote clients
-            print(f"TRACEFUSE request error on {url.path}: {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"ORISECT request error on {url.path}: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._fail(500, "Internal server error; see the local terminal for details")
 
 
@@ -581,19 +583,19 @@ def serve_case(case_path: str | Path, host: str = "127.0.0.1", port: int = 8765)
     handler_class = type("BoundTracefuseHandler", (TracefuseHandler,), attrs)
     server = ThreadingHTTPServer((host, port), handler_class)
     actual_host, actual_port = server.server_address[:2]
-    print(f"TRACEFUSE dashboard for {label}")
+    print(f"ORISECT dashboard for {label}")
     print(f"Open http://{actual_host if actual_host not in ('0.0.0.0', '::') else '127.0.0.1'}:{actual_port} in your browser")
     print("Local dashboard is read-only. Press Ctrl+C to stop.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping TRACEFUSE dashboard…")
+        print("\nStopping ORISECT dashboard…")
     finally:
         server.server_close()
 
 
 def serve_app(host: str = "127.0.0.1", port: int = 8765, cases_dir: str | Path = "cases/web-app") -> None:
-    """Serve the TRACEFUSE onboarding, upload workflow, and case dashboard."""
+    """Serve the ORISECT onboarding, upload workflow, and case dashboard."""
     root = Path(cases_dir).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     for required in ("welcome.html", "welcome.css", "tracefuse.css", "dashboard.html"):
@@ -603,13 +605,13 @@ def serve_app(host: str = "127.0.0.1", port: int = 8765, cases_dir: str | Path =
     server = ThreadingHTTPServer((host, port), handler_class)
     actual_host, actual_port = server.server_address[:2]
     display_host = actual_host if actual_host not in ("0.0.0.0", "::") else "127.0.0.1"
-    print("TRACEFUSE web application")
+    print("ORISECT web application")
     print(f"Open http://{display_host}:{actual_port} in your browser")
     print(f"Case storage: {root}")
     print("Local demo mode. Do not expose this server to untrusted networks.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping TRACEFUSE web application…")
+        print("\nStopping ORISECT web application…")
     finally:
         server.server_close()

@@ -26,6 +26,86 @@ def _parse_filter_time(value: str | None) -> datetime | None:
     return parsed.astimezone(UTC)
 
 
+def _draw_brand(canvas: Any, x: float, top: float, height: float, ink: Any, accent: Any) -> None:
+    """Draw the ORISECT mark and wordmark (from brand/*.svg) as vector paths.
+
+    Geometry is in the SVGs' design units with y pointing down; ``height`` is
+    the mark height in points. PDF angles run the other way, so arcs negate.
+    """
+    k = height / 700.0                      # mark design box is 700 units high
+    X = lambda dx: x + (dx + 12) * k        # mark viewBox starts at x = -12, y = 30
+    Y = lambda dy: top - (dy - 30) * k
+
+    def box(cx: float, cy: float, rx: float, ry: float) -> tuple[float, float, float, float]:
+        return X(cx - rx), Y(cy + ry), X(cx + rx), Y(cy - ry)
+
+    canvas.saveState()
+    canvas.setFillColor(ink)
+    left = canvas.beginPath()
+    left.moveTo(X(325), Y(160))
+    left.arcTo(*box(325, 415, 255, 255), startAng=90, extent=146.7)
+    left.lineTo(X(325), Y(720))
+    left.lineTo(X(325), Y(595))
+    left.arcTo(*box(325, 425, 145, 170), startAng=270, extent=-180)
+    left.close()
+    right = canvas.beginPath()
+    right.moveTo(X(352), Y(40))
+    right.lineTo(X(475.7), Y(109.3))
+    right.arcTo(*box(352, 330, 253, 253), startAng=60.8, extent=-120.9)
+    right.lineTo(X(478), Y(150))
+    right.lineTo(X(352), Y(150))
+    right.close()
+    canvas.drawPath(left, stroke=0, fill=1)
+    canvas.drawPath(right, stroke=0, fill=1)
+    canvas.setFillColor(accent)
+    blade = canvas.beginPath()
+    for i, (bx, by) in enumerate(((325, 255), (418, 340), (418, 665), (325, 580))):
+        (blade.lineTo if i else blade.moveTo)(X(bx), Y(by))
+    blade.close()
+    canvas.drawPath(blade, stroke=0, fill=1)
+
+    # Wordmark: geometric strokes, cap height 44 units, vertically centred on the mark.
+    w = height * 0.36 / 44.0
+    wx0 = x + height * 1.08
+    wy0 = top - height * 0.32
+    WX = lambda dx: wx0 + dx * w
+    WY = lambda dy: wy0 - dy * w
+
+    def arc_box(cx: float, cy: float, r: float) -> tuple[float, float, float, float]:
+        return WX(cx - r), WY(cy + r), WX(cx + r), WY(cy - r)
+
+    canvas.setStrokeColor(ink)
+    canvas.setLineWidth(5.5 * w)
+    canvas.setLineCap(0)
+    canvas.circle(WX(22), WY(22), 19.5 * w, stroke=1, fill=0)                       # O
+    r_ = canvas.beginPath()                                                          # R
+    r_.moveTo(WX(72.5), WY(44)); r_.lineTo(WX(72.5), WY(2.5)); r_.lineTo(WX(88), WY(2.5))
+    r_.arcTo(*arc_box(88, 13, 10.5), startAng=90, extent=-180)
+    r_.lineTo(WX(72.5), WY(23.5))
+    r_.moveTo(WX(90), WY(27)); r_.lineTo(WX(104), WY(44))
+    canvas.drawPath(r_, stroke=1, fill=0)
+    canvas.line(WX(132.5), WY(0), WX(132.5), WY(44))                                 # I
+    s_ = canvas.beginPath()                                                          # S
+    s_.moveTo(WX(200), WY(2.5)); s_.lineTo(WX(170.25), WY(2.5))
+    s_.arcTo(*arc_box(170.25, 12.25, 9.75), startAng=90, extent=180)
+    s_.lineTo(WX(189.75), WY(22))
+    s_.arcTo(*arc_box(189.75, 31.75, 9.75), startAng=90, extent=-180)
+    s_.lineTo(WX(160), WY(41.5))
+    canvas.drawPath(s_, stroke=1, fill=0)
+    canvas.line(WX(226), WY(2.5), WX(260), WY(2.5))                                  # E outer bars
+    canvas.line(WX(226), WY(41.5), WX(260), WY(41.5))
+    c_ = canvas.beginPath()                                                          # C
+    c_.moveTo(WX(326), WY(2.5)); c_.lineTo(WX(308), WY(2.5))
+    c_.arcTo(*arc_box(308, 22, 19.5), startAng=90, extent=180)
+    c_.lineTo(WX(326), WY(41.5))
+    canvas.drawPath(c_, stroke=1, fill=0)
+    canvas.line(WX(352), WY(2.5), WX(392), WY(2.5))                                  # T
+    canvas.line(WX(372), WY(2.5), WX(372), WY(44))
+    canvas.setStrokeColor(accent)
+    canvas.line(WX(226), WY(22), WX(260), WY(22))                                    # E middle bar
+    canvas.restoreState()
+
+
 def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str | None] | None = None) -> list[dict[str, Any]]:
     """Apply the same filters in the web viewer and in exported reports."""
     filters = filters or {}
@@ -103,7 +183,7 @@ def load_case_export(case_path: str | Path, filters: dict[str, str | None] | Non
 
     return {
         "schema_version": "1.0",
-        "product": "TRACEFUSE",
+        "product": "ORISECT",
         "case_id": metadata.get("case_id", case.root.name),
         "generated_utc": to_rfc3339(datetime.now(UTC)),
         "filters": {k: v for k, v in (filters or {}).items() if v not in (None, "")},
@@ -157,12 +237,10 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
     page = landscape(A4)
     doc = SimpleDocTemplate(
         str(destination), pagesize=page, rightMargin=14 * mm, leftMargin=14 * mm,
-        topMargin=15 * mm, bottomMargin=16 * mm, title=f"TRACEFUSE Incident Report - {report['case_id']}",
-        author="TRACEFUSE", subject="Evidence-preserving incident reconstruction",
+        topMargin=15 * mm, bottomMargin=16 * mm, title=f"ORISECT Incident Report - {report['case_id']}",
+        author="ORISECT", subject="Evidence-preserving incident reconstruction",
     )
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="ReportTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=21,
-                              leading=25, textColor=colors.HexColor("#141a16"), alignment=TA_LEFT, spaceAfter=5))
     styles.add(ParagraphStyle(name="SectionHeading", parent=styles["Heading2"], fontSize=12, leading=15,
                               textColor=colors.HexColor("#1f6b45"), spaceBefore=6, spaceAfter=3))
     styles.add(ParagraphStyle(name="SmallText", parent=styles["BodyText"], fontSize=7.5, leading=9))
@@ -174,7 +252,7 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
     def p(value: Any, style: str = "Cell") -> Paragraph:
         return Paragraph(escape("-" if value is None or value == "" else str(value)), styles[style])
 
-    story = [Paragraph("TRACEFUSE", styles["ReportTitle"]),
+    story = [Spacer(1, 10 * mm),
              Paragraph("Evidence-preserving incident reconstruction report", styles["SmallText"]),
              Spacer(1, 1 * mm)]
     integrity = report["integrity"]
@@ -256,11 +334,15 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
         canvas.line(14 * mm, 11 * mm, page[0] - 14 * mm, 11 * mm)
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(colors.HexColor("#5a665e"))
-        canvas.drawString(14 * mm, 7 * mm, f"TRACEFUSE | Case {report['case_id']} | Generated {report['generated_utc']}")
+        canvas.drawString(14 * mm, 7 * mm, f"ORISECT | Case {report['case_id']} | Generated {report['generated_utc']}")
         canvas.drawRightString(page[0] - 14 * mm, 7 * mm, f"Page {document.page}")
         canvas.restoreState()
 
-    doc.build(story, onFirstPage=footer, onLaterPages=footer)
+    def first_page(canvas: Any, document: Any) -> None:
+        _draw_brand(canvas, 14 * mm, page[1] - 12 * mm, 11 * mm, colors.HexColor("#1e2622"), colors.HexColor("#1f8a55"))
+        footer(canvas, document)
+
+    doc.build(story, onFirstPage=first_page, onLaterPages=footer)
     return destination
 
 

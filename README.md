@@ -2,9 +2,14 @@
 
 This repository contains code and resources developed for the AIORI-3 hackathon.
 
-## TRACEFUSE — PS-013 / TC081
+## ORISECT — PS-013 / TC081
 
-TRACEFUSE reconstructs incidents from system and web access logs while preserving original evidence, source SHA-256 hashes, and a hash-chained custody log. The Python engine writes a normalized, UTC-sorted and line-traceable timeline. The dashboard adds explainable findings (each citing its exact evidence lines and an ATT&CK technique), cross-source entity pivots and a live custody-chain view. The dashboard, PDF/JSON exports, and three reproducible synthetic test scenarios are documented in [`src/README.md`](src/README.md).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="src/incident_timeline/brand/orisect-lockup.svg">
+  <img src="src/incident_timeline/brand/orisect-lockup-ink.svg" alt="ORISECT" width="280">
+</picture>
+
+ORISECT (formerly TRACEFUSE) reconstructs incidents from system and web access logs while preserving original evidence, source SHA-256 hashes, and a hash-chained custody log. The Python engine writes a normalized, UTC-sorted and line-traceable timeline. The dashboard adds explainable findings (each citing its exact evidence lines and an ATT&CK technique), cross-source entity pivots and a live custody-chain view. The dashboard, PDF/JSON exports, and three reproducible synthetic test scenarios are documented in [`src/README.md`](src/README.md).
 
 ### Quick start
 

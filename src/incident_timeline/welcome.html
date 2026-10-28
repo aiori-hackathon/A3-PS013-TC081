@@ -6,13 +6,13 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#090c0a">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<title>TRACEFUSE · Incident reconstruction from logs</title>
+<title>ORISECT · Incident reconstruction from logs</title>
 <link rel="stylesheet" href="/tracefuse.css">
 <link rel="stylesheet" href="/welcome.css">
 </head>
 <body>
 <header class="topbar">
-  <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#75dea6"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#141a16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+  <a class="tf-brand" href="/" aria-label="ORISECT home"><img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30"><img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12"></a>
   <nav class="topbar-nav" aria-label="Primary">
     <a class="tf-btn tf-btn--ghost tf-btn--sm" href="/demo">Demo investigations</a>
     <a class="tf-btn tf-btn--ghost tf-btn--sm" href="/engine-test">Engine lab</a>
@@ -24,7 +24,7 @@
     <div class="hero-copy">
       <p class="eyebrow"><i class="tf-dot" aria-hidden="true"></i>Evidence-preserving incident reconstruction</p>
       <h1 id="hero-title">Make sense of the evidence. <span>Reconstruct the incident.</span></h1>
-      <p class="lede">TRACEFUSE preserves your original logs, normalizes every timestamp to UTC and merges them into one timeline. Each finding cites the exact source lines behind it, so every conclusion can be checked.</p>
+      <p class="lede">ORISECT preserves your original logs, normalizes every timestamp to UTC and merges them into one timeline. Each finding cites the exact source lines behind it, so every conclusion can be checked.</p>
 
       <div class="paths" role="group" aria-label="Choose how to start">
         <div class="path">
@@ -61,7 +61,7 @@
   </section>
 
   <section class="steps" aria-labelledby="steps-title">
-    <h2 id="steps-title">How TRACEFUSE handles evidence</h2>
+    <h2 id="steps-title">How ORISECT handles evidence</h2>
     <ol>
       <li><h3>Preserve</h3><p>Each file is copied into the case, hashed with SHA-256 and recorded in a hash-chained custody log before anything is parsed.</p></li>
       <li><h3>Normalize</h3><p>Per-source time zone and clock offset are applied. Assumptions such as an inferred year are flagged, never hidden.</p></li>
@@ -70,7 +70,7 @@
   </section>
 </main>
 
-<footer class="footer"><span>TRACEFUSE runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Demo data is synthetic and labelled as such.</span></footer>
+<footer class="footer"><span>ORISECT runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Demo data is synthetic and labelled as such.</span></footer>
 
 <dialog id="upload-modal" class="modal tf-dialog" aria-labelledby="upload-title">
   <form id="upload-form" method="dialog" novalidate>

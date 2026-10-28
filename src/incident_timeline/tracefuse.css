@@ -1,5 +1,5 @@
 /*
- * TRACEFUSE design system: Signal Emerald, precision tactile dark.
+ * ORISECT design system: Signal Emerald, precision tactile dark.
  * Shared by the welcome page, demo picker, investigation dashboard and engine lab.
  *
  * Principles
@@ -135,8 +135,8 @@ code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .9em; f
 
 /* ---------- Brand ---------- */
 .tf-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--tf-text); border-radius: var(--tf-radius-sm); }
-.tf-brand-mark { width: 26px; height: 26px; flex: 0 0 26px; display: block; }
-.tf-brand-name { font-size: 13px; font-weight: 680; letter-spacing: .16em; }
+.tf-brand-mark { width: 30px; height: 30px; flex: 0 0 30px; display: block; margin: 0 -2px 0 -4px; }
+.tf-wordmark { display: block; width: auto; height: 12px; }
 .tf-brand-context { color: var(--tf-text-3); font-size: var(--tf-fs-sm); }
 .tf-brand-context::before { content: "/"; margin: 0 10px 0 2px; color: var(--tf-border-strong); }
 
