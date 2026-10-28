@@ -4,99 +4,158 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>TRACEFUSE | Engine Validation Lab</title>
+  <meta name="theme-color" content="#0b0c0b">
+  <title>TRACEFUSE · Engine Validation Lab</title>
+  <link rel="stylesheet" href="/tracefuse.css">
   <style>
-    :root{--bg:#0b0d0a;--panel:#141712;--panel-raised:#191d16;--line:#30372b;--text:#eef1e8;--muted:#a4ab9b;--sage:#bdc9ad;--lime:#d8ff63;--amber:#e5bd78;--red:#eb8a84;--radius:12px;--shadow:0 18px 48px rgba(0,0,0,.18)}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 88% -5%,rgba(216,255,99,.07),transparent 31%),var(--bg);color:var(--text);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit}.shell{width:min(1260px,100%);margin:0 auto;padding:24px clamp(16px,3.4vw,44px) 64px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:22px;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:12px;text-decoration:none}.brand-mark{width:42px;height:42px;display:grid;place-items:center;border:1px solid #4a583b;border-radius:10px;background:rgba(216,255,99,.07);color:var(--lime);font-weight:900;font-size:20px}.brand-name{font-size:17px;font-weight:800;letter-spacing:.16em}.brand-sub{color:var(--muted);font-size:13px}.back-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--sage);font-size:14px;font-weight:700}.back-link:hover{color:var(--lime)}.hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr);gap:35px;align-items:end;padding:clamp(38px,6vw,74px) 0 34px}.eyebrow{display:flex;align-items:center;gap:10px;color:var(--sage);font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}.eyebrow:before{content:"";width:24px;height:2px;background:var(--lime)}h1,h2,h3,h4,p{margin-top:0}.hero h1{max-width:780px;margin:16px 0;font-size:clamp(38px,5.6vw,66px);line-height:1.02;letter-spacing:-.055em;font-weight:720}.hero h1 span{color:var(--lime)}.hero-copy{max-width:740px;margin:0;color:var(--muted);font-size:18px;line-height:1.75}.hero-side{border-left:1px solid var(--line);padding:5px 0 5px 22px}.hero-side-label{color:var(--lime);font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}.hero-side p{margin:9px 0 0;color:var(--muted);font-size:15px;line-height:1.8}.lab-actions{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:19px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(135deg,rgba(216,255,99,.04),transparent 45%),var(--panel);box-shadow:var(--shadow)}.action-copy{flex:1 1 300px;min-width:0}.action-copy strong{display:block;font-size:17px}.action-copy p{margin:4px 0 0;color:var(--muted);font-size:14px}.action-controls{display:flex;flex-wrap:wrap;align-items:center;gap:9px}.btn{min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:11px 15px;border:1px solid var(--line);border-radius:8px;background:var(--panel-raised);color:var(--text);font-size:15px;font-weight:750;text-decoration:none;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}.btn:hover:not(:disabled){transform:translateY(-1px);border-color:#77845f}.btn-primary{background:var(--lime);border-color:var(--lime);color:#171b10}.btn-primary:hover:not(:disabled){background:#e4ff9a;border-color:#e4ff9a}.btn:disabled{opacity:.5;cursor:wait;transform:none}.select-wrap{display:grid;gap:5px;min-width:220px}.select-wrap label{color:var(--muted);font-size:13px;font-weight:700}.select-wrap select{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#0c0f0a;color:var(--text);font-size:15px}.status-line{display:flex;align-items:flex-start;gap:11px;margin:14px 0 30px;padding:13px 15px;border-left:2px solid var(--sage);background:rgba(255,255,255,.025);color:var(--muted);font-size:14px;line-height:1.65}.status-line:before{content:"i";flex:0 0 21px;width:21px;height:21px;display:grid;place-items:center;border:1px solid #4b5543;border-radius:50%;color:var(--lime);font-size:13px;font-weight:800}.status-line.is-running{border-color:var(--lime);color:var(--text)}.status-line.is-error{border-color:var(--red);color:var(--red)}.status-line.is-success{border-color:var(--lime)}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:40px 0 16px}.section-kicker{color:var(--sage);font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.section-head h2{margin:5px 0 4px;font-size:clamp(24px,3.2vw,34px);letter-spacing:-.035em;line-height:1.2}.section-head p{max-width:760px;margin:0;color:var(--muted);font-size:15px;line-height:1.7}.summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0 0 26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.metric{min-width:0;padding:19px 18px 19px 0}.metric+.metric{padding-left:18px;border-left:1px solid var(--line)}.metric-label{color:var(--muted);font-size:13px;line-height:1.5}.metric-value{margin-top:6px;font-size:clamp(25px,2.8vw,35px);font-weight:750;letter-spacing:-.045em;line-height:1.18;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.metric-value.accent{color:var(--lime)}.metric-sub{margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5}.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;align-items:stretch}.scenario-card{display:flex;flex-direction:column;min-width:0;padding:19px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(160deg,rgba(255,255,255,.018),transparent 42%),var(--panel);transition:border-color .2s ease,transform .2s ease}.scenario-card:hover{border-color:#576349;transform:translateY(-2px)}.scenario-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.scenario-index{color:var(--lime);font:800 13px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em}.status-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;font-weight:750;white-space:nowrap}.status-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}.status-pill.pass{border-color:#435239;color:var(--lime);background:rgba(216,255,99,.035)}.status-pill.fail{border-color:#66403b;color:var(--red)}.scenario-card h3{margin:17px 0 8px;font-size:20px;line-height:1.3;letter-spacing:-.025em}.scenario-description{min-height:5.4em;margin:0 0 16px;color:var(--muted);font-size:15px;line-height:1.7}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:15px}.chip{display:inline-flex;max-width:100%;padding:5px 8px;border:1px solid #384031;border-radius:6px;color:var(--sage);background:#10130e;font-size:12px;line-height:1.4;overflow-wrap:anywhere}.input-files{margin:0 0 15px;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.input-files h4{margin:0 0 7px;color:var(--muted);font-size:12px;letter-spacing:.07em;text-transform:uppercase}.input-file-list{display:flex;flex-wrap:wrap;gap:6px}.input-file{font:13px ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--text);background:#0d100b;border:1px solid var(--line);border-radius:5px;padding:4px 7px;overflow-wrap:anywhere}.result-block{margin-top:auto;padding-top:5px}.case-result-top{display:flex;align-items:end;justify-content:space-between;gap:10px}.case-runtime-label{color:var(--muted);font-size:13px}.case-runtime{font-size:clamp(26px,2vw,32px);font-weight:780;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.case-runtime.pending{color:#79816f;font-size:20px}.case-track{height:9px;margin:12px 0 8px;border-radius:99px;overflow:hidden;background:#262c22}.case-bar{height:100%;width:0;border-radius:inherit;background:var(--lime);transition:width .55s cubic-bezier(.2,.7,.2,1)}.case-bar.no-result{background:#515a48}.case-scale{margin:0 0 14px;color:var(--muted);font-size:12px}.case-card-actions{display:flex;gap:8px;flex-wrap:wrap}.case-card-actions .btn{flex:1 1 auto;min-height:42px;padding:9px 11px;font-size:14px}.checks{display:grid;gap:7px;margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--line)}.check-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:start;color:var(--muted);font-size:13px;line-height:1.5}.check-mark{font-weight:900}.check-row.pass .check-mark{color:var(--lime)}.check-row.fail .check-mark{color:var(--red)}.check-row .check-state{font-size:12px;font-weight:750}.details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}.details summary{cursor:pointer;color:var(--sage);font-size:14px;font-weight:750}.detail-inner{margin-top:12px}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail-box{min-width:0;padding:11px;border:1px solid var(--line);border-radius:7px;background:#0e110c}.detail-box h4{margin:0 0 8px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}.detail-box ul{margin:0;padding-left:18px;font-size:13px}.detail-box li{margin:3px 0;overflow-wrap:anywhere}.detail-box pre{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0}.history-panel{margin-top:38px;border-top:1px solid var(--line);padding-top:25px}.history-head{display:flex;align-items:end;justify-content:space-between;gap:14px}.history-head h2{margin:5px 0;font-size:25px;letter-spacing:-.03em}.history-head p{margin:0;color:var(--muted);font-size:14px}.history-list{display:grid;margin-top:14px}.history-row{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(90px,.6fr));gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.history-title{font-weight:740;font-size:14px}.history-date{margin-top:3px;color:var(--muted);font-size:12px}.history-value{font-size:14px;font-variant-numeric:tabular-nums}.history-sub{display:block;color:var(--muted);font-size:12px;line-height:1.5}.history-empty{padding:18px 0;color:var(--muted);font-size:14px}.method-note{margin-top:25px;padding:16px 18px;border-left:2px solid var(--sage);background:rgba(255,255,255,.025);color:var(--muted);font-size:14px;line-height:1.75}.method-note strong{color:var(--text)}.footer{margin-top:38px;padding-top:20px;border-top:1px solid var(--line);color:#8d9682;font-size:13px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.footer a{color:var(--sage);text-decoration:none}.footer a:hover{color:var(--lime)}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    @media(max-width:980px){.hero{grid-template-columns:1fr;gap:22px}.hero-side{border-left:0;border-top:1px solid var(--line);padding:18px 0 0}.scenario-grid{grid-template-columns:1fr 1fr}.scenario-card:last-child{grid-column:1/-1}.scenario-card:last-child .scenario-description{min-height:0}}
-    @media(max-width:680px){.shell{padding:17px 14px 42px}.topbar{align-items:flex-start}.brand-mark{width:38px;height:38px}.brand-name{font-size:15px}.brand-sub{font-size:12px}.back-link{font-size:13px}.hero{padding:35px 0 24px}.hero h1{font-size:clamp(37px,11vw,49px)}.hero-copy{font-size:16px}.lab-actions{padding:15px}.action-controls{display:grid;width:100%;grid-template-columns:1fr}.select-wrap{min-width:0}.action-controls .btn{width:100%}.summary-grid{grid-template-columns:1fr 1fr}.metric{padding:14px 10px 15px 0}.metric:nth-child(2),.metric:nth-child(4){padding-left:12px;border-left:1px solid var(--line)}.metric:nth-child(3),.metric:nth-child(4){border-top:1px solid var(--line)}.metric:nth-child(3){padding-top:15px}.metric:nth-child(4){padding-top:15px}.scenario-grid{grid-template-columns:1fr}.scenario-card:last-child{grid-column:auto}.scenario-description{min-height:0}.detail-grid{grid-template-columns:1fr}.history-head{align-items:flex-start;flex-direction:column}.history-row{grid-template-columns:minmax(0,1fr) minmax(70px,.6fr);gap:8px}.history-row .history-col:nth-child(3),.history-row .history-col:nth-child(4){grid-column:auto}.history-row .history-col:nth-child(2){text-align:right}.footer{flex-direction:column}}
-    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.scenario-card,.btn,.case-bar{transition:none!important}.scenario-card:hover,.btn:hover{transform:none}}
+    /* Engine Validation Lab. Tokens and primitives come from /tracefuse.css. */
+    .topbar { display: flex; align-items: center; gap: 16px; max-width: 1240px; min-height: 60px; margin: 0 auto; padding: 0 var(--tf-gutter); border-bottom: 1px solid var(--tf-border); }
+    .topbar .back-link { margin-left: auto; }
+    .shell { max-width: 1240px; margin: 0 auto; padding: 0 var(--tf-gutter) 56px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(240px, .8fr); gap: 40px; align-items: end; padding: clamp(32px, 5vw, 56px) 0 28px; }
+    .eyebrow { color: var(--tf-text-3); font-size: var(--tf-fs-sm); font-weight: 560; }
+    .hero h1 { margin-top: 8px; font-size: var(--tf-fs-2xl); font-weight: 650; letter-spacing: -.025em; }
+    .hero-copy { max-width: 64ch; margin-top: 12px; color: var(--tf-text-2); font-size: var(--tf-fs-md); line-height: 1.65; }
+    .hero-side { padding-left: 20px; border-left: 1px solid var(--tf-border-strong); }
+    .hero-side-label { font-size: 14px; font-weight: 620; }
+    .hero-side p { margin-top: 4px; color: var(--tf-text-2); font-size: 14px; }
+    .lab-actions { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 18px 20px; }
+    .action-copy { flex: 1 1 300px; min-width: 0; }
+    .action-copy strong { display: block; font-weight: 620; }
+    .action-copy p { margin-top: 2px; color: var(--tf-text-3); font-size: 14px; }
+    .action-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+    .action-controls .tf-field { min-width: 260px; }
+    .status-line { margin-top: 12px; }
+    .section-head { margin: 40px 0 16px; }
+    .section-head h2 { font-size: var(--tf-fs-lg); font-weight: 650; }
+    .section-head p { max-width: 72ch; margin-top: 4px; color: var(--tf-text-2); font-size: 14px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--tf-border); border-bottom: 1px solid var(--tf-border); }
+    .metric { min-width: 0; padding: 16px 16px 16px 0; }
+    .metric + .metric { padding-left: 16px; border-left: 1px solid var(--tf-border); }
+    .metric-label { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .metric-value { margin-top: 4px; font-size: var(--tf-fs-xl); font-weight: 620; letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .metric-sub { margin-top: 2px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .scenario-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    .scenario-card { display: flex; flex-direction: column; min-width: 0; padding: 18px; }
+    .scenario-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .scenario-index { color: var(--tf-text-3); font: 500 var(--tf-fs-sm) var(--tf-mono); }
+    .scenario-card h3 { margin-top: 12px; font-size: var(--tf-fs-md); font-weight: 620; }
+    .scenario-description { margin-top: 6px; color: var(--tf-text-2); font-size: 14px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .input-files { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--tf-border); }
+    .input-files h4 { color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; }
+    .input-file-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .input-file { padding: 2px 7px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-sm); background: var(--tf-sunken); font: var(--tf-fs-xs) var(--tf-mono); }
+    .result-block { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--tf-border); }
+    .case-result-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .case-runtime-label { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .case-runtime { font: 600 var(--tf-fs-lg) var(--tf-mono); font-variant-numeric: tabular-nums; }
+    .case-runtime.pending { color: var(--tf-text-3); font: 500 var(--tf-fs-sm) var(--tf-font); }
+    .case-track { height: 6px; margin: 10px 0 6px; border-radius: 3px; background: var(--tf-surface-3); overflow: hidden; }
+    .case-bar { width: 0; height: 100%; background: var(--tf-accent); transition: width .3s var(--tf-ease); }
+    .case-scale { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .case-card-actions { margin-top: 12px; }
+    .case-card-actions .tf-btn { width: 100%; }
+    .checks { display: grid; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--tf-border); }
+    .check-row { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); }
+    .check-row.pass .check-mark { color: var(--tf-ok); }
+    .check-row.fail .check-mark { color: var(--tf-bad); }
+    .check-state { color: var(--tf-text-3); font: var(--tf-fs-xs) var(--tf-mono); }
+    .details { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--tf-border); }
+    .details summary { cursor: pointer; color: var(--tf-text-2); font-size: var(--tf-fs-sm); font-weight: 600; }
+    .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .detail-box { min-width: 0; padding: 10px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-sunken); }
+    .detail-box h4 { margin: 0 0 6px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; }
+    .detail-box pre { margin: 0; color: var(--tf-text-2); font: 11px/1.6 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .history-panel { margin-top: 40px; }
+    .history-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 0 12px; }
+    .history-list { border-top: 1px solid var(--tf-border); }
+    .history-row { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(90px, .6fr)); gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--tf-border); }
+    .history-title { font-size: 14px; font-weight: 600; }
+    .history-date, .history-sub { display: block; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .history-value { font: 500 var(--tf-fs-sm) var(--tf-mono); font-variant-numeric: tabular-nums; }
+    .history-empty { padding: 18px 0; color: var(--tf-text-3); font-size: 14px; }
+    .method-note { margin-top: 28px; }
+    .footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--tf-border); color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    @media (max-width: 980px) {
+      .hero { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+      .hero-side { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--tf-border); }
+      .scenario-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .topbar .back-link { padding: 0 8px; }
+      .action-controls, .action-controls .tf-field { width: 100%; min-width: 0; }
+      .action-controls .tf-btn { flex: 1; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(odd) { padding-left: 0; border-left: 0; }
+      .metric:nth-child(n+3) { border-top: 1px solid var(--tf-border); }
+      .history-head { flex-direction: column; align-items: flex-start; }
+      .history-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .history-row > :first-child { grid-column: 1 / -1; }
+      .detail-grid { grid-template-columns: minmax(0, 1fr); }
+    }
   </style>
-<style id="scenario-card-height-fix">
-  /* Keep cards at their own content height. Opening one card's details must
-     not stretch sibling cards in the same CSS grid row. */
-  .scenario-grid { align-items: start; }
-  .scenario-card { align-self: start; height: fit-content; }
-</style>
-
-<style id="tracefuse-timeline-lab-readable-type">
-  /* Increase the Timeline Lab's dense explanatory and data text for comfortable reading. */
-  .hero-copy { font-size: 18px; line-height: 1.75; }
-  .hero-side-label, .section-kicker { font-size: 13px; }
-  .hero-side p, .section-head p, .method-note { font-size: 15px; line-height: 1.75; }
-  .metric-label { font-size: 14px; line-height: 1.55; }
-  .metric-sub { font-size: 13px; line-height: 1.6; }
-  .scenario-description { font-size: 15px; line-height: 1.75; }
-  .chip, .input-file { font-size: 13px; line-height: 1.5; }
-  .check-row, .history-title, .history-value { font-size: 14px; line-height: 1.6; }
-  .history-date, .history-sub, .case-scale, .case-runtime-label { font-size: 13px; line-height: 1.6; }
-  .details summary { font-size: 15px; }
-  .detail-box h4 { font-size: 12px; line-height: 1.5; }
-  .detail-box ul, .detail-box pre { font-size: 13px; line-height: 1.7; }
-  .status-line { font-size: 15px; line-height: 1.75; }
-  .btn { font-size: 15px; }
-  @media (max-width: 680px) {
-    .hero-copy, .hero-side p, .section-head p, .scenario-description, .method-note, .status-line { font-size: 15px; }
-    .metric-label { font-size: 13px; }
-  }
-</style>
 </head>
 <body>
-<div class="shell">
-  <header class="topbar">
-    <a class="brand" href="/" aria-label="Return to TRACEFUSE investigation dashboard"><span class="brand-mark">T</span><span><span class="brand-name">TRACEFUSE</span><br><span class="brand-sub">Engine Validation Lab</span></span></a>
-    <a class="back-link" href="/">← Back to investigation</a>
-  </header>
-
+<header class="topbar">
+  <a class="tf-brand" href="/" aria-label="TRACEFUSE home"><svg class="tf-brand-mark" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#d8ff63"/><path d="M7 8.5h5.5l4 5.5M7 19.5h5.5l4-5.5M7 14h14" fill="none" stroke="#151a0c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tf-brand-name">TRACEFUSE</span></a>
+  <span class="tf-brand-context">Engine Validation Lab</span>
+  <a class="tf-btn tf-btn--ghost back-link" href="/" id="backLink">Home</a>
+</header>
+<main class="shell">
   <section class="hero" aria-labelledby="pageTitle">
     <div>
-      <div class="eyebrow">Controlled test environment · Synthetic evidence</div>
-      <h1 id="pageTitle">Test the engine.<br><span>Inspect the evidence.</span></h1>
-      <p class="hero-copy">Run TRACEFUSE against repeatable synthetic incidents. Inspect each processing time, compare the generated timeline with expected outputs, and see whether evidence integrity checks pass.</p>
+      <p class="eyebrow">Controlled test environment · Synthetic evidence</p>
+      <h1 id="pageTitle">Engine Validation Lab</h1>
+      <p class="hero-copy">Run TRACEFUSE against three repeatable synthetic incidents. Each run measures processing time, then checks the generated timeline against its expected output and verifies evidence integrity.</p>
     </div>
-    <aside class="hero-side">
-      <div class="hero-side-label">Isolated by design</div>
-      <p>Every run is built in a temporary workspace. It does not alter the incident currently open in the investigation dashboard, its source evidence, or its custody records.</p>
-    </aside>
+    <div class="hero-side">
+      <p class="hero-side-label">Isolated by design</p>
+      <p>Every run is built in a temporary workspace. It never touches an open investigation, its evidence or its custody records.</p>
+    </div>
   </section>
 
-  <section class="lab-actions" aria-label="Run engine tests">
-    <div class="action-copy"><strong>Choose the scope of your test</strong><p>The full suite runs all three cases sequentially. A single-case run is useful when inspecting one specific parser and timeline outcome.</p></div>
+  <section class="tf-panel lab-actions" aria-label="Run engine tests">
+    <div class="action-copy"><strong>Choose what to run</strong><p>The full suite runs all three cases in sequence. A single case is useful when checking one parser and its timeline.</p></div>
     <div class="action-controls">
-      <button class="btn btn-primary" id="runSuite" type="button">▶ Run full suite</button>
-      <div class="select-wrap"><label for="scenarioSelect">Single scenario</label><select id="scenarioSelect"><option value="">Loading scenarios…</option></select></div>
-      <button class="btn" id="runSelected" type="button">Run selected case</button>
+      <button class="tf-btn tf-btn--primary" id="runSuite" type="button">Run full suite</button>
+      <div class="tf-field"><label class="tf-label" for="scenarioSelect">Single scenario</label><select class="tf-select" id="scenarioSelect"><option value="">Loading scenarios…</option></select></div>
+      <button class="tf-btn" id="runSelected" type="button">Run selected case</button>
     </div>
   </section>
-  <div class="status-line" id="runStatus" role="status" aria-live="polite">Loading the scenario catalog…</div>
+  <div class="tf-note status-line" id="runStatus" role="status" aria-live="polite">Loading the scenario catalog…</div>
 
   <section aria-labelledby="resultsHeading">
-    <div class="section-head"><div><div class="section-kicker">Latest run · measured values only</div><h2 id="resultsHeading">Run summary</h2><p>Summary values describe the most recent run only. If you run one scenario, the totals below cover that scenario rather than the whole suite.</p></div></div>
+    <div class="section-head"><h2 id="resultsHeading">Run summary</h2><p>Values describe the most recent run only. A single-case run reports that case alone.</p></div>
     <div class="summary-grid" aria-label="Latest test summary">
-      <article class="metric"><div class="metric-label">Cases measured in this run</div><div class="metric-value" id="metricCases">—</div><div class="metric-sub" id="metricCasesSub">No run completed yet</div></article>
-      <article class="metric"><div class="metric-label">Sum of pipeline times</div><div class="metric-value accent" id="metricTotal">—</div><div class="metric-sub">Sum of per-case timed intervals</div></article>
-      <article class="metric"><div class="metric-label">Mean per measured case</div><div class="metric-value" id="metricMean">—</div><div class="metric-sub">Sum divided by measured cases</div></article>
-      <article class="metric"><div class="metric-label">Scenarios passing all checks</div><div class="metric-value" id="metricPassed">—</div><div class="metric-sub" id="metricPassedSub">Validation runs after timing stops</div></article>
+      <article class="metric"><div class="metric-label">Cases measured</div><div class="metric-value" id="metricCases">—</div><div class="metric-sub" id="metricCasesSub">No run completed yet</div></article>
+      <article class="metric"><div class="metric-label">Total pipeline time</div><div class="metric-value" id="metricTotal">—</div><div class="metric-sub">Sum of per-case timed intervals</div></article>
+      <article class="metric"><div class="metric-label">Mean per case</div><div class="metric-value" id="metricMean">—</div><div class="metric-sub">Total divided by measured cases</div></article>
+      <article class="metric"><div class="metric-label">Passing all checks</div><div class="metric-value" id="metricPassed">—</div><div class="metric-sub" id="metricPassedSub">Validation runs after timing stops</div></article>
     </div>
   </section>
 
   <section aria-labelledby="scenarioHeading">
-    <div class="section-head"><div><div class="section-kicker">Scenario catalogue</div><h2 id="scenarioHeading">What is the engine being tested on?</h2><p>Each card explains the synthetic incident, the input log files, the expected timeline size, and the checks used to validate the output.</p></div></div>
+    <div class="section-head"><h2 id="scenarioHeading">Scenarios</h2><p>The synthetic incident, its input logs, the expected timeline size and the checks used to validate the output.</p></div>
     <div class="scenario-grid" id="scenarioGrid" aria-live="polite"><div class="history-empty">Loading scenario definitions…</div></div>
   </section>
 
   <section class="history-panel" aria-labelledby="historyHeading">
-    <div class="history-head"><div><div class="section-kicker">Repeatability</div><h2 id="historyHeading">Recent runs</h2><p>Run summaries are stored in this browser only. They are not case evidence and are not uploaded.</p></div><button class="btn" id="clearHistory" type="button">Clear local history</button></div>
+    <div class="history-head"><div class="section-head" style="margin:0"><h2 id="historyHeading">Recent runs</h2><p>Stored in this browser only. Run summaries are not case evidence and are never uploaded.</p></div><button class="tf-btn tf-btn--sm" id="clearHistory" type="button">Clear local history</button></div>
     <div class="history-list" id="historyList"><div class="history-empty">No runs recorded in this browser yet.</div></div>
   </section>
 
-  <div class="method-note"><strong>How to read these timings.</strong> The per-case interval includes preparing synthetic input files, evidence collection and hashing, and normalized timeline construction. Expected-output checks and integrity verification are evaluated after that timed interval. This is machine processing time—not human triage time—and the total can vary with system load and filesystem conditions. Internal stages are not timed separately.</div>
-  <footer class="footer"><span>TRACEFUSE · Engine Validation Lab · Synthetic test data only</span><a href="/">Return to the active investigation →</a></footer>
-</div>
+  <p class="tf-note method-note"><strong>How to read these timings.</strong> The per-case interval covers preparing the synthetic inputs, evidence collection and hashing, and timeline construction. Expected-output and integrity checks run after that interval. This is machine processing time, not human triage time, and it varies with system load. Internal stages are not timed separately.</p>
+  <footer class="footer"><span>TRACEFUSE · Engine Validation Lab · Synthetic test data only</span><a class="tf-link" href="/">TRACEFUSE home</a></footer>
+</main>
 <script>
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  try {
+    const ref = new URL(document.referrer);
+    if (ref.origin === location.origin && /^\/case\/CASE-[a-f0-9]{12}\/?$/i.test(ref.pathname)) { $('backLink').href = ref.pathname; $('backLink').textContent = 'Back to investigation'; }
+  } catch {}
   const HISTORY_KEY = 'tracefuse-engine-test-history-v1';
   const RUNS_TO_KEEP = 8;
   const state = {catalog: [], latestByScenario: new Map(), busy: false};
@@ -140,7 +199,7 @@
     catch { return false; }
   }
   function setStatus(kind, message) {
-    const el = $('runStatus'); el.className = 'status-line' + (kind ? ` is-${kind}` : ''); el.textContent = message;
+    const el = $('runStatus'); el.className = 'tf-note status-line' + (kind ? ` is-${kind}` : ''); el.textContent = message;
   }
   function setBusy(busy) {
     state.busy = busy;
@@ -148,7 +207,8 @@
     $('runSelected').disabled = busy || !$('scenarioSelect').value;
     $('scenarioSelect').disabled = busy;
     for (const button of document.querySelectorAll('[data-run-scenario]')) button.disabled = busy;
-    $('runSuite').textContent = busy ? 'Running full suite…' : '▶ Run full suite';
+    $('runSuite').textContent = busy ? 'Running full suite…' : 'Run full suite';
+    $('runSuite').toggleAttribute('aria-busy', busy);
     $('runSelected').textContent = busy ? 'Running…' : 'Run selected case';
   }
   function populateSelect() {
@@ -166,10 +226,9 @@
     return row;
   }
   function renderScenarioCard(definition, result) {
-    const card = node('article','scenario-card');
+    const card = node('article','tf-panel scenario-card');
     const top = node('div','scenario-top'); top.append(node('span','scenario-index',definition.scenario_id.slice(0,2)));
-    const status = node('span','status-pill',!result ? 'Not run' : result.passed ? 'All checks passed' : 'Review needed');
-    if (result) status.classList.add(result.passed ? 'pass' : 'fail');
+    const status = node('span','tf-badge' + (result ? (result.passed ? ' tf-badge--ok' : ' tf-badge--bad') : ''),!result ? 'Not run' : result.passed ? 'All checks passed' : 'Review needed');
     top.append(status); card.append(top);
     card.append(node('h3','',definition.title));
     card.append(node('p','scenario-description',definition.description));
@@ -196,7 +255,7 @@
     bar.style.width = `${width}%`; track.setAttribute('aria-valuenow',String(Math.round(width))); track.append(bar); resultBlock.append(track);
     resultBlock.append(node('p','case-scale',result ? `${width.toFixed(1)}% of the slowest result currently displayed` : 'Run this scenario to measure its processing time.'));
     const actions = node('div','case-card-actions');
-    const run = node('button','btn','Run this scenario'); run.type='button'; run.dataset.runScenario=definition.scenario_id; run.disabled=state.busy; run.addEventListener('click',()=>runBenchmark(definition.scenario_id)); actions.append(run);
+    const run = node('button','tf-btn tf-btn--sm','Run this scenario'); run.type='button'; run.dataset.runScenario=definition.scenario_id; run.disabled=state.busy; run.addEventListener('click',()=>runBenchmark(definition.scenario_id)); actions.append(run);
     resultBlock.append(actions); card.append(resultBlock);
     if (result && result.checks) {
       const checks = node('div','checks');

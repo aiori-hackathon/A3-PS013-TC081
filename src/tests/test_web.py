@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -283,6 +284,34 @@ def test_benchmark_endpoint_supports_full_suite_and_single_scenario(tmp_path: Pa
             assert False, "expected HTTP 400 for unknown scenario"
         except HTTPError as exc:
             assert exc.code == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_app_mode_opens_demo_investigations_and_shared_styles(tmp_path: Path) -> None:
+    root = tmp_path.resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        with urlopen(base + "/demo") as response:
+            picker = response.read().decode("utf-8")
+        case_links = re.findall(r'href="(/case/CASE-[a-f0-9]{12})"', picker)
+        assert len(case_links) == 3
+        for link in case_links:
+            with urlopen(base + link) as response:
+                page = response.read().decode("utf-8")
+            assert response.status == 200
+            assert 'id="findings"' in page
+            assert "window.TRACEFUSE_CASE_ID" in page
+        case_id = case_links[0].rsplit("/", 1)[1]
+        summary = _get(base + "/api/summary?case=" + case_id)
+        assert summary["case_id"] == "01-brute-force-to-sudo"
+        assert "case_name" in summary
+
+        with urlopen(base + "/tracefuse.css") as response:
+            assert response.headers.get_content_type() == "text/css"
+            assert b"--tf-accent" in response.read()
     finally:
         server.shutdown()
         server.server_close()
