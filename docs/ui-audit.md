@@ -157,3 +157,16 @@ Severity: **high** = misleads, breaks a workflow or undermines credibility; **me
 **Still open:**
 - The PDF report has no findings section (the JSON export does). The README now says so.
 - The brief's command palette, source-explorer pane and resizable split panes were deliberately left out: a single case has about six actions and one or two sources, so they would be decoration.
+
+## Brand: ORISECT
+
+The product is now presented as **ORISECT** (formerly TRACEFUSE). The new identity is implemented from the supplied logo design as vector assets in `src/incident_timeline/brand/`:
+
+| File | Use |
+| --- | --- |
+| `orisect-mark.svg` / `orisect-mark-ink.svg` | Symbol for dark / light backgrounds. Two offset arcs of equal radius (the left one cut on its centre line into a teardrop around an elliptical counter, the right one tipped at the top and cut by a vertical line) with an emerald parallelogram blade between them. |
+| `orisect-wordmark.svg` / `-ink.svg` | Geometric stroke wordmark; the E is three bars with an emerald middle bar. |
+| `orisect-lockup.svg` / `-ink.svg` | Symbol + wordmark, used in the README (switches with the GitHub theme). |
+| `orisect-icon.svg` | App icon on a graphite tile; served as the favicon. |
+
+The same geometry is drawn as vector paths in the PDF report header (`exports._draw_brand`). Displayed names, page titles, the JSON `product` field, download filenames and server messages use ORISECT. Stable identifiers are unchanged so nothing breaks: the `incident-timeline` CLI and Python package, the `tracefuse.css` filename, API fields such as `tracefuse_pipeline_ms`, browser-storage keys, and the actor IDs recorded in existing custody logs.

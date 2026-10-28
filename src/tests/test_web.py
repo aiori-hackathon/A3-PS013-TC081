@@ -52,7 +52,7 @@ def test_dashboard_api_filtering_evidence_and_exports(tmp_path: Path) -> None:
         assert pdf.startswith(b"%PDF-")
 
         with urlopen(base + "/") as response:
-            assert b"TRACEFUSE" in response.read()
+            assert b"ORISECT" in response.read()
     finally:
         server.shutdown()
         server.server_close()

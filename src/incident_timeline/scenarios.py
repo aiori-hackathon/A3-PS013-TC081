@@ -140,7 +140,7 @@ def create_demo_cases(
     root = Path(output_dir).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     manifest = {
-        "product": "TRACEFUSE",
+        "product": "ORISECT",
         "description": "Deterministic synthetic incidents for demos and regression tests.",
         "important": "All log content and timestamps are synthetic. Do not treat these records as real forensic evidence.",
         "scenarios": [],
