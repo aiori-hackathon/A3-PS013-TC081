@@ -7,8 +7,9 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
+from incident_timeline.cli import main as cli_main
 from incident_timeline.scenarios import create_demo_cases
 from incident_timeline.web import TracefuseHandler, case_server_attrs
 
@@ -290,24 +291,63 @@ def test_benchmark_endpoint_supports_full_suite_and_single_scenario(tmp_path: Pa
         thread.join(timeout=2)
 
 
-def test_app_mode_opens_demo_investigations_and_shared_styles(tmp_path: Path) -> None:
+SAMPLE_EVIDENCE = Path(__file__).resolve().parents[2] / "demo-evidence"
+
+
+def _multipart(fields: dict[str, str], files: dict[str, Path]) -> tuple[bytes, str]:
+    boundary = "----orisect-test-boundary"
+    parts = []
+    for name, value in fields.items():
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode())
+    for name, path in files.items():
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{path.name}"\r\n'
+                     f"Content-Type: application/octet-stream\r\n\r\n".encode() + path.read_bytes() + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    return b"".join(parts), f"multipart/form-data; boundary={boundary}"
+
+
+def test_sample_evidence_walkthrough_through_the_web_app(tmp_path: Path) -> None:
+    """The demo-evidence/ walkthrough, end to end: upload, investigate, export."""
     root = tmp_path.resolve()
     server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
     try:
-        with urlopen(base + "/demo") as response:
-            picker = response.read().decode("utf-8")
-        case_links = re.findall(r'href="(/case/CASE-[a-f0-9]{12})"', picker)
-        assert len(case_links) == 3
-        for link in case_links:
-            with urlopen(base + link) as response:
-                page = response.read().decode("utf-8")
+        # The app no longer ships built-in demo investigations.
+        for path in ("/demo", "/case/CASE-" + "0" * 12):
+            try:
+                urlopen(base + path)
+                assert False, f"expected 404 for {path}"
+            except HTTPError as exc:
+                assert exc.code == 404
+
+        files = {"file_0": SAMPLE_EVIDENCE / "edge01" / "access.log.1.gz",
+                 "file_1": SAMPLE_EVIDENCE / "edge01" / "access.log",
+                 "file_2": SAMPLE_EVIDENCE / "web01" / "auth.log"}
+        fields = {"case_name": "web01 intrusion",
+                  "type_0": "nginx", "tz_0": "UTC", "host_0": "edge01",
+                  "type_1": "nginx", "tz_1": "UTC", "host_1": "edge01",
+                  "type_2": "auth", "tz_2": "Asia/Kolkata", "host_2": ""}
+        body, content_type = _multipart(fields, files)
+        request = Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")
+        with urlopen(request) as response:  # follows the 303 to the new investigation
             assert response.status == 200
-            assert 'id="findings"' in page
-            assert "window.TRACEFUSE_CASE_ID" in page
-        case_id = case_links[0].rsplit("/", 1)[1]
-        summary = _get(base + "/api/summary?case=" + case_id)
-        assert summary["case_id"] == "01-brute-force-to-sudo"
-        assert "case_name" in summary
+            case_id = re.search(r"/case/(CASE-[a-f0-9]{12})$", response.url).group(1)
+            assert 'id="findings"' in response.read().decode("utf-8")
+
+        q = "?case=" + case_id
+        summary = _get(base + "/api/summary" + q)
+        assert summary["case_name"] == "web01 intrusion"
+        assert (summary["events"], summary["source_count"], summary["gaps"]) == (255, 3, 2)
+        assert summary["integrity_ok"] is True
+        rules = {f["rule"] for f in _get(base + "/api/insights" + q)["findings"]}
+        assert {"web_shell", "login_after_failures", "brute_force", "web_probing", "sensitive_file_access",
+                "account_created", "suspicious_cron", "time_basis", "privileged_commands"} <= rules
+        # edge01's clock runs 187 s fast, so before correction the pivot is hidden.
+        assert "web_to_ssh" not in rules
+        access = next(s["source_id"] for s in summary["sources"] if s["original_name"] == "access.log")
+        preview = _get(base + "/api/time-analysis" + q + f"&preview_source_id={access}&preview_offset_s=187")
+        assert preview["preview"]["records_shifted_in_merged_order"] > 0
+        with urlopen(base + "/export/report.pdf" + q) as response:
+            assert response.read(5) == b"%PDF-"
 
         with urlopen(base + "/tracefuse.css") as response:
             assert response.headers.get_content_type() == "text/css"
@@ -316,6 +356,26 @@ def test_app_mode_opens_demo_investigations_and_shared_styles(tmp_path: Path) ->
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_sample_evidence_walkthrough_with_the_cli(tmp_path: Path) -> None:
+    """The CLI half of the walkthrough: collect, verify, parse, estimate and apply skew."""
+    case = tmp_path / "case"
+    for args in (["collect", str(case), str(SAMPLE_EVIDENCE / "edge01" / "access.log.1.gz"), "--type", "nginx", "--host", "edge01"],
+                 ["collect", str(case), str(SAMPLE_EVIDENCE / "edge01" / "access.log"), "--type", "nginx", "--host", "edge01"],
+                 ["collect", str(case), str(SAMPLE_EVIDENCE / "web01" / "auth.log"), "--type", "auth", "--tz", "Asia/Kolkata", "--year", "2026"],
+                 ["verify", str(case)], ["parse", str(case)],
+                 ["skew", str(case), "--reference", "S003", "--apply"], ["parse", str(case)]):
+        assert cli_main(args) == 0, args
+    meta = json.loads((case / "case.json").read_text())
+    offsets = {s["source_id"]: s.get("skew_offset_s") for s in meta["sources"]}
+    assert offsets["S001"] == offsets["S002"] == 187.0
+    events = [json.loads(line) for line in (case / "normalised" / "events.jsonl").read_text().splitlines()]
+    read_config = next(e for e in events if "config.php" in (e.get("message") or ""))
+    login = next(e for e in events if e["action"] == "ssh_login" and e["outcome"] == "success" and e["user"] == "deploy")
+    assert read_config["ts_utc"] < login["ts_utc"]  # cause before effect once corrected
+    from incident_timeline.findings import detect
+    assert "web_to_ssh" in {f["rule"] for f in detect(events)}
 
 
 def test_serve_accepts_a_folder_of_cases(tmp_path: Path) -> None:

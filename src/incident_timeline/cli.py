@@ -185,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("--port", type=int, default=8765, help="local dashboard port (default: 8765)")
     w.set_defaults(func=_cmd_serve)
 
-    a = sub.add_parser("app", help="launch the ORISECT web application with upload and demo workflows")
+    a = sub.add_parser("app", help="launch the ORISECT web application (upload logs and investigate them)")
     a.add_argument("--host", default="127.0.0.1", help="interface to bind (default: localhost only)")
     a.add_argument("--port", type=int, default=8765, help="port to serve the web app on")
     a.add_argument("--cases-dir", default="cases/web-app", help="directory for uploaded investigations")

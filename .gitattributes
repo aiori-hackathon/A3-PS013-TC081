@@ -1,2 +1,5 @@
 # Sample logs are evidence fixtures: keep their bytes (and SHA-256) identical on every OS.
 src/tests/data/** -text
+
+# Sample evidence for the walkthrough: keep its bytes (and SHA-256) identical on every OS.
+demo-evidence/** -text

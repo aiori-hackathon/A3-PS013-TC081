@@ -1,4 +1,4 @@
-/* Welcome page, upload dialog and demo picker. Tokens and primitives come from /tracefuse.css. */
+/* Welcome page and upload dialog. Tokens and primitives come from /tracefuse.css. */
 
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1240px; min-height: 60px; margin: 0 auto; padding: 0 var(--tf-gutter); border-bottom: 1px solid var(--tf-border); }
 .topbar-nav { display: flex; gap: 4px; }
@@ -18,6 +18,9 @@
 .path h2 { font-size: var(--tf-fs-base); font-weight: 600; }
 .path p { margin-top: 2px; color: var(--tf-text-3); font-size: 14px; }
 .path .tf-btn { min-width: 200px; }
+.path-note { padding: 14px 18px; border-top: 1px solid var(--tf-border); color: var(--tf-text-3); font-size: 14px; }
+.path-note strong { color: var(--tf-text-2); font-weight: 600; }
+.path-note code, .specimen figcaption code { color: var(--tf-text-2); font-size: .92em; }
 
 /* Product visual, lit from behind */
 .specimen { position: relative; margin: 0; isolation: isolate; }
@@ -33,7 +36,7 @@
 .specimen-tech { color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
 .specimen-title { margin-top: 8px; font-weight: 600; }
 .specimen-summary { margin-top: 2px; color: var(--tf-text-2); font-size: 14px; }
-.specimen-colhead, .specimen-rows li { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto 80px; align-items: center; gap: 12px; padding: 0 16px; }
+.specimen-colhead, .specimen-rows li { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto 104px; align-items: center; gap: 12px; padding: 0 16px; }
 .specimen-colhead { padding-top: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--tf-border); background: var(--tf-sunken); color: var(--tf-text-3); font-size: var(--tf-fs-2xs); }
 .specimen-colhead span:last-child { grid-column: 4; }
 .specimen-rows { margin: 0; padding: 0; list-style: none; }
@@ -88,19 +91,6 @@
 .upload-error { color: var(--tf-bad); font-size: var(--tf-fs-sm); }
 .upload-error:empty { display: none; }
 
-/* Demo picker (rendered by web.py) */
-.demo-page .wrap { max-width: 880px; padding-top: clamp(32px, 6vw, 64px); }
-.demo-page h1 { margin-top: 10px; font-size: var(--tf-fs-2xl); font-weight: 640; letter-spacing: -.024em; }
-.demo-page .lede { font-size: var(--tf-fs-base); }
-.scenario-list { margin: 28px 0 0; padding: 0; list-style: none; border: 1px solid var(--tf-border); border-radius: var(--tf-radius-lg); background: var(--tf-surface); box-shadow: var(--tf-shadow-panel); overflow: hidden; }
-.scenario-list li + li { border-top: 1px solid var(--tf-border); }
-.scenario { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 18px 18px; text-decoration: none; transition: background-color var(--tf-dur) var(--tf-ease); }
-.scenario:hover { background: var(--tf-surface-2); }
-.scenario:focus-visible { outline-offset: -2px; }
-.scenario-num { color: var(--tf-text-3); font: 500 var(--tf-fs-sm) var(--tf-mono); }
-.scenario-title { font-size: var(--tf-fs-md); font-weight: 600; }
-.demo-page .back { margin-top: 24px; margin-left: -10px; }
-
 @media (max-width: 960px) {
   .hero { grid-template-columns: minmax(0, 1fr); }
   .hero h1 { max-width: 16ch; }
@@ -119,6 +109,4 @@
   .modal-head, .modal-body, .modal-foot { padding-left: 16px; padding-right: 16px; }
   .modal-foot .tf-btn { flex: 1; }
   .close-group .tf-kbd { display: none; }
-  .scenario { grid-template-columns: 32px minmax(0, 1fr); }
-  .scenario .tf-badge { grid-column: 2; justify-self: start; }
 }
