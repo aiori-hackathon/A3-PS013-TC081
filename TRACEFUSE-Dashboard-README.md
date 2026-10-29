@@ -4,14 +4,15 @@ ORISECT (formerly TRACEFUSE) is our PS-013 hackathon project for reconstructing 
 
 ## What does it show?
 
-- **Findings:** leads raised by fixed, readable rules: repeated failed logins, a login after failures, an address that moves from web requests to SSH across two logs, web-shell requests, admin-path probing, credential files read through sudo, new accounts given admin rights, and cron jobs running from hidden or temporary paths. Each finding states the rule that fired, the MITRE ATT&CK technique it resembles, and the exact `source:line` of every event behind it. **Show evidence** narrows the timeline to those lines.
+- **Findings:** leads raised by fixed, readable rules: repeated failed logins, a login after failures, an address that moves from web requests to SSH across two logs, web-shell requests, admin-path probing, large uploads from an internal host to an external address, credential files read through sudo, new accounts given admin rights, and cron jobs running from hidden or temporary paths. Each finding states the rule that fired, the MITRE ATT&CK technique it resembles, and the exact `source:line` of every event behind it. **Show evidence** narrows the timeline to those lines.
 - **Timeline:** events sorted by normalized UTC time, with the action, outcome, source, and other fields found in the log. A dot next to the action means the event is part of a finding.
 - **Who and where:** the most active addresses and accounts, with event and failure counts. Anything seen in more than one source is marked, because that is where separate logs connect. Click one to search for it.
 - **Chain of custody:** every custody record (collect, verify, parse, skew changes) with its own hash and its link to the record before it, each checked live.
 - **Case summary:** number of events and evidence files, unparsed lines, and the time range covered by the events. If some lines could not be parsed, click the count to see them with the reason. They are kept, never silently dropped.
 - **Evidence sources:** source filenames and their SHA-256 hashes, with a copy button.
 - **Original log lines:** open an event's source line to see what was actually recorded. ORISECT checks the source hash and custody chain before showing it.
-- **Exports:** download the current results as JSON (including the findings, or only one finding's evidence while it is selected) or as a PDF report of the filtered timeline and evidence sources.
+- **Parser rules:** a log in a format ORISECT doesn't know is kept as unparsed lines. **Teach this format** opens the rule assistant: it proposes a rule from the lines, explains each choice and tests it. You can edit and re-test the rule, then approve it under your name, which records it in the chain of custody and rebuilds the timeline. Approved rules are listed with who approved them and can be revoked.
+- **Exports:** download the current results as JSON or as a PDF report. Both include the findings, each with the `source:line`, file SHA-256 and original text of every line behind it, and cover only one finding's evidence while it is selected.
 
 The dashboard helps you review a sequence of events; it does not automatically prove that an attack happened or that one event caused another. Findings are leads to check, not conclusions. A successful hash check means the collected evidence matches its recorded hash, not that the original log was complete or genuine.
 
@@ -48,7 +49,7 @@ Start the web app:
 incident-timeline app
 ```
 
-Then choose **Add evidence** and upload your logs, or the sample evidence in [`demo-evidence/`](demo-evidence/README.md): three logs from one simulated intrusion, with a step-by-step walkthrough.
+Then choose **Add evidence** and upload your logs, or the sample evidence in [`demo-evidence/`](demo-evidence/README.md): four logs from one simulated intrusion, with a step-by-step walkthrough.
 
 To open a case you built on the command line instead, pass its folder to `serve`, for example `incident-timeline serve cases/web01`. A folder that contains several cases opens all of them, with a case picker in the top bar.
 
@@ -62,12 +63,15 @@ Use the search box to look for a user, IP address, action, message, path, or has
 
 Select an event to open it in the **Event** panel: its normalized UTC time next to the timestamp as recorded, the source time zone and clock offset, the parsed fields, the findings that cite it, and the original log line. ORISECT re-hashes the source file before showing that line; if the check fails, the line is not shown. Use **↑**/**↓** to move between events and **Esc** to close the panel (on smaller screens the panel opens as a sheet with Previous/Next buttons). Keep the full case folder if you need to investigate a warning.
 
-**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
+**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover: it opens with the findings and the evidence lines behind each. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
+
+If a source shows many unparsed lines, choose **Teach this format** next to it (in **Evidence sources** or **Unparsed lines**). Check the example events the rule assistant shows: the normalized UTC time against the time as recorded, and the outcome and message. Then approve. The rule is applied the same way on every rebuild; revoking it turns its events back into unparsed lines. A dashboard opened with `serve` is read-only: it can suggest and test a rule, and you approve it with `incident-timeline rules approve`.
 
 ## Sample evidence
 
-[`demo-evidence/`](demo-evidence/README.md) holds an nginx proxy's access logs (one rotated and gzipped) and an application server's `auth.log` from one simulated intrusion. Its README is a ten-minute walkthrough covering:
+[`demo-evidence/`](demo-evidence/README.md) holds an nginx proxy's access logs (one rotated and gzipped), a perimeter firewall's traffic log and an application server's `auth.log` from one simulated intrusion. Its README is a twelve-minute walkthrough covering:
 - upload and hashing;
+- teaching ORISECT the firewall's format, which reveals a 48 MB upload to the attacker;
 - time-zone and year handling;
 - all the finding rules;
 - the event inspector;
@@ -88,7 +92,7 @@ incident-timeline parse cases/my-case
 incident-timeline serve cases/my-case
 ```
 
-Use the correct source type and time zone for each log. If some lines are not recognized, check `normalised/gaps.jsonl`; they will not appear as timeline events. More details on the engine commands are in [`src/README.md`](src/README.md).
+Use the correct source type and time zone for each log (`--type other` for a format ORISECT has no parser for). If some lines are not recognized, check `normalised/gaps.jsonl`; they will not appear as timeline events until a parser rule covers them (`incident-timeline rules suggest`). More details on the engine commands are in [`src/README.md`](src/README.md).
 
 ## Tests and notes
 

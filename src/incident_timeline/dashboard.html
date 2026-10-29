@@ -295,6 +295,53 @@
     .bench-summary strong { display: block; font-size: var(--tf-fs-base); font-weight: 600; color: var(--tf-text); }
     .bench-summary .tf-note { margin-top: 8px; }
 
+    /* Parser rules and the rule assistant */
+    .case-notice { margin-top: 16px; }
+    .case-notice:focus { outline: none; }
+    .case-notice:focus-visible { outline: 2px solid var(--tf-accent); outline-offset: 2px; }
+    .source-parse { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .source-parse .tf-btn { margin-left: auto; }
+    .gap-teach { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-top: 1px solid var(--tf-border); font-size: var(--tf-fs-sm); }
+    .gap-teach:first-child { border-top: 0; }
+    .rule-list { margin: 0; padding: 0; list-style: none; }
+    .rule-item { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--tf-border); font-size: var(--tf-fs-sm); }
+    .rule-item:first-child { border-top: 0; }
+    .rule-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+    .rule-top .mono { color: var(--tf-text-3); font: 500 var(--tf-fs-xs) var(--tf-mono); }
+    .rule-item pre { max-height: 220px; margin: 6px 0 0; padding: 8px; overflow: auto; font: 11px/1.5 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .rule-item .tf-disclosure > summary { justify-content: space-between; padding: 4px 0; color: var(--tf-text-2); font-size: var(--tf-fs-xs); }
+    .rule-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .rule-revoke { display: grid; gap: 8px; margin-top: 6px; }
+    @media (min-width: 601px) { .rule-modal { width: min(100% - 32px, 960px); } }
+    .rule-modal .tf-modal-body { gap: 22px; }
+    .rule-modal .tf-modal-foot { flex-wrap: wrap; }
+    .rule-h { margin-bottom: 8px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); font-weight: 620; }
+    .rule-notes { display: grid; gap: 4px; margin: 0; padding-left: 18px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); line-height: 1.6; }
+    .rule-sample { margin: 0; padding: 10px 12px; font: 11.5px/1.55 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px 16px; margin: 0; padding: 0; border: 0; min-width: 0; }
+    .rule-json { margin-top: 0; }
+    .rule-json .tf-btn { margin-top: 8px; }
+    .rule-grid .span-2 { grid-column: 1 / -1; }
+    .rule-mono { font: 12.5px/1.5 var(--tf-mono); }
+    textarea.rule-mono { min-height: 66px; resize: vertical; }
+    .rule-map-wrap { position: relative; overflow-x: auto; }
+    .rule-map { width: 100%; table-layout: fixed; border-collapse: collapse; }
+    .rule-map th:last-child { width: 84px; }
+    .rule-map th { padding: 0 8px 6px 0; color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 560; text-align: left; }
+    .rule-map td { padding: 3px 8px 3px 0; }
+    .rule-map td:last-child { padding-right: 0; }
+    .rule-map .tf-input { min-height: 32px; padding: 5px 9px; }
+    .rule-map + .tf-btn { margin-top: 8px; }
+    .rule-results { display: grid; gap: 12px; }
+    .rule-results .tlab-table { min-width: 640px; }
+    .rule-results .tlab-table td.msg { font-family: var(--tf-mono); font-size: var(--tf-fs-xs); overflow-wrap: anywhere; }
+    .rule-problems { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; font-size: var(--tf-fs-xs); }
+    .rule-problems pre { margin: 4px 0 0; padding: 6px 8px; font: 11px/1.5 var(--tf-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .rule-approve { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 12px 16px; align-items: end; }
+    @media (max-width: 600px) {
+      .rule-grid, .rule-approve { grid-template-columns: minmax(0, 1fr); }
+    }
+
     .page-foot { max-width: var(--tf-max); margin: 0 auto; padding: 20px var(--tf-gutter) 36px; border-top: 1px solid var(--tf-border); color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
 
     @media (max-width: 1100px) {
@@ -395,6 +442,7 @@
       <div><strong id="integrityText">Checking evidence integrity…</strong><span id="integritySub">Re-hashing sources and verifying the custody chain</span></div>
     </div>
   </section>
+  <p class="tf-note is-success case-notice" id="caseNotice" role="status" tabindex="-1" hidden></p>
 
   <section class="tf-panel" aria-labelledby="findingsHeading">
     <header class="panel-head">
@@ -451,8 +499,13 @@
           <h2 id="custodyHeading">Chain of custody</h2><p>Each record is hashed and linked to the one before it.</p>
           <div class="custody-status" id="custodyStatus"></div><ol class="custody-list" id="custody"><li class="tf-empty">Loading…</li></ol>
         </section>
+        <section class="side-section" id="rulesPanel" aria-labelledby="rulesHeading" hidden>
+          <h2 id="rulesHeading">Parser rules</h2><p>Formats taught by an analyst. Each approval is a custody record; rules apply the same way on every rebuild.</p>
+          <ul class="rule-list" id="rules"></ul>
+        </section>
         <section class="side-section" id="gapsPanel" aria-labelledby="gapsHeading" hidden>
           <h2 id="gapsHeading">Unparsed lines</h2><p>Kept with the reason, never dropped.</p>
+          <div id="gapTeach"></div>
           <ul class="gap-list" id="gaps"></ul>
         </section>
       </div>
@@ -542,6 +595,69 @@
 </main>
 <footer class="page-foot">ORISECT runs locally and never modifies source evidence or custody records. Keep exports with the original case folder; a report is not a replacement for the evidence.</footer>
 
+<dialog class="tf-modal tf-dialog rule-modal" id="ruleDialog" aria-labelledby="ruleTitle">
+  <form id="ruleForm" method="dialog" novalidate>
+    <header class="tf-modal-head">
+      <div><h2 id="ruleTitle">Teach ORISECT a log format</h2><p class="tf-modal-lede" id="ruleLede">Reading the unparsed lines…</p></div>
+      <span class="tf-close-group"><kbd class="tf-kbd" aria-hidden="true">Esc</kbd><button type="button" class="tf-btn tf-btn--ghost tf-btn--sm tf-btn--icon" data-close aria-label="Close" aria-keyshortcuts="Escape"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span>
+    </header>
+    <div class="tf-modal-body">
+      <p class="tf-note" id="ruleStatus" role="status" aria-live="polite">ORISECT proposes a rule from the structure of the lines. Nothing changes until you test and approve it.</p>
+      <section aria-labelledby="ruleWhy">
+        <h3 class="rule-h" id="ruleWhy">How ORISECT read these lines</h3>
+        <ul class="rule-notes" id="ruleNotes"></ul>
+        <pre class="rule-sample tf-well" id="ruleSample" aria-label="First unparsed line"></pre>
+      </section>
+      <fieldset class="rule-grid" id="ruleFields">
+        <legend class="tf-sr-only">Rule</legend>
+        <div class="tf-field"><label class="tf-label" for="ruleName">Rule name</label><input class="tf-input" id="ruleName" maxlength="80" autocomplete="off"></div>
+        <div class="tf-field"><label class="tf-label" for="ruleAction">Event action</label><input class="tf-input rule-mono" id="ruleAction" maxlength="40" autocomplete="off" spellcheck="false" aria-describedby="ruleActionHelp"><span class="tf-hint" id="ruleActionHelp">The action each line becomes in the timeline, such as network_connection.</span></div>
+        <div class="tf-field"><label class="tf-label" for="ruleMode">Read lines as</label><select class="tf-select" id="ruleMode"><option value="kv">key=value pairs</option><option value="regex">Regular expression with named groups</option></select></div>
+        <div class="tf-field"><label class="tf-label" for="ruleTsFields">Timestamp from</label><input class="tf-input rule-mono" id="ruleTsFields" autocomplete="off" spellcheck="false" aria-describedby="ruleTsHelp"></div>
+        <div class="tf-field span-2"><label class="tf-label" for="ruleTsFormat">Timestamp format</label><input class="tf-input rule-mono" id="ruleTsFormat" maxlength="80" autocomplete="off" spellcheck="false" aria-describedby="ruleTsHelp"><span class="tf-hint" id="ruleTsHelp">Captured names joined by spaces, read with a strptime format (%Y-%m-%d %H:%M:%S %z), or iso8601, epoch or epoch_ms. Without an offset, the source's time zone is used.</span></div>
+        <div class="tf-field span-2"><label class="tf-label" for="rulePattern">Line pattern</label><textarea class="tf-input rule-mono" id="rulePattern" rows="2" spellcheck="false" aria-describedby="rulePatternHelp"></textarea><span class="tf-hint" id="rulePatternHelp">A regular expression. Named groups such as (?P&lt;ts&gt;…) become captured names. Optional for key=value lines: when set, only matching lines are read.</span></div>
+        <div class="tf-field span-2"><label class="tf-label" for="ruleMessage">Event message</label><input class="tf-input rule-mono" id="ruleMessage" maxlength="300" autocomplete="off" spellcheck="false" aria-describedby="ruleMessageHelp"><span class="tf-hint" id="ruleMessageHelp">Shown in the timeline. {name} inserts a captured value.</span></div>
+      </fieldset>
+      <section aria-labelledby="ruleMapHeading">
+        <h3 class="rule-h" id="ruleMapHeading">Fields</h3>
+        <div class="rule-map-wrap"><table class="rule-map"><thead><tr><th scope="col">ORISECT field</th><th scope="col">From captured name</th><th scope="col"><span class="tf-sr-only">Remove</span></th></tr></thead><tbody id="ruleMap"></tbody></table></div>
+        <button class="tf-btn tf-btn--sm" id="ruleAddField" type="button">Add field</button>
+        <p class="tf-hint">src_ip, user, host and process fill the event's own fields; dst_ip and bytes_out let the outbound-transfer rule work. Anything else is kept as an extra field.</p>
+      </section>
+      <fieldset class="rule-grid">
+        <legend class="rule-h">Outcome</legend>
+        <div class="tf-field"><label class="tf-label" for="ruleOutField">From captured name</label><input class="tf-input rule-mono" id="ruleOutField" autocomplete="off" spellcheck="false" placeholder="leave empty for none"></div>
+        <div class="tf-field"><label class="tf-label" for="ruleOutOk">Success values</label><input class="tf-input rule-mono" id="ruleOutOk" autocomplete="off" spellcheck="false" placeholder="accept, close"></div>
+        <div class="tf-field"><label class="tf-label" for="ruleOutBad">Failure values</label><input class="tf-input rule-mono" id="ruleOutBad" autocomplete="off" spellcheck="false" placeholder="deny, drop"></div>
+      </fieldset>
+      <details class="tf-disclosure tlab-disclosure rule-json">
+        <summary><span><span class="s-title">Rule as JSON</span><span class="s-help">Exactly what is tested, approved and hashed. Usable with incident-timeline rules.</span></span></summary>
+        <div class="tlab-disclosure-body"><pre class="rule-sample tf-well" id="ruleJson"></pre><button class="tf-btn tf-btn--sm" id="ruleCopy" type="button">Copy</button></div>
+      </details>
+      <section class="rule-results" id="ruleResults" aria-labelledby="ruleResultsHeading" hidden>
+        <h3 class="rule-h" id="ruleResultsHeading">Test on the unparsed lines</h3>
+        <dl class="metric-strip" style="--cols:4">
+          <div><dt>Lines tested</dt><dd id="ruleTested">—</dd></div>
+          <div><dt>Would become events</dt><dd id="ruleParsed">—</dd></div>
+          <div><dt>Not matched</dt><dd id="ruleUnmatched">—</dd></div>
+          <div><dt>Unreadable time</dt><dd id="ruleBadTs">—</dd></div>
+        </dl>
+        <div class="tlab-table-wrap" role="region" aria-label="Example events" tabindex="0"><table class="tlab-table"><thead><tr><th scope="col">Line</th><th scope="col">Normalized UTC</th><th scope="col">As recorded</th><th scope="col">Outcome</th><th scope="col">Message</th></tr></thead><tbody id="ruleExamples"></tbody></table></div>
+        <ul class="rule-problems" id="ruleProblems"></ul>
+      </section>
+      <section class="rule-approve" id="ruleApproveBox" aria-label="Approval">
+        <div class="tf-field"><label class="tf-label" for="ruleAnalyst">Approved by</label><input class="tf-input" id="ruleAnalyst" maxlength="60" autocomplete="name" placeholder="Your name"></div>
+        <p class="tf-hint">Approval writes a custody record with the rule and its SHA-256, then rebuilds the timeline. The evidence files are not changed. A rule can be revoked later, which is recorded too.</p>
+      </section>
+    </div>
+    <footer class="tf-modal-foot">
+      <button type="button" class="tf-btn" data-close>Cancel</button>
+      <button type="button" class="tf-btn" id="ruleTest">Test on unparsed lines</button>
+      <button type="button" class="tf-btn tf-btn--primary" id="ruleApprove" disabled>Approve and rebuild timeline</button>
+    </footer>
+  </form>
+</dialog>
+
 <dialog class="tf-dialog tf-elevated sheet" id="inspectorSheet" aria-labelledby="sheetTitle">
   <div class="insp-bar">
     <h2 id="sheetTitle" class="tf-sr-only">Event details</h2>
@@ -583,6 +699,15 @@
     if (!r.ok) throw new Error(d.error || `Request failed (HTTP ${r.status})`);
     return d;
   }
+  async function postJSON(url, body) {
+    const u = new URL(url, location.origin);
+    if (activeCase() && !u.searchParams.has('case')) u.searchParams.set('case', activeCase());
+    const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+    let d; try { d = await r.json(); } catch { throw new Error(`Unreadable response (HTTP ${r.status})`); }
+    if (!r.ok) throw new Error(d.error || `Request failed (HTTP ${r.status})`);
+    return d;
+  }
+  const plural = (n, word) => `${Number(n).toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
   function apiFilters() {
     const p = new URLSearchParams();
     for (const id of filters) { const v = $(id).value; if (v) p.set(id, id === 'start' || id === 'end' ? new Date(v).toISOString() : v); }
@@ -591,12 +716,11 @@
   function setExportLinks() {
     const params = apiFilters();
     if (activeCase()) params.set('case', activeCase());
-    const pdfQuery = params.toString();
     if (state.scope) params.set('ids', state.scope.ids.join(','));
-    const jsonQuery = params.toString();
-    $('jsonExport').href = '/export/events.json' + (jsonQuery ? '?' + jsonQuery : '');
-    $('pdfExport').href = '/export/report.pdf' + (pdfQuery ? '?' + pdfQuery : '');
-    $('pdfExport').title = state.scope ? "The PDF report covers the filtered timeline, not only this finding's evidence lines." : '';
+    const query = params.toString() ? '?' + params.toString() : '';
+    $('jsonExport').href = '/export/events.json' + query;
+    $('pdfExport').href = '/export/report.pdf' + query;
+    $('pdfExport').title = state.scope ? "Exports cover only this finding's evidence lines." : '';
   }
   function addOptions(id, values, firstLabel) {
     const node = $(id), selected = node.value;
@@ -635,8 +759,25 @@
       copy.setAttribute('aria-label', `Copy SHA-256 for ${s.source_id}`);
       copy.disabled = !s.sha256;
       copy.addEventListener('click', () => copyText(s.sha256, copy));
-      row.append(hash, copy); item.append(row); box.append(item);
+      row.append(hash, copy); item.append(row);
+      const fromRules = Object.entries(s.rule_events || {});
+      if (s.gaps || fromRules.length) {
+        const parse = el('div', 'source-parse');
+        if (fromRules.length) parse.append(el('span', 'tf-badge tf-badge--brand', fromRules.map(([id, n]) => `${plural(n, 'event')} via ${id}`).join(' · ')));
+        if (s.gaps) parse.append(el('span', '', `${plural(s.gaps, 'line')} not parsed`));
+        if (teachable(s)) parse.append(teachButton(s));
+        item.append(parse);
+      }
+      box.append(item);
     }
+  }
+  // A source is worth teaching when a meaningful share of it is unparsed, not for a couple of damaged lines.
+  function teachable(s) { return s.gaps >= 5 || (s.gaps && s.source_type === 'custom'); }
+  function teachButton(s) {
+    const b = el('button', 'tf-btn tf-btn--sm', 'Teach this format'); b.type = 'button';
+    b.setAttribute('aria-label', `Teach ORISECT the format of ${s.original_name}`);
+    b.addEventListener('click', () => openRuleAssistant(s, b));
+    return b;
   }
   async function loadSummary() {
     const d = await getJSON('/api/summary');
@@ -744,7 +885,7 @@
         const li = el('li', 'custody-item' + (r.ok ? '' : ' is-broken'));
         li.append(el('span', 'custody-seq', String(r.seq).padStart(2, '0')));
         const action = el('span', 'custody-action', r.action);
-        const subject = r.fields?.source_id || '';
+        const subject = r.fields?.source_id || r.fields?.rule_id || '';
         if (subject) action.append(el('small', '', subject));
         const okTag = el('span', 'custody-ok');
         if (r.ok) okTag.innerHTML = CHECK_ICON;
@@ -764,6 +905,12 @@
     panel.hidden = false;
     showTab('context');
     box.replaceChildren(el('li', 'tf-empty', 'Loading…'));
+    const teach = $('gapTeach'); teach.replaceChildren();
+    for (const src of (state.summary?.sources || []).filter(teachable)) {
+      const row = el('div', 'gap-teach');
+      row.append(el('span', '', `${src.source_id} ${src.original_name}: ${plural(src.gaps, 'line')} not parsed`), teachButton(src));
+      teach.append(row);
+    }
     try {
       const d = await getJSON('/api/gaps?limit=200');
       box.replaceChildren();
@@ -1059,8 +1206,235 @@
   }
   async function reload() {
     try { await loadSummary(); } catch (err) { $('caseTitle').textContent = 'Case unavailable'; $('integrityText').textContent = err.message; }
-    await Promise.all([loadInsights(), loadEvents(), loadCustody()]);
+    await Promise.all([loadInsights(), loadEvents(), loadCustody(), loadRules()]);
   }
+
+  /* ---------- Parser rules ---------- */
+  const rulesState = { canEdit: false, source: null, opener: null, testedKey: null };
+  const analystKey = 'orisect-analyst-name';
+  function rememberedAnalyst() { try { return localStorage.getItem(analystKey) || ''; } catch { return ''; } }
+  function rememberAnalyst(name) { try { localStorage.setItem(analystKey, name); } catch { /* optional convenience */ } }
+  async function loadRules() {
+    try {
+      const d = await getJSON('/api/rules');
+      rulesState.canEdit = !!d.can_edit;
+      renderRules(d.rules || []);
+    } catch (err) {
+      $('rulesPanel').hidden = false;
+      $('rules').replaceChildren(el('li', 'tf-empty', `Rules unavailable: ${err.message}`));
+    }
+  }
+  function renderRules(rules) {
+    const box = $('rules'); box.replaceChildren();
+    $('rulesPanel').hidden = !rules.length;
+    for (const r of rules) {
+      const li = el('li', 'rule-item');
+      const top = el('div', 'rule-top');
+      top.append(el('span', 'mono', r.rule_id), el('strong', '', r.definition?.name || 'Unnamed rule'),
+        el('span', 'tf-badge ' + (r.active ? 'tf-badge--ok' : ''), r.active ? 'Active' : 'Revoked'));
+      li.append(top);
+      li.append(el('span', 'source-meta', `${(r.definition?.source_ids || []).join(', ')} · approved by ${r.approved_by || 'unknown'} · ${utcStamp(r.approved_utc)} UTC · custody record ${r.custody_seq}`));
+      if (!r.active) li.append(el('span', 'source-meta', `Revoked by ${r.revoked_by || 'unknown'} · ${utcStamp(r.revoked_utc)} UTC${r.revoke_reason ? ' · ' + r.revoke_reason : ''}`));
+      li.append(el('code', 'hash tf-well', r.rule_sha256 || ''));
+      const details = el('details', 'tf-disclosure');
+      const summary = el('summary'); summary.append(el('span', 's-title', 'Rule definition'));
+      details.append(summary, el('pre', 'tf-well', JSON.stringify(r.definition, null, 2)));
+      li.append(details);
+      if (r.active && rulesState.canEdit) li.append(revokeControl(r));
+      box.append(li);
+    }
+  }
+  function revokeControl(r) {
+    const wrap = el('div', 'rule-actions');
+    const start = el('button', 'tf-btn tf-btn--sm tf-btn--danger', 'Revoke'); start.type = 'button';
+    start.setAttribute('aria-label', `Revoke ${r.rule_id}`);
+    start.addEventListener('click', () => {
+      const form = el('div', 'rule-revoke');
+      const nameField = el('div', 'tf-field'), nameId = `revoke-name-${r.rule_id}`;
+      const nameLabel = el('label', 'tf-label', 'Revoked by'); nameLabel.htmlFor = nameId;
+      const name = el('input', 'tf-input'); name.id = nameId; name.maxLength = 60; name.value = rememberedAnalyst(); name.autocomplete = 'name';
+      nameField.append(nameLabel, name);
+      const reasonField = el('div', 'tf-field'), reasonId = `revoke-reason-${r.rule_id}`;
+      const reasonLabel = el('label', 'tf-label', 'Reason'); reasonLabel.htmlFor = reasonId;
+      const reason = el('input', 'tf-input'); reason.id = reasonId; reason.maxLength = 200; reason.autocomplete = 'off';
+      reasonField.append(reasonLabel, reason);
+      const msg = el('p', 'tf-hint', 'The rule stays in the custody log; its events become unparsed lines again.');
+      const actions = el('div', 'rule-actions');
+      const confirm = el('button', 'tf-btn tf-btn--sm tf-btn--danger', 'Revoke and rebuild'); confirm.type = 'button';
+      const cancel = el('button', 'tf-btn tf-btn--sm tf-btn--ghost', 'Cancel'); cancel.type = 'button';
+      cancel.addEventListener('click', () => { form.replaceWith(wrap); start.focus(); });
+      confirm.addEventListener('click', async () => {
+        if (!name.value.trim()) { name.setAttribute('aria-invalid', 'true'); msg.textContent = 'Enter your name; it is recorded in the chain of custody.'; name.focus(); return; }
+        confirm.setAttribute('aria-busy', 'true'); confirm.disabled = true;
+        try {
+          rememberAnalyst(name.value.trim());
+          const before = state.summary;
+          const d = await postJSON('/api/rules/revoke', { rule_id: r.rule_id, analyst: name.value.trim(), reason: reason.value.trim() });
+          await afterRebuild(`${r.rule_id} revoked by ${name.value.trim()}.`, before, d);
+        } catch (err) { msg.textContent = err.message; confirm.removeAttribute('aria-busy'); confirm.disabled = false; }
+      });
+      actions.append(confirm, cancel);
+      form.append(nameField, reasonField, msg, actions);
+      wrap.replaceWith(form); name.focus();
+    });
+    wrap.append(start);
+    return wrap;
+  }
+  async function afterRebuild(lead, before, d) {
+    const parts = [lead, `The timeline was rebuilt: ${plural(d.events, 'event')}`];
+    if (before) {
+      const dEvents = d.events - before.events, dGaps = d.gaps - before.gaps;
+      parts[1] += dEvents ? ` (${dEvents > 0 ? '+' : '−'}${Math.abs(dEvents).toLocaleString()})` : '';
+      parts[1] += `, ${plural(d.gaps, 'unparsed line')}` + (dGaps ? ` (${dGaps > 0 ? '+' : '−'}${Math.abs(dGaps).toLocaleString()})` : '') + '.';
+    } else parts[1] += '.';
+    const findingsBefore = state.findings.length;
+    clearScope(false); state.offset = 0;
+    await reload();
+    if (typeof loadLab === 'function') loadLab();
+    const dFindings = state.findings.length - findingsBefore;
+    if (dFindings) parts.push(`${plural(Math.abs(dFindings), 'finding')} ${dFindings > 0 ? 'added' : 'removed'}.`);
+    if (!$('gapsPanel').hidden) showGaps();
+    const note = $('caseNotice'); note.textContent = parts.join(' '); note.hidden = false;
+    note.scrollIntoView({ block: 'nearest' });
+    note.focus({ preventScroll: true }); // the control that started this was re-rendered
+  }
+
+  const ruleDialog = $('ruleDialog');
+  const RULE_INPUTS = ['ruleName', 'ruleAction', 'ruleMode', 'ruleTsFields', 'ruleTsFormat', 'rulePattern', 'ruleMessage', 'ruleOutField', 'ruleOutOk', 'ruleOutBad'];
+  const csv = v => v.split(',').map(x => x.trim()).filter(Boolean);
+  function ruleStatus(message, kind = '') { const n = $('ruleStatus'); n.className = 'tf-note' + (kind ? ' is-' + kind : ''); n.textContent = message; }
+  function addMapRow(target = '', captured = '') {
+    const tr = el('tr'), i = $('ruleMap').rows.length;
+    const a = el('input', 'tf-input rule-mono'); a.value = target; a.spellcheck = false; a.autocomplete = 'off'; a.setAttribute('aria-label', `ORISECT field ${i + 1}`);
+    const b = el('input', 'tf-input rule-mono'); b.value = captured; b.spellcheck = false; b.autocomplete = 'off'; b.setAttribute('aria-label', `Captured name for field ${i + 1}`);
+    const rm = el('button', 'tf-btn tf-btn--ghost tf-btn--sm', 'Remove'); rm.type = 'button'; rm.setAttribute('aria-label', `Remove field ${i + 1}`);
+    rm.addEventListener('click', () => { tr.remove(); ruleEdited(); $('ruleAddField').focus(); });
+    for (const input of [a, b]) input.addEventListener('input', ruleEdited);
+    const tdA = el('td'), tdB = el('td'), tdC = el('td'); tdA.append(a); tdB.append(b); tdC.append(rm);
+    tr.append(tdA, tdB, tdC); $('ruleMap').append(tr);
+    return a;
+  }
+  function fillRuleForm(def) {
+    $('ruleName').value = def.name || ''; $('ruleAction').value = def.action || '';
+    $('ruleMode').value = def.mode || 'kv';
+    $('ruleTsFields').value = (def.timestamp?.fields || []).join(', ');
+    $('ruleTsFormat').value = def.timestamp?.format || '';
+    $('rulePattern').value = def.pattern || ''; $('ruleMessage').value = def.message || '';
+    $('ruleOutField').value = def.outcome?.field || '';
+    $('ruleOutOk').value = (def.outcome?.success || []).join(', '); $('ruleOutBad').value = (def.outcome?.failure || []).join(', ');
+    $('ruleMap').replaceChildren();
+    for (const [target, captured] of Object.entries(def.fields || {})) addMapRow(target, captured);
+    showRuleJson();
+  }
+  function formDefinition() {
+    const fields = {};
+    for (const tr of $('ruleMap').rows) {
+      const [a, b] = tr.querySelectorAll('input');
+      if (a.value.trim() && b.value.trim()) fields[a.value.trim()] = b.value.trim();
+    }
+    const outField = $('ruleOutField').value.trim();
+    return {
+      name: $('ruleName').value.trim(), source_ids: [rulesState.source.source_id], mode: $('ruleMode').value,
+      pattern: $('rulePattern').value.trim() || null,
+      timestamp: { fields: csv($('ruleTsFields').value), format: $('ruleTsFormat').value.trim() },
+      action: $('ruleAction').value.trim(),
+      outcome: outField ? { field: outField, success: csv($('ruleOutOk').value), failure: csv($('ruleOutBad').value) } : null,
+      fields, message: $('ruleMessage').value.trim() || null
+    };
+  }
+  function showRuleJson() { $('ruleJson').textContent = JSON.stringify(formDefinition(), null, 2); }
+  function ruleEdited() {
+    showRuleJson();
+    if (rulesState.testedKey !== null && rulesState.testedKey !== JSON.stringify(formDefinition())) {
+      $('ruleApprove').disabled = true;
+      ruleStatus('Rule edited. Test it again before approving.');
+    }
+  }
+  for (const id of RULE_INPUTS) $(id).addEventListener('input', ruleEdited);
+  $('ruleAddField').addEventListener('click', () => { addMapRow().focus(); ruleEdited(); });
+  $('ruleCopy').addEventListener('click', e => copyText($('ruleJson').textContent, e.currentTarget));
+  function renderRuleTest(t) {
+    $('ruleResults').hidden = false;
+    $('ruleTested').textContent = Number(t.lines_tested).toLocaleString();
+    $('ruleParsed').textContent = Number(t.lines_parsed).toLocaleString();
+    $('ruleUnmatched').textContent = Number(t.lines_unmatched).toLocaleString();
+    $('ruleBadTs').textContent = Number(t.timestamp_failures).toLocaleString();
+    const rows = $('ruleExamples'); rows.replaceChildren();
+    for (const ex of t.examples || []) {
+      const tr = el('tr');
+      const flags = [ex.tz_assumed ? 'zone assumed' : '', ex.year_inferred ? 'year inferred' : ''].filter(Boolean).join(', ');
+      tr.append(el('td', 'tf-mono', ex.line_no), el('td', 'tf-mono', isoUtc(ex.ts_utc)), el('td', 'tf-mono', `${ex.ts_raw}${flags ? ' (' + flags + ')' : ''}`),
+        el('td', '', ex.outcome || '—'), el('td', 'msg', ex.message || '—'));
+      rows.append(tr);
+    }
+    if (!rows.rows.length) { const tr = el('tr'), td = el('td', 'tf-empty', 'No line became an event.'); td.colSpan = 5; tr.append(td); rows.append(tr); }
+    const probs = $('ruleProblems'); probs.replaceChildren();
+    for (const pr of t.problems || []) {
+      const li = el('li'); li.append(el('span', '', `Line ${pr.line_no}: ${pr.problem}`), el('pre', 'tf-well', pr.raw_line)); probs.append(li);
+    }
+  }
+  async function runRuleTest() {
+    const def = formDefinition();
+    const btn = $('ruleTest'); btn.setAttribute('aria-busy', 'true'); btn.disabled = true;
+    $('ruleApprove').disabled = true;
+    try {
+      const d = await postJSON('/api/rules/test', { definition: def });
+      renderRuleTest(d.test);
+      rulesState.testedKey = JSON.stringify(def);
+      const t = d.test;
+      if (!t.lines_parsed) ruleStatus('The rule does not turn any unparsed line into an event yet. Check the problems below and adjust it.', 'error');
+      else if (!rulesState.canEdit) ruleStatus(`The rule would turn ${plural(t.lines_parsed, 'line')} into events. This dashboard is read-only: copy the rule as JSON and approve it with incident-timeline rules approve.`, 'success');
+      else { ruleStatus(`The rule would turn ${plural(t.lines_parsed, 'line')} of ${t.lines_tested.toLocaleString()} into events. Check the examples, then approve.`, 'success'); $('ruleApprove').disabled = false; }
+    } catch (err) { ruleStatus(err.message, 'error'); }
+    finally { btn.removeAttribute('aria-busy'); btn.disabled = false; }
+  }
+  $('ruleTest').addEventListener('click', runRuleTest);
+  $('ruleApprove').addEventListener('click', async () => {
+    const name = $('ruleAnalyst').value.trim();
+    if (!name) { $('ruleAnalyst').setAttribute('aria-invalid', 'true'); ruleStatus('Enter your name under Approved by; it is recorded in the chain of custody.', 'error'); $('ruleAnalyst').focus(); return; }
+    $('ruleAnalyst').removeAttribute('aria-invalid');
+    const btn = $('ruleApprove'); btn.setAttribute('aria-busy', 'true'); btn.disabled = true;
+    try {
+      rememberAnalyst(name);
+      const before = state.summary;
+      const d = await postJSON('/api/rules/approve', { definition: formDefinition(), analyst: name });
+      ruleDialog.close();
+      await afterRebuild(`${d.record.rule_id} approved by ${name} and recorded as custody record ${d.record.seq}.`, before, d);
+    } catch (err) { ruleStatus(err.message, 'error'); btn.disabled = false; }
+    finally { btn.removeAttribute('aria-busy'); }
+  });
+  async function openRuleAssistant(source, opener) {
+    rulesState.source = source; rulesState.opener = opener; rulesState.testedKey = null;
+    $('ruleTitle').textContent = `Teach ORISECT the format of ${source.original_name}`;
+    $('ruleLede').textContent = `${source.source_id} · ${plural(source.gaps, 'unparsed line')}`;
+    $('ruleNotes').replaceChildren(); $('ruleSample').textContent = ''; $('ruleResults').hidden = true;
+    $('ruleAnalyst').value = rememberedAnalyst();
+    $('ruleApproveBox').hidden = !rulesState.canEdit;
+    $('ruleApprove').hidden = !rulesState.canEdit; $('ruleApprove').disabled = true;
+    $('ruleFields').disabled = true;
+    fillRuleForm({ name: '', mode: 'kv', timestamp: {}, fields: {} });
+    ruleStatus('Reading the unparsed lines and proposing a rule…', 'running');
+    if (!ruleDialog.open) ruleDialog.showModal();
+    try {
+      const d = await getJSON(`/api/rules/suggest?source_id=${encodeURIComponent(source.source_id)}`);
+      fillRuleForm(d.definition);
+      for (const n of d.notes || []) $('ruleNotes').append(el('li', '', n));
+      $('ruleSample').textContent = d.test?.examples?.[0]?.raw_line || d.test?.problems?.[0]?.raw_line || '';
+      renderRuleTest(d.test);
+      rulesState.testedKey = JSON.stringify(formDefinition());
+      const t = d.test;
+      if (t.lines_parsed && rulesState.canEdit) { $('ruleApprove').disabled = false; ruleStatus(`Proposed from ${plural(d.lines_considered, 'line')}. Tested: it would turn ${plural(t.lines_parsed, 'line')} of ${t.lines_tested.toLocaleString()} into events. Review the fields and examples, then approve.`, 'success'); }
+      else if (t.lines_parsed) ruleStatus(`Proposed and tested: it would turn ${plural(t.lines_parsed, 'line')} into events. This dashboard is read-only: copy the rule as JSON and approve it with incident-timeline rules approve.`, 'success');
+      else ruleStatus('A rule was proposed but does not parse the lines yet. Adjust it and test again.', 'error');
+    } catch (err) {
+      ruleStatus(`${err.message}. You can still write the rule by hand below and test it.`, 'error');
+      try { const g = await getJSON('/api/gaps?limit=200'); $('ruleSample').textContent = (g.gaps.find(x => x.source_id === source.source_id) || {}).raw_line || ''; } catch { /* sample is optional */ }
+      fillRuleForm({ name: `${source.host || source.original_name} format`, mode: 'regex', pattern: '^(?P<ts>\\S+ \\S+) (?P<message>.*)$', timestamp: { fields: ['ts'], format: '%Y-%m-%d %H:%M:%S' }, action: 'log_event', fields: {}, message: '{message}' });
+    } finally { $('ruleFields').disabled = false; }
+  }
+  ruleDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ruleDialog.close()));
+  ruleDialog.addEventListener('click', e => { if (e.target === ruleDialog) ruleDialog.close(); });
+  ruleDialog.addEventListener('close', () => { if (rulesState.opener?.isConnected) rulesState.opener.focus(); });
 
   const refilter = () => { state.offset = 0; loadEvents(); };
   $('refresh').addEventListener('click', reload);
@@ -1076,7 +1450,7 @@
     if (e.key === 'Escape' && $('q').value) { e.preventDefault(); $('q').value = ''; refilter(); }
   });
   document.addEventListener('keydown', e => {
-    if (e.metaKey || e.ctrlKey || e.altKey || sheet.open) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || sheet.open || ruleDialog.open) return;
     const t = e.target;
     const typing = t.closest && t.closest('input, select, textarea, [contenteditable="true"]');
     if (e.key === '/' && !typing) { e.preventDefault(); $('q').focus(); $('q').select(); return; }

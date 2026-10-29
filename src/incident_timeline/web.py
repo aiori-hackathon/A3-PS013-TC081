@@ -20,7 +20,8 @@ from .evidence import Case, EvidenceError, check_source, collect, verify, verify
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
 from .time_analysis import build_time_analysis
-from .pipeline import build_timeline
+from .pipeline import approve_rule, build_timeline, dry_run_rule, suggest_rule
+from .rules import RuleError, revoke as revoke_rule, rule_records
 from .findings import detect as detect_findings, entities as summarize_entities
 
 # Static assets served from the package directory: URL path -> (relative file, content type).
@@ -124,6 +125,12 @@ class TracefuseHandler(BaseHTTPRequestHandler):
     def _filters(params: dict[str, list[str]]) -> dict[str, str | None]:
         return {key: (params.get(key, [""])[0] or None) for key in ("q", "source", "action", "outcome", "start", "end")}
 
+    @staticmethod
+    def _scope_ids(params: dict[str, list[str]]) -> list[str] | None:
+        """Event IDs a finding's "Show evidence" scope limits an export to, if any."""
+        requested = (params.get("ids") or [""])[0]
+        return [i for i in requested.split(",") if i] if requested else None
+
     def _events(self) -> list[dict[str, Any]]:
         event_path = self.case.output_dir / "events.jsonl"
         if not event_path.is_file():
@@ -137,13 +144,17 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         summary_path = case.output_dir / "summary.json"
         parsed = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
         verification = verify(case, record=False)
+        parsed_sources = {p.get("source_id"): p for p in parsed.get("sources", [])}
         source_list = []
         for s in case.sources():
+            counts = parsed_sources.get(s.get("source_id"), {})
             source_list.append({
                 "source_id": s.get("source_id"), "source_type": s.get("source_type"),
                 "original_name": s.get("original_name"), "sha256": s.get("sha256"),
                 "host": s.get("host"), "tz": s.get("tz"),
                 "skew_offset_s": s.get("skew_offset_s") or 0.0,
+                "events": counts.get("events"), "gaps": counts.get("gaps"),
+                "parsed_ratio": counts.get("parsed_ratio"), "rule_events": counts.get("rule_events") or {},
             })
         return {
             "case_id": metadata.get("case_id", case.root.name),
@@ -209,8 +220,75 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             "integrity_verified": True,
         }
 
+    def _json_body(self) -> dict[str, Any]:
+        """Read a same-origin JSON request body.
+
+        Requiring application/json means a page on another site cannot post here
+        without a CORS preflight, which this server never grants.
+        """
+        if not self.headers.get("Content-Type", "").lower().startswith("application/json"):
+            raise ValueError("Send the request as application/json.")
+        origin = self.headers.get("Origin")
+        if origin and origin != f"http://{self.headers.get('Host', '')}":
+            raise PermissionError("Cross-origin requests are not accepted.")
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        if length <= 0 or length > 64 * 1024:
+            raise ValueError("Request body must be between 1 byte and 64 KB.")
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("Request body is not valid JSON.") from exc
+        if not isinstance(body, dict):
+            raise ValueError("Request body must be a JSON object.")
+        return body
+
+    @staticmethod
+    def _analyst(body: dict[str, Any]) -> str:
+        name = str(body.get("analyst") or "").strip()
+        if not name or len(name) > 60 or any(ord(c) < 32 for c in name):
+            raise ValueError("Enter your name (up to 60 characters); it is recorded in the chain of custody.")
+        return f"{name} (ORISECT web)"
+
+    def _rules_post(self, path: str) -> None:
+        try:
+            body = self._json_body()
+            case = self.case
+            if path == "/api/rules/test":
+                self._send(200, _json_bytes({"test": dry_run_rule(case, body.get("definition"))}))
+                return
+            if path not in ("/api/rules/approve", "/api/rules/revoke"):
+                self._fail(404, "Not found")
+                return
+            if not self.app_mode:
+                raise PermissionError("This dashboard was opened with `serve` and is read-only. Approve or revoke "
+                                      f"rules with `incident-timeline rules` on {case.root}.")
+            actor = self._analyst(body)
+            if path == "/api/rules/approve":
+                record = approve_rule(case, body.get("definition"), actor)
+            else:
+                record = revoke_rule(case, str(body.get("rule_id") or ""), actor, str(body.get("reason") or "")[:200])
+            out = build_timeline(case, actor=actor)
+            self._send(200, _json_bytes({
+                "record": {k: record.get(k) for k in ("seq", "action", "rule_id", "rule_sha256", "actor", "ts_utc", "test")},
+                "events": out.summary["events"], "gaps": out.summary["gaps"],
+            }))
+        except PermissionError as exc:
+            self._fail(403, str(exc))
+        except (ValueError, RuleError) as exc:
+            self._fail(400, str(exc))
+        except EvidenceError as exc:
+            self._fail(409, str(exc))
+        except FileNotFoundError as exc:
+            self._fail(404, str(exc))
+        except Exception as exc:
+            print(f"ORISECT rules error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            self._fail(500, "The rule could not be processed. Check the local server log for details.")
+
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler contract
         url = urlsplit(self.path)
+        if url.path.startswith("/api/rules/"):
+            self._rules_post(url.path)
+            return
         if url.path != "/upload" or not self.app_mode or self.cases_root is None:
             self._fail(404, "Not found")
             return
@@ -412,6 +490,15 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 activity = [{"ts_utc": e.get("ts_utc"), "count": 1, "event_id": e.get("event_id"), "action": e.get("action")} for e in events]
                 self._send(200, _json_bytes({"findings": findings, "entities": summarize_entities(events), "activity": {"points": activity, "sampled": False}}))
                 return
+            if url.path == "/api/rules":
+                self._send(200, _json_bytes({"rules": rule_records(self.case), "can_edit": self.app_mode}))
+                return
+            if url.path == "/api/rules/suggest":
+                source_id = (params.get("source_id") or [""])[0]
+                if not source_id:
+                    raise ValueError("source_id is required")
+                self._send(200, _json_bytes(suggest_rule(self.case, source_id)))
+                return
             if url.path == "/api/custody":
                 records = self.case.read_custody()
                 chain_errors = verify_chain(self.case)
@@ -456,15 +543,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 self._send(200, _json_bytes(self._evidence_line(params)))
                 return
             if url.path == "/export/events.json":
-                report = load_case_export(self.case.root, self._filters(params))
-                requested_ids = (params.get("ids") or [""])[0]
-                if requested_ids:
-                    wanted = set(requested_ids.split(","))
-                    full_events = self._events()
-                    full_findings = detect_findings(full_events)
-                    report["events"] = [e for e in report["events"] if e.get("event_id") in wanted]
-                    report["findings"] = [f for f in full_findings
-                                           if wanted.intersection(f.get("event_ids", []))]
+                report = load_case_export(self.case.root, self._filters(params), self._scope_ids(params))
                 filename = f"orisect-{safe_case_filename(str(report['case_id']))}-timeline.json"
                 self._send(200, _json_bytes(report), "application/json; charset=utf-8", filename)
                 return
@@ -472,7 +551,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 filename = f"orisect-{safe_case_filename(self.case.load_meta().get('case_id', self.case.root.name))}-report.pdf"
                 with tempfile.TemporaryDirectory(prefix="tracefuse-export-") as tmp_dir:
                     path = Path(tmp_dir) / filename
-                    export_pdf(self.case.root, path, self._filters(params))
+                    export_pdf(self.case.root, path, self._filters(params), self._scope_ids(params))
                     self._send(200, path.read_bytes(), "application/pdf", filename)
                 return
             self._fail(404, "Not found")

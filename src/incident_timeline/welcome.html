@@ -30,7 +30,7 @@
           <div class="path-copy"><h2>Start an investigation</h2><p>Upload .log, .txt or .gz files, or a whole folder, and set the format and time zone for each source.</p></div>
           <button id="open-upload" class="tf-btn tf-btn--primary tf-btn--lg" type="button">Add evidence</button>
         </div>
-        <p class="path-note"><strong>No logs to hand?</strong> Choose the repository's <code>demo-evidence</code> folder in the upload window. It holds three logs from one simulated intrusion, and its README walks through the investigation step by step.</p>
+        <p class="path-note"><strong>No logs to hand?</strong> Choose the repository's <code>demo-evidence</code> folder in the upload window. It holds four logs from one simulated intrusion, one in a format ORISECT has to be taught, and its README walks through the investigation step by step.</p>
       </div>
     </div>
 
@@ -68,15 +68,15 @@
 
 <footer class="footer"><span>ORISECT runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Sample evidence is simulated and labelled as such.</span></footer>
 
-<dialog id="upload-modal" class="modal tf-dialog" aria-labelledby="upload-title">
+<dialog id="upload-modal" class="tf-modal tf-dialog" aria-labelledby="upload-title">
   <form id="upload-form" method="dialog" novalidate>
-    <header class="modal-head">
-      <div><h2 id="upload-title">New investigation</h2><p class="modal-lede">Add the logs, then confirm how each source should be read.</p></div>
-      <span class="close-group"><kbd class="tf-kbd" aria-hidden="true">Esc</kbd><button type="button" class="tf-btn tf-btn--ghost tf-btn--sm tf-btn--icon" data-close aria-label="Close" aria-keyshortcuts="Escape">
+    <header class="tf-modal-head">
+      <div><h2 id="upload-title">New investigation</h2><p class="tf-modal-lede">Add the logs, then confirm how each source should be read.</p></div>
+      <span class="tf-close-group"><kbd class="tf-kbd" aria-hidden="true">Esc</kbd><button type="button" class="tf-btn tf-btn--ghost tf-btn--sm tf-btn--icon" data-close aria-label="Close" aria-keyshortcuts="Escape">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button></span>
     </header>
-    <div class="modal-body">
+    <div class="tf-modal-body">
       <div class="tf-field">
         <label class="tf-label" for="case-name">Investigation name</label>
         <input class="tf-input" id="case-name" name="case_name" maxlength="100" placeholder="e.g. web01 intrusion, 24 Oct" required autocomplete="off">
@@ -97,7 +97,7 @@
       <p class="upload-note">Files are copied into a case-specific evidence folder and hashed before parsing. This server is meant for local use; don't upload sensitive production logs to an exposed instance.</p>
       <p id="upload-error" class="upload-error" role="alert"></p>
     </div>
-    <footer class="modal-foot">
+    <footer class="tf-modal-foot">
       <button type="button" class="tf-btn" data-close>Cancel</button>
       <button type="submit" id="submit-upload" class="tf-btn tf-btn--primary">Preserve and build timeline</button>
     </footer>
@@ -118,7 +118,8 @@
   const submit = document.getElementById('submit-upload');
   const caseName = document.getElementById('case-name');
   const MAX_BYTES = 25 * 1024 * 1024;
-  const FORMATS = [['auth', 'Linux authentication / syslog'], ['syslog', 'System log (syslog)'], ['access', 'Web access log (Nginx / Apache)'], ['apache', 'Apache access log'], ['nginx', 'Nginx access log']];
+  const FORMATS = [['auth', 'Linux authentication / syslog'], ['syslog', 'System log (syslog)'], ['access', 'Web access log (Nginx / Apache)'], ['apache', 'Apache access log'], ['nginx', 'Nginx access log'], ['other', 'Other format (teach ORISECT after upload)']];
+  const DETECTED = { auth: 'Detected: syslog / auth.log lines', access: 'Detected: web access log lines', other: 'Not a format ORISECT reads yet. Its lines are kept as unparsed evidence; after upload, the rule assistant can learn the format.' };
   let selected = [];
   let opener = null;
 
@@ -135,10 +136,42 @@
       const key = displayName(file) + ':' + file.size;
       if (known.has(key)) continue;
       known.add(key);
-      selected.push({ file, type: /access|nginx|apache/i.test(file.name) ? 'access' : 'auth', tz: 'UTC', host: '' });
+      const item = { file, type: /access|nginx|apache/i.test(file.name) ? 'access' : 'auth', tz: 'UTC', host: '', hint: 'Checking the first lines…', touched: false };
+      selected.push(item);
+      detectFormat(file).then(type => {
+        item.hint = type ? DETECTED[type] : '';
+        if (type && !item.touched) item.type = type;
+        if (item.select) item.select.value = item.type;
+        if (item.hintNode) item.hintNode.textContent = item.hint;
+      });
     }
     error.textContent = !incoming.length && files.length ? 'No supported .log, .txt or .gz files were found in that selection.' : skipped ? `Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'}.` : '';
     render();
+  }
+  // Read the first lines (through gzip if needed) and match them against the formats ORISECT parses.
+  async function firstLines(file) {
+    let stream = file.slice(0, 65536).stream();
+    if (/\.gz$/i.test(file.name)) {
+      if (typeof DecompressionStream === 'undefined') return null;
+      stream = file.stream().pipeThrough(new DecompressionStream('gzip'));
+    }
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    let text = '';
+    try {
+      while (text.length < 16384) { const { value, done } = await reader.read(); if (done) break; text += value; }
+    } finally { reader.cancel().catch(() => {}); }
+    return text.split(/\r?\n/).filter(l => l.trim()).slice(0, 20);
+  }
+  async function detectFormat(file) {
+    try {
+      const lines = await firstLines(file);
+      if (!lines || !lines.length) return null;
+      const share = re => lines.filter(l => re.test(l)).length / lines.length;
+      if (share(/^(?:\S+:\d+ )?\S+ \S+ .+? \[[^\]]+\] "/) >= .6) return 'access';
+      if (share(/^<\d{1,3}>1 \d{4}-\d\d-\d\dT/) >= .6) return 'auth';
+      if (share(/^(?:<\d{1,3}>)?(?:[A-Z][a-z]{2}\s+\d{1,2} \d\d:\d\d:\d\d|\d{4}-\d\d-\d\d[T ]\d\d:\d\d:\d\d\S*) \S+ \S+?(?:\[\d+\])?:/) >= .6) return 'auth';
+      return 'other';
+    } catch { return null; }
   }
   function render() {
     settings.replaceChildren();
@@ -158,8 +191,10 @@
       const typeLabel = el('label', 'tf-label', 'Log format'); typeLabel.htmlFor = typeId;
       const type = el('select', 'tf-select'); type.id = typeId;
       for (const [v, t] of FORMATS) type.add(new Option(t, v));
-      type.value = item.type; type.addEventListener('change', () => { item.type = type.value; });
-      typeField.append(typeLabel, type);
+      type.value = item.type; type.addEventListener('change', () => { item.type = type.value; item.touched = true; });
+      const hint = el('span', 'tf-hint', item.hint); hint.id = `type-hint-${i}`; type.setAttribute('aria-describedby', hint.id);
+      item.select = type; item.hintNode = hint;
+      typeField.append(typeLabel, type, hint);
       const tzField = el('div', 'tf-field'), tzId = `tz-${i}`;
       const tzLabel = el('label', 'tf-label', 'Source time zone'); tzLabel.htmlFor = tzId;
       const tz = el('input', 'tf-input'); tz.id = tzId; tz.placeholder = 'UTC, Asia/Kolkata, +05:30'; tz.value = item.tz; tz.autocomplete = 'off';

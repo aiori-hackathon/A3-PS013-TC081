@@ -11,8 +11,9 @@ Python 3.11+. The log-ingestion engine and local web server use the standard lib
 | `timeutil.py` | Zone handling (IANA names or fixed offsets), daylight-saving ambiguity, RFC 3339 output. |
 | `skew.py` | Clock-skew estimation between two sources, automatic or from an analyst-chosen pair of lines. |
 | `pipeline.py` | Checks hashes, parses the evidence copies, applies skew, merges and writes the outputs. |
-| `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs and an ATT&CK technique. |
-| `web.py` / `dashboard.html` | Read-only local dashboard: findings, entity pivots, custody-chain viewer, search and filters, original-line lookup. Serves one case or a folder of cases. |
+| `rules.py` | Parser rules for formats without a built-in parser: proposes a rule from a source's unparsed lines (key=value or column structure, timestamp shape, well-known field names), tests it, and records approvals and revocations in the custody log. |
+| `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, large outbound transfers, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs and an ATT&CK technique. |
+| `web.py` / `dashboard.html` | Local dashboard: findings, entity pivots, custody-chain viewer, search and filters, original-line lookup, and the rule assistant. Serves one case or a folder of cases (read-only), or uploaded investigations (`app`). |
 | `exports.py` | Filter-aware JSON export and paginated PDF investigation report with findings and full evidence references. |
 | `scenarios.py` | Generates and validates three deterministic synthetic incident cases. |
 | `cli.py` | Command-line interface, including `serve` and `demo`. |
@@ -48,7 +49,37 @@ python -m incident_timeline skew cases/c1 --set S002=-30                    # by
 
 # 4. Parse: build the timeline
 python -m incident_timeline parse cases/c1
+
+# 5. Unknown formats (optional): collect with --type other, then teach ORISECT a parser rule
+python -m incident_timeline collect cases/c1 fw.log --type other --host fw01
+python -m incident_timeline rules suggest cases/c1 --source S003 --out fw-rule.json   # propose + test
+python -m incident_timeline rules test cases/c1 fw-rule.json                          # after editing it
+python -m incident_timeline rules approve cases/c1 fw-rule.json                       # custody record
+python -m incident_timeline rules list cases/c1
+python -m incident_timeline rules revoke cases/c1 R001 --reason "wrong mapping"
+python -m incident_timeline parse cases/c1
 ```
+
+### Parser rules
+
+A log with no built-in parser (`--type other`) is still collected, hashed and kept: every line is a
+gap until a parser rule covers it. Rules also apply to the gaps of syslog and access-log sources.
+
+`rules suggest` reads the unparsed lines and proposes a rule, explaining each choice:
+- **key=value logs** (FortiGate, Palo Alto, iptables-style): the timestamp keys, an offset key such
+  as `tz` when present, an outcome key (`action`, `status`…), and well-known field names
+  (`srcip`→`src_ip`, `dstip`→`dst_ip`, `sentbyte`→`bytes_out`…);
+- **columnar logs:** a leading timestamp (ISO 8601, `YYYY/MM/DD`, day- or month-first dates, syslog,
+  Unix time), then fixed words matched literally, changing columns captured, `key=value` tokens
+  named by their key, and log levels recognised.
+
+The suggestion is structural and deterministic. A rule is plain JSON: a regular expression or
+key=value extraction, a timestamp format and a field mapping (see the docstring in `rules.py`).
+`rules approve` dry-runs it, refuses a rule that parses nothing, and appends an
+`approve_parser_rule` custody record holding the full definition and its SHA-256. Parsing reads
+active rules from the custody log only, and ignores a rule whose stored definition no longer matches
+its hash. Each event a rule produced carries `extra.parser_rule`, and each `parse` record lists the
+rules applied.
 
 `--tz` is the zone the host writes its local times in. It matters for logs whose lines carry no
 offset (classic syslog). Without it, UTC is assumed and every affected event is flagged
@@ -60,7 +91,8 @@ trusted. Every command accepts `--actor NAME` for the custody log (default: `use
 ```
 cases/c1/
   case.json                 sources and their settings (zone, host, year, skew offset)
-  custody.jsonl             who / when / what / SHA-256 for every collect, verify, set_skew, parse
+  custody.jsonl             who / when / what / SHA-256 for every collect, verify, set_skew,
+                            approve_parser_rule, revoke_parser_rule, parse
   evidence/S001_auth.log    read-only copies; these are what get parsed, never the originals
   normalised/events.jsonl   one event per parsed line, sorted by corrected UTC time
   normalised/gaps.jsonl     every line that was not understood, with the reason
@@ -118,13 +150,13 @@ incident-timeline serve cases/c1
 incident-timeline serve cases/c1 --port 8766
 ```
 
-Open the URL printed in the terminal (by default `http://127.0.0.1:8765`). The dashboard supports free-text search, source/action/outcome filters, a time range, pagination, event details, and an original-evidence view. Opening an evidence line performs a fresh source SHA-256 check first. The dashboard is read-only and does not append records to the custody log. It binds to localhost by default; do not expose it to an untrusted network.
+Open the URL printed in the terminal (by default `http://127.0.0.1:8765`). The dashboard supports free-text search, source/action/outcome filters, a time range, pagination, event details, and an original-evidence view. Opening an evidence line performs a fresh source SHA-256 check first. A dashboard opened with `serve` is read-only and does not append records to the custody log: its rule assistant can suggest and test rules, and approval is done with `incident-timeline rules approve`. In the web app (`incident-timeline app`), an analyst can approve or revoke a rule from the dashboard; that writes a custody record under their name and rebuilds the timeline. It binds to localhost by default; do not expose it to an untrusted network.
 
 `serve` also accepts a folder: it finds every parsed case up to three levels below it, and the dashboard shows a case picker (`?case=<case_id>` in the URL).
 
-The dashboard's API is read-only JSON: `/api/summary`, `/api/events` (filters `q`, `source`, `action`, `outcome`, `start`, `end`, and `ids` for a comma-separated list of `source:line` event IDs), `/api/insights` (findings, top addresses and accounts, activity points), `/api/custody` (each custody record with its own hash check), `/api/gaps` (unparsed lines), `/api/evidence` and `/api/cases`. Every endpoint takes `case=` when a folder is served.
+The dashboard's API is read-only JSON: `/api/summary`, `/api/events` (filters `q`, `source`, `action`, `outcome`, `start`, `end`, and `ids` for a comma-separated list of `source:line` event IDs), `/api/insights` (findings, top addresses and accounts, activity points), `/api/custody` (each custody record with its own hash check), `/api/gaps` (unparsed lines), `/api/evidence`, `/api/cases`, `/api/rules` (approved and revoked parser rules) and `/api/rules/suggest?source_id=`. Every endpoint takes `case=` when a folder is served. Three JSON POST endpoints accept only same-origin `application/json` requests: `/api/rules/test` (dry run, also on a read-only dashboard), and `/api/rules/approve` and `/api/rules/revoke` (web app only; they need an `analyst` name for the custody record).
 
-The **Export JSON** and **Export PDF report** buttons export the current filtered timeline. Both also carry the case's findings. Exports include the UTC event time, event fields, original raw line, source ID, source line number, full source-file SHA-256, source inventory, and integrity-verification result. The PDF is formatted for landscape pages and repeats the timeline table header on new pages.
+The **Export JSON** and **Export PDF report** buttons export the current filtered timeline, or only a finding's evidence lines while one is selected (`ids=`). Both carry the findings, computed over the whole timeline, that cite at least one exported event. Each finding lists its evidence by `source:line`, file SHA-256 and original line; the PDF opens with this findings table. Exports include the UTC event time, event fields, original raw line, source ID, source line number, full source-file SHA-256, source inventory, and integrity-verification result. The PDF is formatted for landscape pages and repeats the timeline table header on new pages.
 
 Generate three ready-to-open synthetic cases and their expected results:
 

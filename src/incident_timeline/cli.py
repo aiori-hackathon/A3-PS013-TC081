@@ -4,19 +4,23 @@
     sources  list a case's sources and their settings
     verify   re-hash all evidence and check the custody chain
     skew     estimate, anchor or set clock-skew offsets
+    rules    suggest, test, approve or revoke parser rules for unknown formats
     parse    build the normalised UTC timeline
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from typing import Sequence
 
 from . import __version__
 from .evidence import SOURCE_TYPES, Case, EvidenceError, collect, verify
-from .pipeline import anchor_skew, apply_skew, build_timeline, estimate_case_skew
+from .pipeline import (anchor_skew, apply_skew, approve_rule, build_timeline, dry_run_rule, estimate_case_skew,
+                       suggest_rule)
+from .rules import RuleError, revoke, rule_records
 from .skew import SkewEstimate
 from .scenarios import create_demo_cases
 from .web import serve_app, serve_case
@@ -60,7 +64,7 @@ def _print_estimate(e: SkewEstimate) -> None:
               f"({e.matches} matching pairs in best cluster, {e.candidate_pairs} candidates)")
     else:
         print(f"{e.source_id} vs {e.reference_id}: clock {e.offset_s:+.3f}s "
-              f"({'ahead' if e.offset_s >= 0 else 'behind'}), {e.matches} matches of "
+              f"({'in step' if e.offset_s == 0 else 'ahead' if e.offset_s > 0 else 'behind'}), {e.matches} matches of "
               f"{e.candidate_pairs} candidates, spread {e.spread_s:g}s  [{e.method}]")
 
 
@@ -101,6 +105,58 @@ def _cmd_skew(args: argparse.Namespace) -> int:
             print(f"  applied to {e.source_id}")
     if not args.apply:
         print("(dry run; add --apply to store usable offsets)")
+    return 0
+
+
+def _print_test(test: dict) -> None:
+    print(f"  would parse {test['lines_parsed']} of {test['lines_tested']} unparsed lines"
+          f" ({test['lines_unmatched']} not matched, {test['timestamp_failures']} bad timestamps)")
+    for ex in test["examples"][:3]:
+        print(f"    line {ex['line_no']}: {ex['ts_utc']}  {ex['action']}  {ex['message'] or ''}")
+    for miss in test["problems"][:3]:
+        print(f"    line {miss['line_no']}: {miss['problem']}")
+
+
+def _read_rule(path: str) -> dict:
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _cmd_rules(args: argparse.Namespace) -> int:
+    case = Case.open(args.case)
+    if args.rules_command == "suggest":
+        proposal = suggest_rule(case, args.source, args.name)
+        for note in proposal["notes"]:
+            print(f"- {note}")
+        _print_test(proposal["test"])
+        text = json.dumps(proposal["definition"], indent=2, ensure_ascii=False) + "\n"
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                fh.write(text)
+            print(f"rule written to {args.out}; review it, then: incident-timeline rules approve {args.case} {args.out}")
+        else:
+            print(text, end="")
+        return 0
+    if args.rules_command == "test":
+        _print_test(dry_run_rule(case, _read_rule(args.rule)))
+        return 0
+    if args.rules_command == "approve":
+        record = approve_rule(case, _read_rule(args.rule), args.actor)
+        print(f"{record['rule_id']} approved (sha256 {record['rule_sha256'][:16]}..., custody record {record['seq']})")
+        _print_test({**record["test"], "examples": [], "problems": []})
+        print(f"run `incident-timeline parse {args.case}` to rebuild the timeline with it")
+        return 0
+    if args.rules_command == "revoke":
+        revoke(case, args.rule_id, args.actor, args.reason or "")
+        print(f"{args.rule_id} revoked; run `incident-timeline parse {args.case}` to rebuild the timeline")
+        return 0
+    records = rule_records(case)
+    if not records:
+        print("no parser rules")
+    for r in records:
+        state = "active" if r["active"] else f"revoked by {r.get('revoked_by')}"
+        print(f"{r['rule_id']}  {r['definition']['name']}  sources={','.join(r['definition']['source_ids'])}  "
+              f"approved by {r['approved_by']} at {r['approved_utc']}  [{state}]  sha256={r['rule_sha256'][:16]}...")
     return 0
 
 
@@ -174,6 +230,27 @@ def build_parser() -> argparse.ArgumentParser:
     k.add_argument("--apply", action="store_true", help="store the offsets in the case")
     k.set_defaults(func=_cmd_skew)
 
+    rl = sub.add_parser("rules", help="parser rules for log formats without a built-in parser")
+    rsub = rl.add_subparsers(dest="rules_command", required=True)
+    rs = rsub.add_parser("suggest", parents=[common], help="propose a rule from a source's unparsed lines")
+    rs.add_argument("case")
+    rs.add_argument("--source", required=True, help="source to learn from, e.g. S004")
+    rs.add_argument("--name", help="name for the rule")
+    rs.add_argument("--out", help="write the proposed rule to this JSON file")
+    rt = rsub.add_parser("test", parents=[common], help="dry-run a rule file on the unparsed lines")
+    rt.add_argument("case")
+    rt.add_argument("rule", help="rule JSON file")
+    ra = rsub.add_parser("approve", parents=[common], help="test and approve a rule (recorded in custody)")
+    ra.add_argument("case")
+    ra.add_argument("rule", help="rule JSON file")
+    rr = rsub.add_parser("revoke", parents=[common], help="withdraw an approved rule (recorded in custody)")
+    rr.add_argument("case")
+    rr.add_argument("rule_id", help="e.g. R001")
+    rr.add_argument("--reason", help="why it is withdrawn")
+    rli = rsub.add_parser("list", parents=[common], help="list approved and revoked rules")
+    rli.add_argument("case")
+    rl.set_defaults(func=_cmd_rules)
+
     r = sub.add_parser("parse", parents=[common], help="build the normalised timeline")
     r.add_argument("case")
     r.add_argument("--force", action="store_true", help="parse even if evidence fails verification")
@@ -201,6 +278,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (EvidenceError, ValueError) as exc:
+    except (EvidenceError, ValueError, RuleError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

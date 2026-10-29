@@ -38,3 +38,23 @@ def test_json_and_pdf_exports_honor_action_filter(tmp_path: Path) -> None:
     content = output_pdf.read_bytes()
     assert content.startswith(b"%PDF-")
     assert len(content) > 1200
+
+
+def test_exports_carry_findings_with_line_and_hash_citations(tmp_path: Path) -> None:
+    case_path = _case(tmp_path)
+    report = json.loads(export_json(case_path, tmp_path / "all.json").read_text(encoding="utf-8"))
+    assert report["findings"], "the scenario raises findings"
+    by_id = {e["event_id"]: e for e in report["events"]}
+    for finding in report["findings"]:
+        assert [ref["event_id"] for ref in finding["evidence"]] == finding["event_ids"]
+        for ref in finding["evidence"]:
+            assert ref["file_sha256"] == by_id[ref["event_id"]]["file_sha256"]
+            assert ref["raw_line"] == by_id[ref["event_id"]]["raw_line"]
+
+    # Scoped to one finding's evidence, both exports keep only that finding's lines.
+    first = report["findings"][0]
+    scoped = json.loads(export_json(case_path, tmp_path / "one.json", event_ids=first["event_ids"]).read_text())
+    assert sorted(e["event_id"] for e in scoped["events"]) == sorted(first["event_ids"])
+    assert scoped["scope"] == {"event_ids": sorted(first["event_ids"])}
+    assert first["id"] in {f["id"] for f in scoped["findings"]}
+    assert export_pdf(case_path, tmp_path / "one.pdf", event_ids=first["event_ids"]).read_bytes().startswith(b"%PDF-")
