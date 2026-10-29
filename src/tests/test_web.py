@@ -294,6 +294,18 @@ def test_benchmark_endpoint_supports_full_suite_and_single_scenario(tmp_path: Pa
 SAMPLE_EVIDENCE = Path(__file__).resolve().parents[2] / "demo-evidence"
 
 
+def _post_json(url: str, body: dict, headers: dict | None = None, expect: int = 200) -> dict:
+    request = Request(url, data=json.dumps(body).encode(), method="POST",
+                      headers={"Content-Type": "application/json", **(headers or {})})
+    try:
+        with urlopen(request) as response:
+            assert response.status == expect
+            return json.loads(response.read())
+    except HTTPError as exc:
+        assert exc.code == expect, exc.read()
+        return json.loads(exc.read())
+
+
 def _multipart(fields: dict[str, str], files: dict[str, Path]) -> tuple[bytes, str]:
     boundary = "----orisect-test-boundary"
     parts = []
@@ -321,11 +333,13 @@ def test_sample_evidence_walkthrough_through_the_web_app(tmp_path: Path) -> None
 
         files = {"file_0": SAMPLE_EVIDENCE / "edge01" / "access.log.1.gz",
                  "file_1": SAMPLE_EVIDENCE / "edge01" / "access.log",
-                 "file_2": SAMPLE_EVIDENCE / "web01" / "auth.log"}
+                 "file_2": SAMPLE_EVIDENCE / "fw01" / "fw01-traffic.log",
+                 "file_3": SAMPLE_EVIDENCE / "web01" / "auth.log"}
         fields = {"case_name": "web01 intrusion",
                   "type_0": "nginx", "tz_0": "UTC", "host_0": "edge01",
                   "type_1": "nginx", "tz_1": "UTC", "host_1": "edge01",
-                  "type_2": "auth", "tz_2": "Asia/Kolkata", "host_2": ""}
+                  "type_2": "other", "tz_2": "UTC", "host_2": "fw01",
+                  "type_3": "auth", "tz_3": "Asia/Kolkata", "host_3": ""}
         body, content_type = _multipart(fields, files)
         request = Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")
         with urlopen(request) as response:  # follows the 303 to the new investigation
@@ -336,9 +350,12 @@ def test_sample_evidence_walkthrough_through_the_web_app(tmp_path: Path) -> None
         q = "?case=" + case_id
         summary = _get(base + "/api/summary" + q)
         assert summary["case_name"] == "web01 intrusion"
-        assert (summary["events"], summary["source_count"], summary["gaps"]) == (255, 3, 2)
+        assert (summary["events"], summary["source_count"], summary["gaps"]) == (255, 4, 73)
         assert summary["integrity_ok"] is True
+        fw = next(s for s in summary["sources"] if s["original_name"] == "fw01-traffic.log")
+        assert (fw["source_type"], fw["events"], fw["gaps"]) == ("custom", 0, 71)
         rules = {f["rule"] for f in _get(base + "/api/insights" + q)["findings"]}
+        assert len(_get(base + "/api/insights" + q)["findings"]) == 11
         assert {"web_shell", "login_after_failures", "brute_force", "web_probing", "sensitive_file_access",
                 "account_created", "suspicious_cron", "time_basis", "privileged_commands"} <= rules
         # edge01's clock runs 187 s fast, so before correction the pivot is hidden.
@@ -346,8 +363,39 @@ def test_sample_evidence_walkthrough_through_the_web_app(tmp_path: Path) -> None
         access = next(s["source_id"] for s in summary["sources"] if s["original_name"] == "access.log")
         preview = _get(base + "/api/time-analysis" + q + f"&preview_source_id={access}&preview_offset_s=187")
         assert preview["preview"]["records_shifted_in_merged_order"] > 0
+        # Teach ORISECT the firewall's format: suggest, test, approve, rebuild.
+        proposal = _get(base + "/api/rules/suggest" + q + "&source_id=" + fw["source_id"])
+        definition = proposal["definition"]
+        assert definition["mode"] == "kv"
+        assert definition["timestamp"] == {"fields": ["date", "time", "tz"], "format": "%Y-%m-%d %H:%M:%S %z"}
+        assert {"src_ip": "srcip", "dst_ip": "dstip", "bytes_out": "sentbyte"}.items() <= definition["fields"].items()
+        assert proposal["test"]["lines_parsed"] == 71
+        test = _post_json(base + "/api/rules/test" + q, {"definition": definition})
+        assert test["test"]["lines_parsed"] == 71 and test["test"]["examples"][0]["tz_assumed"] is False
+        assert _post_json(base + "/api/rules/approve" + q, {"definition": definition}, expect=400)
+        assert _post_json(base + "/api/rules/approve" + q, {"definition": definition, "analyst": "Analyst"},
+                          headers={"Origin": "http://evil.example"}, expect=403)
+        approved = _post_json(base + "/api/rules/approve" + q, {"definition": definition, "analyst": "Analyst"})
+        assert approved["record"]["rule_id"] == "R001"
+        assert (approved["events"], approved["gaps"]) == (326, 2)
+        findings = _get(base + "/api/insights" + q)["findings"]
+        exfil = next(f for f in findings if f["rule"] == "large_outbound_transfer")
+        assert exfil["title"] == "Large upload from 10.0.2.11 to 203.0.113.45"
+        assert len(exfil["event_ids"]) == 3 and "48.2 MB" in exfil["summary"]
+        custody = _get(base + "/api/custody" + q)
+        assert custody["chain_ok"] and [r["action"] for r in custody["records"]][-2:] == ["approve_parser_rule", "parse"]
+        assert _get(base + "/api/rules" + q)["rules"][0]["approved_by"] == "Analyst (ORISECT web)"
+
+        with urlopen(base + "/export/events.json" + q + "&ids=" + ",".join(exfil["event_ids"])) as response:
+            scoped = json.loads(response.read())
+        assert [e["event_id"] for e in scoped["events"]] == exfil["event_ids"]
+        assert any(f["rule"] == "large_outbound_transfer" and len(f["evidence"]) == 3 for f in scoped["findings"])
         with urlopen(base + "/export/report.pdf" + q) as response:
             assert response.read(5) == b"%PDF-"
+
+        revoked = _post_json(base + "/api/rules/revoke" + q, {"rule_id": "R001", "analyst": "Analyst", "reason": "test"})
+        assert (revoked["events"], revoked["gaps"]) == (255, 73)
+        assert _get(base + "/api/rules" + q)["rules"][0]["active"] is False
 
         with urlopen(base + "/tracefuse.css") as response:
             assert response.headers.get_content_type() == "text/css"
@@ -364,18 +412,24 @@ def test_sample_evidence_walkthrough_with_the_cli(tmp_path: Path) -> None:
     for args in (["collect", str(case), str(SAMPLE_EVIDENCE / "edge01" / "access.log.1.gz"), "--type", "nginx", "--host", "edge01"],
                  ["collect", str(case), str(SAMPLE_EVIDENCE / "edge01" / "access.log"), "--type", "nginx", "--host", "edge01"],
                  ["collect", str(case), str(SAMPLE_EVIDENCE / "web01" / "auth.log"), "--type", "auth", "--tz", "Asia/Kolkata", "--year", "2026"],
+                 ["collect", str(case), str(SAMPLE_EVIDENCE / "fw01" / "fw01-traffic.log"), "--type", "other", "--host", "fw01"],
                  ["verify", str(case)], ["parse", str(case)],
+                 ["rules", "suggest", str(case), "--source", "S004", "--out", str(tmp_path / "fw01-rule.json")],
+                 ["rules", "approve", str(case), str(tmp_path / "fw01-rule.json")], ["parse", str(case)],
                  ["skew", str(case), "--reference", "S003", "--apply"], ["parse", str(case)]):
         assert cli_main(args) == 0, args
     meta = json.loads((case / "case.json").read_text())
     offsets = {s["source_id"]: s.get("skew_offset_s") for s in meta["sources"]}
     assert offsets["S001"] == offsets["S002"] == 187.0
+    assert offsets["S004"] == 0.0  # the firewall's clock agrees with web01's
     events = [json.loads(line) for line in (case / "normalised" / "events.jsonl").read_text().splitlines()]
     read_config = next(e for e in events if "config.php" in (e.get("message") or ""))
     login = next(e for e in events if e["action"] == "ssh_login" and e["outcome"] == "success" and e["user"] == "deploy")
     assert read_config["ts_utc"] < login["ts_utc"]  # cause before effect once corrected
     from incident_timeline.findings import detect
-    assert "web_to_ssh" in {f["rule"] for f in detect(events)}
+    found = {f["rule"] for f in detect(events)}
+    assert {"web_to_ssh", "large_outbound_transfer"} <= found
+    assert len(events) == 326
 
 
 def test_serve_accepts_a_folder_of_cases(tmp_path: Path) -> None:
@@ -398,6 +452,32 @@ def test_serve_accepts_a_folder_of_cases(tmp_path: Path) -> None:
             assert "immutable" in response.headers["Cache-Control"]
         with urlopen(base + "/favicon.svg") as response:
             assert response.headers.get_content_type() == "image/svg+xml"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_rule_approval_is_refused_on_a_read_only_dashboard(tmp_path: Path) -> None:
+    case = tmp_path / "case"
+    assert cli_main(["collect", str(case), str(SAMPLE_EVIDENCE / "fw01" / "fw01-traffic.log"), "--type", "other"]) == 0
+    assert cli_main(["parse", str(case)]) == 0
+    server, thread, base = _serve({"case_root": case.resolve()})
+    try:
+        proposal = _get(base + "/api/rules/suggest?source_id=S001")
+        assert _get(base + "/api/rules")["can_edit"] is False
+        assert _post_json(base + "/api/rules/test", {"definition": proposal["definition"]})["test"]["lines_parsed"] == 71
+        refused = _post_json(base + "/api/rules/approve", {"definition": proposal["definition"], "analyst": "A"}, expect=403)
+        assert "read-only" in refused["error"]
+        request = Request(base + "/api/rules/test", data=b"definition=x", method="POST",
+                          headers={"Content-Type": "application/x-www-form-urlencoded"})
+        try:
+            urlopen(request)
+            assert False, "form posts must be refused"
+        except HTTPError as exc:
+            assert exc.code == 400
+        bad = dict(proposal["definition"], pattern="(unclosed")
+        assert "regular expression" in _post_json(base + "/api/rules/test", {"definition": bad}, expect=400)["error"]
     finally:
         server.shutdown()
         server.server_close()

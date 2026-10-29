@@ -15,8 +15,10 @@ from datetime import datetime
 from typing import Any, Sequence
 
 from .evidence import Case, EvidenceError, check_source, sha256_file
-from .models import Event, SourceContext, write_jsonl
+from .models import Event, ParseGap, SourceContext, write_jsonl
 from .parsers import ParseResult, parse_source
+from . import rules as parser_rules
+from .rules import active_rules, apply_rules, rule_hash
 from .skew import DEFAULT_KEYS, SkewEstimate, estimate, from_anchor
 from .timeutil import UTC, parse_rfc3339, to_rfc3339
 
@@ -43,13 +45,19 @@ def parse_sources(case: Case, source_ids: Sequence[str] | None = None,
     Skew offsets from case.json are applied to the returned events.
     """
     results: dict[str, ParseResult] = {}
+    rules = active_rules(case)
     for s in case.sources():
         if source_ids is not None and s["source_id"] not in source_ids:
             continue
         problem = check_source(case, s["source_id"])
         if problem and not force:
             raise EvidenceError(f"{problem}; refusing to parse (run verify)")
-        result = parse_source(source_context(case, s))
+        ctx = source_context(case, s)
+        result = parse_source(ctx)
+        rule_counts = apply_rules(result, ctx, rules)
+        if rule_counts:
+            result.notes.append("parser rules applied: " + ", ".join(f"{rid} {n} lines" for rid, n in rule_counts.items()))
+        result.rule_events = rule_counts
         offset = float(s.get("skew_offset_s") or 0.0)
         if offset:
             for e in result.events:
@@ -109,6 +117,7 @@ def build_timeline(case: Case, actor: str | None = None, force: bool = False) ->
             "dst_ambiguous_events": sum(bool(e.extra.get("dst_ambiguous")) for e in evs),
             "actions": dict(Counter(e.action for e in evs if e.action).most_common()),
             "gap_reasons": dict(Counter(g.reason for g in r.gaps).most_common()),
+            "rule_events": r.rule_events,
             "notes": r.notes,
         })
 
@@ -129,10 +138,12 @@ def build_timeline(case: Case, actor: str | None = None, force: bool = False) ->
     for name in ("events.jsonl", "gaps.jsonl", "summary.json"):
         digest, _ = sha256_file(out / name)
         outputs[f"normalised/{name}"] = digest
+    rules = active_rules(case)
     case.append_custody(
         "parse",
         actor,
         sources={s["source_id"]: s["sha256"] for s in case.sources()},
+        **({"parser_rules": {rid: rule_hash(d) for rid, d in rules}} if rules else {}),
         outputs=outputs,
         events=len(events),
         gaps=len(gaps),
@@ -180,3 +191,39 @@ def apply_skew(case: Case, est: SkewEstimate, actor: str | None = None) -> None:
     case.update_source(est.source_id, skew_offset_s=est.offset_s, skew_method=est.method,
                        skew_reference=est.reference_id)
     case.append_custody("set_skew", actor, **est.to_dict())
+
+
+def unparsed_lines(case: Case, source_ids: Sequence[str]) -> list[ParseGap]:
+    """Lines of these sources that neither a built-in parser nor an approved rule understands."""
+    results = parse_sources(case, list(source_ids))
+    return [g for sid in source_ids for g in results[sid].gaps]
+
+
+def suggest_rule(case: Case, source_id: str, name: str | None = None) -> dict[str, Any]:
+    """Propose a parser rule from a source's unparsed lines, and dry-run it."""
+    source = case.source(source_id)
+    gaps = unparsed_lines(case, [source_id])
+    proposal = parser_rules.suggest([g.raw_line for g in gaps], [source_id],
+                                    name or f"{source.get('host') or source['original_name']} format")
+    proposal["test"] = dry_run_rule(case, proposal["definition"], gaps)
+    return proposal
+
+
+def dry_run_rule(case: Case, definition: dict[str, Any], gaps: list[ParseGap] | None = None) -> dict[str, Any]:
+    """Validate a rule and test it on the current unparsed lines of its sources. Changes nothing."""
+    rule = parser_rules.validate(definition)
+    for sid in rule["source_ids"]:
+        case.source(sid)
+    if gaps is None:
+        gaps = unparsed_lines(case, rule["source_ids"])
+    return parser_rules.dry_run(rule, gaps, lambda sid: source_context(case, case.source(sid)))
+
+
+def approve_rule(case: Case, definition: dict[str, Any], actor: str | None = None) -> dict[str, Any]:
+    """Test a rule, record its approval in the custody log, and return the custody record.
+
+    The rule takes effect on the next parse.
+    """
+    rule = parser_rules.validate(definition)
+    test = dry_run_rule(case, rule)
+    return parser_rules.approve(case, rule, test, actor)

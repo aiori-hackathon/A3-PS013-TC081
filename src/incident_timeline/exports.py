@@ -10,6 +10,7 @@ from typing import Any, Iterable
 from xml.sax.saxutils import escape
 
 from .evidence import Case, EvidenceError, verify
+from .findings import SEVERITY_ORDER, detect
 from .models import load_events
 from .timeutil import UTC, to_rfc3339
 
@@ -106,6 +107,67 @@ def _draw_brand(canvas: Any, x: float, top: float, height: float, ink: Any, acce
     canvas.restoreState()
 
 
+FINDING_EVIDENCE_LIMIT = 6
+FINDING_RAW_LIMIT = 400  # long enough for a firewall line's addresses and byte counts
+SEVERITY_INK = {"high": "#b3261e", "medium": "#8a5a00", "info": "#4d5a52"}
+
+
+def _short_hash(digest: str | None) -> str:
+    return f"{digest[:8]}…{digest[-8:]}" if digest and len(digest) > 16 else (digest or "-")
+
+
+def _findings_story(findings: list[dict[str, Any]], styles: Any, colors: Any, mm: float,
+                    Paragraph: Any, LongTable: Any, TableStyle: Any) -> list[Any]:
+    """The report's findings table: each lead with the lines and file hashes behind it."""
+    story: list[Any] = [Paragraph("Findings", styles["SectionHeading"])]
+    if not findings:
+        story.append(Paragraph("No rule fired on the exported events. That does not mean nothing happened; "
+                               "review the timeline below.", styles["SmallText"]))
+        return story
+
+    def cell(text: Any) -> str:
+        return escape("-" if text in (None, "") else str(text))
+
+    rows = [[Paragraph(h, styles["HeadCell"]) for h in ("Severity", "Finding", "When (UTC)", "Evidence cited")]]
+    for f in findings:
+        ink = SEVERITY_INK.get(f["severity"], SEVERITY_INK["info"])
+        technique = f"ATT&amp;CK {cell(f['technique'])} · {cell(f['technique_name'])}<br/>" if f.get("technique") else ""
+        body = (f"<b>{cell(f['title'])}</b><br/>{cell(f['summary'])}<br/>"
+                f"<font color='#5a665e'>{technique}Rule <i>{cell(f['rule'])}</i>: {cell(f['rationale'])}</font>")
+        first, last = f.get("first_ts_utc"), f.get("last_ts_utc")
+        when = cell(first) if first == last else f"{cell(first)}<br/>to {cell(last)}"
+        cites = []
+        for ref in f["evidence"][:FINDING_EVIDENCE_LIMIT]:
+            raw = str(ref.get("raw_line") or "")
+            raw = raw if len(raw) <= FINDING_RAW_LIMIT else raw[:FINDING_RAW_LIMIT - 1] + "…"
+            cites.append(f"<b>{cell(ref['source_id'])}:{cell(ref['line_no'])}</b> {cell(ref['source_file'])} · "
+                         f"SHA-256 {cell(_short_hash(ref.get('file_sha256')))}<br/>"
+                         f"<font face='Courier' size='5.6'>{cell(raw)}</font>")
+        extra = len(f["evidence"]) - FINDING_EVIDENCE_LIMIT
+        if extra > 0:
+            cites.append(f"<i>and {extra} more line{'s' if extra != 1 else ''}: "
+                         f"{cell(', '.join(r['event_id'] for r in f['evidence'][FINDING_EVIDENCE_LIMIT:]))}</i>")
+        rows.append([
+            Paragraph(f"<font color='{ink}'><b>{cell(f['severity'].capitalize())}</b></font>", styles["Cell"]),
+            Paragraph(body, styles["Cell"]),
+            Paragraph(when, styles["CellTiny"]),
+            Paragraph("<br/>".join(cites) or "-", styles["CellTiny"]),
+        ])
+    table = LongTable(rows, colWidths=[17 * mm, 92 * mm, 34 * mm, 112 * mm], repeatRows=1, hAlign="LEFT")
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e2a22")),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#d3dbd5")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f6f8f6")]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5), ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(table)
+    story.append(Paragraph("Full SHA-256 values are listed under Evidence sources. Every finding's complete "
+                           "list of evidence lines is in the JSON export.", styles["TinyText"]))
+    return story
+
+
 def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str | None] | None = None) -> list[dict[str, Any]]:
     """Apply the same filters in the web viewer and in exported reports."""
     filters = filters or {}
@@ -153,8 +215,25 @@ def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str 
     return selected
 
 
-def load_case_export(case_path: str | Path, filters: dict[str, str | None] | None = None) -> dict[str, Any]:
-    """Load the normalized timeline plus evidence references and integrity status."""
+def _evidence_reference(event: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source_id": event.get("source_id"),
+        "source_file": event.get("source_file") or source.get("original_name"),
+        "line_no": event.get("line_no"),
+        "file_sha256": event.get("file_sha256") or source.get("sha256"),
+        "evidence_path": source.get("evidence_path"),
+    }
+
+
+def load_case_export(case_path: str | Path, filters: dict[str, str | None] | None = None,
+                     event_ids: Iterable[str] | None = None) -> dict[str, Any]:
+    """Load the normalized timeline plus evidence references and integrity status.
+
+    Findings are always computed over the whole timeline, because rules need
+    the surrounding events; a filtered export keeps the findings that cite at
+    least one exported event. ``event_ids`` narrows the export to those events
+    (a finding's evidence) after the filters.
+    """
     case = Case.open(case_path)
     events_path = case.output_dir / "events.jsonl"
     if not events_path.is_file():
@@ -162,6 +241,10 @@ def load_case_export(case_path: str | Path, filters: dict[str, str | None] | Non
 
     events = [event.to_dict() for event in load_events(events_path)]
     selected = filter_event_dicts(events, filters)
+    scoped = event_ids is not None
+    if scoped:
+        wanted = set(event_ids)
+        selected = [e for e in selected if e.get("event_id") in wanted]
     summary_path = case.output_dir / "summary.json"
     summary = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
     metadata = case.load_meta()
@@ -172,14 +255,22 @@ def load_case_export(case_path: str | Path, filters: dict[str, str | None] | Non
     for event in selected:
         source = source_by_id.get(event.get("source_id"), {})
         output_event = dict(event)
-        output_event["evidence_reference"] = {
-            "source_id": event.get("source_id"),
-            "source_file": event.get("source_file") or source.get("original_name"),
-            "line_no": event.get("line_no"),
-            "file_sha256": event.get("file_sha256") or source.get("sha256"),
-            "evidence_path": source.get("evidence_path"),
-        }
+        output_event["evidence_reference"] = _evidence_reference(event, source)
         export_events.append(output_event)
+
+    by_id = {e["event_id"]: e for e in events}
+    exported_ids = {e["event_id"] for e in selected}
+    narrowed = scoped or any(v not in (None, "") for v in (filters or {}).values())
+    findings = []
+    for finding in detect(events):
+        if narrowed and not exported_ids.intersection(finding["event_ids"]):
+            continue
+        cited = [by_id[i] for i in finding["event_ids"] if i in by_id]
+        findings.append({**finding, "evidence": [
+            {**_evidence_reference(e, source_by_id.get(e.get("source_id"), {})), "event_id": e["event_id"],
+             "ts_utc": e.get("ts_utc"), "raw_line": e.get("raw_line")}
+            for e in cited
+        ]})
 
     return {
         "schema_version": "1.0",
@@ -187,6 +278,7 @@ def load_case_export(case_path: str | Path, filters: dict[str, str | None] | Non
         "case_id": metadata.get("case_id", case.root.name),
         "generated_utc": to_rfc3339(datetime.now(UTC)),
         "filters": {k: v for k, v in (filters or {}).items() if v not in (None, "")},
+        "scope": {"event_ids": sorted(exported_ids)} if scoped else None,
         "integrity": {
             "verified": verification.ok,
             "files_ok": verification.files_ok,
@@ -207,19 +299,22 @@ def load_case_export(case_path: str | Path, filters: dict[str, str | None] | Non
             }
             for source in case.sources()
         ],
+        "findings": findings,
         "events": export_events,
     }
 
 
-def export_json(case_path: str | Path, output_path: str | Path, filters: dict[str, str | None] | None = None) -> Path:
-    report = load_case_export(case_path, filters)
+def export_json(case_path: str | Path, output_path: str | Path, filters: dict[str, str | None] | None = None,
+                event_ids: Iterable[str] | None = None) -> Path:
+    report = load_case_export(case_path, filters, event_ids)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return destination
 
 
-def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str, str | None] | None = None) -> Path:
+def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str, str | None] | None = None,
+               event_ids: Iterable[str] | None = None) -> Path:
     """Write a paginated, evidence-referenced PDF report using ReportLab."""
     try:
         from reportlab.lib import colors
@@ -231,7 +326,7 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
     except ImportError as exc:  # a useful error if users installed the old engine without report deps
         raise RuntimeError("PDF export requires ReportLab. Install project dependencies with `pip install -r requirements.txt`.") from exc
 
-    report = load_case_export(case_path, filters)
+    report = load_case_export(case_path, filters, event_ids)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     page = landscape(A4)
@@ -257,12 +352,22 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
              Spacer(1, 1 * mm)]
     integrity = report["integrity"]
     status = "VERIFIED - all collected evidence and custody links passed" if integrity["verified"] else "WARNING - integrity verification reported issues"
+    findings = report["findings"]
+    severity_counts = {sev: sum(f["severity"] == sev for f in findings) for sev in SEVERITY_ORDER}
+    findings_text = (f"{len(findings)} ({', '.join(f'{n} {sev}' for sev, n in severity_counts.items() if n)})"
+                     if findings else "No rule fired on the exported events")
+    scope_text = json.dumps(report["filters"], ensure_ascii=False) if report["filters"] else "None"
+    if report.get("scope"):
+        scope_text += f"; limited to {len(report['scope']['event_ids'])} selected evidence lines"
     overview = [
         [p("Case ID", "SmallText"), p(report["case_id"], "SmallText"), p("Generated (UTC)", "SmallText"), p(report["generated_utc"], "SmallText")],
         [p("Timeline events", "SmallText"), p(len(report["events"]), "SmallText"), p("Sources", "SmallText"), p(len(report["sources"]), "SmallText")],
-        [p("Evidence integrity", "SmallText"), p(status, "SmallText"), p("Filters", "SmallText"), p(json.dumps(report["filters"], ensure_ascii=False) or "None", "SmallText")],
+        [p("Evidence integrity", "SmallText"), p(status, "SmallText"), p("Filters", "SmallText"), p(scope_text, "SmallText")],
+        [p("Findings", "SmallText"), p(findings_text, "SmallText"), p("Method", "SmallText"),
+         p("Findings come from fixed, readable rules over the whole timeline. Each cites its evidence lines by "
+           "source:line and the SHA-256 of the file they were read from. They are leads to verify, not conclusions.", "SmallText")],
     ]
-    overview_table = Table(overview, colWidths=[27 * mm, 75 * mm, 28 * mm, 125 * mm])
+    overview_table = Table(overview, colWidths=[27 * mm, 75 * mm, 28 * mm, 125 * mm], hAlign="LEFT")
     overview_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#eef2ef")),
         ("BACKGROUND", (2, 0), (2, -1), colors.HexColor("#eef2ef")),
@@ -271,7 +376,9 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
         ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
     ]))
-    story.extend([overview_table, Paragraph("Evidence sources", styles["SectionHeading"])])
+    story.append(overview_table)
+    story.extend(_findings_story(findings, styles, colors, mm, Paragraph, LongTable, TableStyle))
+    story.append(Paragraph("Evidence sources", styles["SectionHeading"]))
 
     source_rows = [[p("Source", "HeadCell"), p("Type / host", "HeadCell"), p("File", "HeadCell"), p("SHA-256", "HeadCell")]]
     for source in report["sources"]:
@@ -283,7 +390,7 @@ def export_pdf(case_path: str | Path, output_path: str | Path, filters: dict[str
         ])
     if len(source_rows) == 1:
         source_rows.append([p("No sources"), p("-"), p("-"), p("-")])
-    source_table = LongTable(source_rows, colWidths=[20 * mm, 38 * mm, 60 * mm, 137 * mm], repeatRows=1)
+    source_table = LongTable(source_rows, colWidths=[20 * mm, 38 * mm, 60 * mm, 137 * mm], repeatRows=1, hAlign="LEFT")
     source_table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e2a22")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),

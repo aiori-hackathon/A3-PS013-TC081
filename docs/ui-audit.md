@@ -155,7 +155,7 @@ Severity: **high** = misleads, breaks a workflow or undermines credibility; **me
 - Exercised in Chromium: keyboard navigation, the inspector, the mobile sheet, upload, the case picker, and the original-line hash check.
 
 **Still open:**
-- The PDF report has no findings section (the JSON export does). The README now says so.
+- ~~The PDF report has no findings section (the JSON export does).~~ Added in the third pass below.
 - The brief's command palette, source-explorer pane and resizable split panes were deliberately left out: a single case has about six actions and one or two sources, so they would be decoration.
 
 ## Brand: ORISECT
@@ -170,3 +170,27 @@ The product is now presented as **ORISECT** (formerly TRACEFUSE). The new identi
 | `orisect-icon.svg` | App icon on a graphite tile; served as the favicon. |
 
 The same geometry is drawn as vector paths in the PDF report header (`exports._draw_brand`). Displayed names, page titles, the JSON `product` field, download filenames and server messages use ORISECT. Stable identifiers are unchanged so nothing breaks: the `incident-timeline` CLI and Python package, the `tracefuse.css` filename, API fields such as `tracefuse_pipeline_ms`, browser-storage keys, and the actor IDs recorded in existing custody logs.
+
+## Third pass: rule assistant and report findings
+
+**Rule assistant** (dashboard dialog, opened from **Teach this format** on a source with unparsed lines):
+- Built on the same tokens and primitives as the rest of the dashboard: fields, buttons, notes, metric strip and the ledger table.
+- The upload dialog's modal frame moved into the design system as `.tf-modal`, with `-head`, `-lede`, `-body`, `-foot` and `.tf-close-group`. Both dialogs use it now. Its body is a single `minmax(0, 1fr)` track and the frame clips its content, so long log lines wrap instead of widening the dialog.
+- The flow matches the trust model:
+  1. The proposal opens already tested, with a plain-language reason for each choice and the first unparsed line.
+  2. Any edit disables **Approve** until the rule is tested again.
+  3. Approval needs a name, because it becomes a custody record.
+- After approval or revocation the page shows what changed (events, unparsed lines and findings, before and after) and moves focus to that notice, because the control that started it was re-rendered.
+- Upload detects each file's format from its first lines (gzip included) and explains the choice under the select. Unknown formats default to **Other format**.
+
+**PDF report:** a findings table now follows the case overview. Each row has:
+- the severity and the rule;
+- the ATT&CK technique and the time window;
+- every cited line, with `source:line`, a short SHA-256 and the original text (up to 400 characters, enough for a firewall line's addresses and byte counts).
+
+Both exports follow a finding's **Show evidence** scope.
+
+**Verification:**
+- axe-core reports 0 violations on the upload dialog, the dashboard, the rule dialog and the revoke form.
+- No page overflow from 320 to 1440 px, and the rule dialog has none either.
+- The full approve, edit, retest and revoke round trip was exercised in Chromium.

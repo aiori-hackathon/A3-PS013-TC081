@@ -11,6 +11,7 @@ attack happened or that one event caused another.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -26,6 +27,12 @@ BRUTE_FORCE_WINDOW = timedelta(minutes=10)
 LOGIN_AFTER_FAILURE_WINDOW = timedelta(hours=1)
 WEB_TO_SSH_WINDOW = timedelta(hours=2)
 PRIVILEGED_GROUPS = {"sudo", "wheel", "admin", "adm", "root"}
+OUTBOUND_MIN_BYTES = 10_000_000
+OUTBOUND_MIN_CONNECTION_BYTES = 100_000  # smaller connections (beacons, NTP, DNS) are not part of a bulk transfer
+OUTBOUND_WINDOW = timedelta(hours=1)
+INTERNAL_NETWORKS = [ipaddress.ip_network(n) for n in (
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "127.0.0.0/8", "169.254.0.0/16",
+    "100.64.0.0/10", "::1/128", "fc00::/7", "fe80::/10")]
 
 SENSITIVE_FILE_RE = re.compile(r"/etc/(?:shadow|gshadow|sudoers)\b|/root/\.ssh/|id_rsa\b")
 WEB_SHELL_RE = re.compile(r"\.(?:php\d?|phtml|jsp|aspx?)\b[^ ]*[?&](?:cmd|exec|command|c)=", re.I)
@@ -73,6 +80,13 @@ RULES: dict[str, dict[str, str]] = {
     "suspicious_cron": {
         "technique": "T1053.003", "technique_name": "Scheduled Task/Job: Cron",
         "rationale": "A cron job runs from a temporary or hidden directory, or downloads or pipes code.",
+    },
+    "large_outbound_transfer": {
+        "technique": "T1048", "technique_name": "Exfiltration Over Alternative Protocol",
+        "rationale": f"An internal host sent {OUTBOUND_MIN_BYTES // 1_000_000} MB or more to one external address "
+                     f"within {int(OUTBOUND_WINDOW.total_seconds() // 3600)} hour, counting connections of "
+                     f"{OUTBOUND_MIN_CONNECTION_BYTES // 1000} KB or more, in a log that records bytes sent "
+                     "(such as a firewall).",
     },
     "time_basis": {
         "technique": "", "technique_name": "",
@@ -293,6 +307,54 @@ def _cron(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _internal(ip: str | None) -> bool:
+    try:
+        addr = ipaddress.ip_address(str(ip))
+    except ValueError:
+        return False
+    return any(addr in net for net in INTERNAL_NETWORKS if net.version == addr.version)
+
+
+def _size(n: int) -> str:
+    return f"{n / 1e6:.1f} MB" if n >= 1_000_000 else f"{n / 1e3:.1f} KB" if n >= 1_000 else f"{n} B"
+
+
+def _outbound(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    flows: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    per_host: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for e in events:
+        extra = e.get("extra") or {}
+        sent, src, dst = extra.get("bytes_out"), e.get("src_ip"), extra.get("dst_ip")
+        if isinstance(sent, int) and src and dst and _internal(src) and not _internal(dst):
+            per_host[src].append(e)
+            if sent >= OUTBOUND_MIN_CONNECTION_BYTES:
+                flows[(src, dst)].append(e)
+    found = []
+    for (src, dst), evs in flows.items():
+        best: list[dict[str, Any]] = []
+        for i, first in enumerate(evs):
+            start = _ts(first)
+            window = [x for x in evs[i:] if start and (t := _ts(x)) and t - start <= OUTBOUND_WINDOW]
+            if sum(x["extra"]["bytes_out"] for x in window) > sum(x["extra"]["bytes_out"] for x in best):
+                best = window
+        total = sum(x["extra"]["bytes_out"] for x in best)
+        if total < OUTBOUND_MIN_BYTES:
+            continue
+        chosen = {x["event_id"] for x in best}
+        others = [x for x in per_host[src] if x["event_id"] not in chosen]
+        summary = f"{_size(total)} sent from {src} to {dst} in {_plural(len(best), 'connection')}{_span(best)}."
+        if others:
+            summary += (f" Its other {_plural(len(others), 'outbound connection')} in this evidence sent "
+                        f"{_size(sum(x['extra']['bytes_out'] for x in others))} in total.")
+        elsewhere = sorted({str(x.get("source_file")) for x in events if x.get("src_ip") == dst
+                            and x.get("source_id") not in {b.get("source_id") for b in best}})
+        if elsewhere:
+            summary += f" {dst} also appears in {', '.join(elsewhere)}."
+        found.append(_finding("large_outbound_transfer", "high", f"Large upload from {src} to {dst}",
+                              summary, best, ips=[src, dst]))
+    return found
+
+
 def _time_basis(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     flagged = [e for e in events if e.get("tz_assumed") or e.get("year_inferred")]
     if not flagged:
@@ -309,7 +371,7 @@ def _time_basis(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
                      flagged)]
 
 
-DETECTORS = (_login_after_failures, _web_to_ssh, _web_shell, _brute_force, _web_probing,
+DETECTORS = (_login_after_failures, _web_to_ssh, _web_shell, _outbound, _brute_force, _web_probing,
              _sudo, _accounts, _cron, _time_basis)
 
 
