@@ -41,6 +41,8 @@ SOURCE_TYPES = {
     "access": "access",
     "apache": "access",
     "nginx": "access",
+    "other": "custom",  # no built-in parser; lines stay unparsed until a parser rule covers them
+    "custom": "custom",
 }
 
 
