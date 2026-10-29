@@ -42,19 +42,15 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-Generate the demo cases:
+Start the web app:
 
 ```bash
-incident-timeline demo --output cases/demo-scenarios
+incident-timeline app
 ```
 
-The command creates and checks three synthetic cases. To open all three, with a case picker in the top bar, run:
+Then choose **Add evidence** and upload your logs, or the sample evidence in [`demo-evidence/`](demo-evidence/README.md): three logs from one simulated intrusion, with a step-by-step walkthrough.
 
-```bash
-incident-timeline serve cases/demo-scenarios
-```
-
-To open a single case, pass its folder instead, for example `cases/demo-scenarios/01-brute-force-to-sudo/case`.
+To open a case you built on the command line instead, pass its folder to `serve`, for example `incident-timeline serve cases/web01`. A folder that contains several cases opens all of them, with a case picker in the top bar.
 
 Open the local URL printed in the terminal (usually `http://127.0.0.1:8765`). Keep the terminal open while using the dashboard; press **Ctrl+C** to stop it.
 
@@ -66,17 +62,19 @@ Use the search box to look for a user, IP address, action, message, path, or has
 
 Select an event to open it in the **Event** panel: its normalized UTC time next to the timestamp as recorded, the source time zone and clock offset, the parsed fields, the findings that cite it, and the original log line. ORISECT re-hashes the source file before showing that line; if the check fails, the line is not shown. Use **↑**/**↓** to move between events and **Esc** to close the panel (on smaller screens the panel opens as a sheet with Previous/Next buttons). Keep the full case folder if you need to investigate a warning.
 
-**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover or demo. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
+**Export JSON** is useful for scripts or further analysis. **Export PDF report** creates a readable report for a handover. Both exports use the active filters, including a finding's evidence, so clear them first if you need the full timeline.
 
-## Demo scenarios
+## Sample evidence
 
-The demo command generates these repeatable examples:
+[`demo-evidence/`](demo-evidence/README.md) holds an nginx proxy's access logs (one rotated and gzipped) and an application server's `auth.log` from one simulated intrusion. Its README is a ten-minute walkthrough covering:
+- upload and hashing;
+- time-zone and year handling;
+- all the finding rules;
+- the event inspector;
+- a deliberate 187-second clock fault that is found and corrected;
+- exports and tamper detection.
 
-1. **Brute force to sudo:** repeated SSH login failures followed by a successful login and privileged activity.
-2. **Web exploit to server access:** suspicious web requests followed by server access and privileged commands.
-3. **Account persistence:** remote access and administrative actions, including account and cron changes.
-
-These logs are synthetic, not real incident evidence. Each scenario includes expected results so the reconstruction can be checked.
+The `incident-timeline demo` command and the **Engine lab** remain as the engine's validation suite. They generate three synthetic cases and check the output against expected results; they are not investigations to present.
 
 ## Using your own logs
 
