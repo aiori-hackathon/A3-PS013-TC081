@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import gzip
-import html
 import tempfile
 import sys
 import re
@@ -24,12 +23,6 @@ from .time_analysis import build_time_analysis
 from .pipeline import build_timeline
 from .findings import detect as detect_findings, entities as summarize_entities
 
-# Brand lockup used in page headers; the SVGs live in brand/ (dark and ink variants).
-BRAND_LOCKUP_HTML = (
-    '<img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30">'
-    '<img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12">'
-)
-
 # Static assets served from the package directory: URL path -> (relative file, content type).
 STATIC_FILES = {
     "/tracefuse.css": ("tracefuse.css", "text/css; charset=utf-8"),
@@ -44,36 +37,13 @@ STATIC_FILES = {
 
 
 def resolve_app_case(cases_root: Path, case_id: str) -> Path:
-    """Resolve uploaded cases and synthetic demo cases safely."""
+    """Resolve an uploaded investigation's directory safely."""
     if not re.fullmatch(r"CASE-[a-f0-9]{12}", case_id):
         raise FileNotFoundError("Invalid investigation ID")
-
     root = cases_root.resolve()
-
-    # Normal uploaded investigation.
     direct = (root / case_id).resolve()
     if direct.parent == root and (direct / "case.json").is_file():
         return direct
-
-    # Synthetic demonstration investigation.
-    from .scenarios import SCENARIOS
-
-    for scenario_id in SCENARIOS:
-        expected_id = "CASE-" + uuid.uuid5(
-            uuid.NAMESPACE_URL, scenario_id
-        ).hex[:12]
-
-        if expected_id == case_id:
-            candidate = (
-                root / "demo-scenarios" / scenario_id / "case"
-            ).resolve()
-
-            if (
-                candidate.is_relative_to(root)
-                and (candidate / "case.json").is_file()
-            ):
-                return candidate
-
     raise FileNotFoundError("Investigation not found")
 
 
@@ -87,7 +57,7 @@ def discover_cases(cases_root: Path | str) -> dict[str, Path]:
         candidate = case_file.parent.resolve()
         if candidate.parent == root:
             found[candidate.name] = candidate
-    # Demo/test cases are stored as <root>/<scenario>/case/case.json.
+    # Cases from `incident-timeline demo` are stored as <root>/<scenario>/case/case.json.
     for case_file in sorted(root.glob("*/case/case.json")):
         candidate = case_file.parent.resolve()
         if candidate.is_relative_to(root):
@@ -250,7 +220,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 raise ValueError("Choose one or more log files to upload.")
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 25 * 1024 * 1024:
-                raise ValueError("Uploads must be between 1 byte and 25 MB total for this demo.")
+                raise ValueError("Uploads must be between 1 byte and 25 MB in total.")
             body = self.rfile.read(length)
             message = BytesParser(policy=policy.default).parsebytes(b"Content-Type: " + content_type.encode("ascii", "replace") + b"\r\nMIME-Version: 1.0\r\n\r\n" + body)
             fields: dict[str, list[str]] = {}
@@ -318,12 +288,6 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             if self.app_mode and url.path == "/upload":
                 self.do_POST()
                 return
-            if self.app_mode and url.path == "/engine-test":
-                html_path = Path(__file__).with_name("engine_test.html")
-                if not html_path.is_file():
-                    self.send_response(303); self.send_header("Location", "/demo"); self.end_headers(); return
-                self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
-                return
             case_match = re.match(r"^/case/(CASE-[a-f0-9]{12})/?$", url.path)
             if case_match:
                 case_id = case_match.group(1)
@@ -338,43 +302,6 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const target=(typeof input==="string"||input instanceof URL)?input.toString():input.url;const u=new URL(target,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
                 page_html = html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>")
                 self._send(200, page_html.encode("utf-8"), "text/html; charset=utf-8"); return
-            if self.app_mode and url.path == "/demo":
-                from .scenarios import create_demo_cases
-                results = create_demo_cases(self.cases_root / "demo-scenarios")
-                cards = []
-                for result in results:
-                    demo_id = "CASE-" + uuid.uuid5(
-                        uuid.NAMESPACE_URL, result["scenario_id"]
-                    ).hex[:12]
-
-                    # Use the generated demo case directly; do not copy evidence files.
-                    cards.append((
-                        demo_id,
-                        result["title"],
-                        bool(result["passed"]),
-                    ))
-                cards_html = "".join(
-                    '<li><a class="scenario" href="/case/{}"><span class="scenario-num">{:02d}</span>'
-                    '<span class="scenario-title">{}</span>'
-                    '<span class="tf-badge {}"><i class="tf-dot"></i>{}</span></a></li>'.format(
-                        cid, index, html.escape(title),
-                        "tf-badge--ok" if passed else "tf-badge--warn",
-                        "Validation passed" if passed else "Validation needs review")
-                    for index, (cid, title, passed) in enumerate(cards, start=1))
-                page = (
-                    '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-                    '<meta name="viewport" content="width=device-width,initial-scale=1">'
-                    '<title>Demo investigations · ORISECT</title>'
-                    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">'
-                    '<link rel="stylesheet" href="/tracefuse.css"><link rel="stylesheet" href="/welcome.css"></head>'
-                    '<body class="demo-page"><header class="topbar"><a class="tf-brand" href="/" aria-label="ORISECT home">'
-                    + BRAND_LOCKUP_HTML + '</a></header>'
-                    '<main class="wrap"><p class="eyebrow">Synthetic demonstration data</p><h1>Open a demo investigation</h1>'
-                    '<p class="lede">Each scenario is generated from synthetic logs, validated against its expected timeline, '
-                    'and kept separate from uploaded investigations.</p><ol class="scenario-list">' + cards_html + '</ol>'
-                    '<a class="tf-btn tf-btn--ghost back" href="/">Back to start</a></main></body></html>'
-                )
-                self._send(200, page.encode(), "text/html; charset=utf-8"); return
             if url.path in ("/engine-test", "/engine-test/"):
                 html_path = Path(__file__).with_name("engine_test.html")
                 if not html_path.is_file():
@@ -608,7 +535,7 @@ def serve_app(host: str = "127.0.0.1", port: int = 8765, cases_dir: str | Path =
     print("ORISECT web application")
     print(f"Open http://{display_host}:{actual_port} in your browser")
     print(f"Case storage: {root}")
-    print("Local demo mode. Do not expose this server to untrusted networks.")
+    print("Local mode. Do not expose this server to untrusted networks.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
