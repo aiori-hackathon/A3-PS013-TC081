@@ -14,7 +14,6 @@
 <header class="topbar">
   <a class="tf-brand" href="/" aria-label="ORISECT home"><img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30"><img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12"></a>
   <nav class="topbar-nav" aria-label="Primary">
-    <a class="tf-btn tf-btn--ghost tf-btn--sm" href="/demo">Demo investigations</a>
     <a class="tf-btn tf-btn--ghost tf-btn--sm" href="/engine-test">Engine lab</a>
   </nav>
 </header>
@@ -26,37 +25,34 @@
       <h1 id="hero-title">Make sense of the evidence. <span>Reconstruct the incident.</span></h1>
       <p class="lede">ORISECT preserves your original logs, normalizes every timestamp to UTC and merges them into one timeline. Each finding cites the exact source lines behind it, so every conclusion can be checked.</p>
 
-      <div class="paths" role="group" aria-label="Choose how to start">
+      <div class="paths">
         <div class="path">
-          <div class="path-copy"><h2>Use your own evidence</h2><p>Upload .log, .txt or .gz files and set the format and time zone for each source.</p></div>
-          <button id="open-upload" class="tf-btn tf-btn--primary tf-btn--lg" type="button">Start an investigation</button>
+          <div class="path-copy"><h2>Start an investigation</h2><p>Upload .log, .txt or .gz files, or a whole folder, and set the format and time zone for each source.</p></div>
+          <button id="open-upload" class="tf-btn tf-btn--primary tf-btn--lg" type="button">Add evidence</button>
         </div>
-        <div class="path">
-          <div class="path-copy"><h2>Explore synthetic scenarios</h2><p>Three validated incidents: brute force, a web exploit and account persistence.</p></div>
-          <a class="tf-btn tf-btn--lg" href="/demo">Open a demo</a>
-        </div>
+        <p class="path-note"><strong>No logs to hand?</strong> Choose the repository's <code>demo-evidence</code> folder in the upload window. It holds three logs from one simulated intrusion, and its README walks through the investigation step by step.</p>
       </div>
     </div>
 
     <figure class="specimen" aria-labelledby="specimen-caption">
       <div class="specimen-window">
-        <div class="specimen-bar"><span class="specimen-title-bar">01-brute-force-to-sudo</span><span class="tf-badge tf-badge--info">Synthetic</span></div>
+        <div class="specimen-bar"><span class="specimen-title-bar">web01 intrusion · sample evidence</span><span class="tf-badge tf-badge--info">Simulated</span></div>
         <div class="specimen-finding">
-          <div class="specimen-head"><span class="tf-badge tf-badge--bad">High</span><span class="specimen-tech">T1078 · Valid Accounts</span></div>
-          <p class="specimen-title">Login as alice after failed attempts</p>
-          <p class="specimen-summary">203.0.113.77 logged in successfully after 3 failed attempts.</p>
+          <div class="specimen-head"><span class="tf-badge tf-badge--bad">High</span><span class="specimen-tech">T1505.003 · Web Shell</span></div>
+          <p class="specimen-title">Possible web shell used from 203.0.113.45</p>
+          <p class="specimen-summary">An upload, then 4 requests to /uploads/avatar_7731.php.</p>
         </div>
-        <div class="specimen-colhead" aria-hidden="true"><span>Time · UTC</span><span>Event</span><span>Source</span></div>
+        <div class="specimen-colhead" aria-hidden="true"><span>Time · UTC</span><span>Request</span><span>Source</span></div>
         <ol class="specimen-rows" aria-label="Timeline events cited by this finding">
-          <li data-outcome="failure"><time>09:00:01</time><span class="act">ssh_login</span><span class="tf-badge tf-badge--bad">Failure</span><span class="ln">auth.log:1</span></li>
-          <li data-outcome="failure"><time>09:00:03</time><span class="act">ssh_login</span><span class="tf-badge tf-badge--bad">Failure</span><span class="ln">auth.log:2</span></li>
-          <li data-outcome="failure"><time>09:00:08</time><span class="act">ssh_max_auth_exceeded</span><span class="tf-badge tf-badge--bad">Failure</span><span class="ln">auth.log:3</span></li>
-          <li data-outcome="success" class="is-selected"><time>09:00:21</time><span class="act">ssh_login</span><span class="tf-badge tf-badge--ok">Success</span><span class="ln">auth.log:4</span></li>
+          <li><time>08:31:52</time><span class="act">POST /upload.php</span><span class="tf-badge">200</span><span class="ln">access.log:41</span></li>
+          <li><time>08:32:06</time><span class="act">GET …?cmd=id</span><span class="tf-badge">200</span><span class="ln">access.log:42</span></li>
+          <li><time>08:32:31</time><span class="act">GET …?cmd=ls -la ..</span><span class="tf-badge">200</span><span class="ln">access.log:43</span></li>
+          <li class="is-selected"><time>08:33:02</time><span class="act">GET …?cmd=cat ../config.php</span><span class="tf-badge">200</span><span class="ln">access.log:44</span></li>
         </ol>
-        <div class="specimen-raw"><span class="ln">auth.log:4</span><code>Oct 21 09:00:21 web01 sshd[2008]: Accepted password for alice from 203.0.113.77 port 52022 ssh2</code></div>
-        <div class="specimen-foot"><span>SHA-256 ba009b1c…49e28221</span><span class="ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Hash verified</span></div>
+        <div class="specimen-raw"><span class="ln">access.log:44</span><code>203.0.113.45 - - [25/Oct/2026:08:36:09 +0000] "GET /uploads/avatar_7731.php?cmd=cat%20../config.php HTTP/1.1" 200 688</code></div>
+        <div class="specimen-foot"><span>edge01 clock corrected by −187 s</span><span class="ok"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Hash verified</span></div>
       </div>
-      <figcaption id="specimen-caption">Real engine output for synthetic scenario 01, shown with the investigation workspace's own components.</figcaption>
+      <figcaption id="specimen-caption">Real engine output for the simulated intrusion in <code>demo-evidence/</code>. The raw line shows edge01's fast clock; the timeline shows the corrected time.</figcaption>
     </figure>
   </section>
 
@@ -70,7 +66,7 @@
   </section>
 </main>
 
-<footer class="footer"><span>ORISECT runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Demo data is synthetic and labelled as such.</span></footer>
+<footer class="footer"><span>ORISECT runs on 127.0.0.1 by default. Don't expose it to an untrusted network.</span><span>Sample evidence is simulated and labelled as such.</span></footer>
 
 <dialog id="upload-modal" class="modal tf-dialog" aria-labelledby="upload-title">
   <form id="upload-form" method="dialog" novalidate>
