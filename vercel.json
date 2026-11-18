@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "src/incident_timeline/**",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/api/index?__path=/:path*"
+    }
+  ]
+}
