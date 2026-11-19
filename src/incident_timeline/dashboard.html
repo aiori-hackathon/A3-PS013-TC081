@@ -407,6 +407,28 @@
       .kv { grid-template-columns: minmax(0, 1fr); gap: 0 0; }
       .kv dd { margin-bottom: 6px; }
     }
+
+    /* Section tabs */
+    .view-nav { position: sticky; top: var(--appbar-h, 57px); scroll-margin-top: var(--appbar-h, 57px); z-index: 15; display: flex; gap: 4px; margin: 0 0 16px; padding: 6px; overflow-x: auto; scrollbar-width: none; border: 1px solid var(--tf-border); border-radius: 12px; background: rgba(9, 12, 10, .92); backdrop-filter: saturate(140%) blur(8px); }
+    .view-nav::-webkit-scrollbar { display: none; }
+    .view-tab { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 8px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); font-weight: 560; text-decoration: none; white-space: nowrap; transition: background-color .15s, color .15s; }
+    .view-tab:hover { background: rgba(255, 255, 255, .04); color: var(--tf-text); }
+    .view-tab:focus-visible { outline: 2px solid var(--tf-accent); outline-offset: -2px; }
+    .view-tab[aria-current="page"] { background: rgba(255, 255, 255, .07); color: var(--tf-text); box-shadow: inset 0 0 0 1px var(--tf-border); }
+    .view-step { display: inline-grid; width: 20px; height: 20px; place-items: center; border: 1px solid var(--tf-border); border-radius: 50%; color: var(--tf-text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .view-tab[aria-current="page"] .view-step { border-color: var(--tf-accent); color: var(--tf-accent); }
+    .view-count { color: var(--tf-text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .view-count:empty { display: none; }
+    /* Denser timeline rows: message on one line, meta and source reference side by side */
+    .event-time { padding: 9px 14px 9px 20px; }
+    .event-time::after { top: 15px; }
+    .event-main { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 18px; padding: 8px 20px 9px 18px; }
+    .event-head, .event-message { flex: 1 0 100%; }
+    .event-message { margin-top: 1px; font-size: var(--tf-fs-sm); line-height: 1.45; }
+    .event-meta, .event-ref { margin-top: 3px; }
+    .view[hidden] { display: none !important; }
+    .view > * + * { margin-top: 16px; }
+    .side { top: calc(var(--appbar-h, 57px) + 72px); max-height: calc(100vh - var(--appbar-h, 57px) - 88px); }
   </style>
 </head>
 <body>
@@ -444,6 +466,14 @@
   </section>
   <p class="tf-note is-success case-notice" id="caseNotice" role="status" tabindex="-1" hidden></p>
 
+  <nav class="view-nav" aria-label="Investigation sections">
+    <a class="view-tab" href="#view=findings" data-view-link="findings"><span class="view-step">1</span>Findings<span class="view-count" id="navFindings"></span></a>
+    <a class="view-tab" href="#view=timeline" data-view-link="timeline"><span class="view-step">2</span>Timeline<span class="view-count" id="navEvents"></span></a>
+    <a class="view-tab" href="#view=time" data-view-link="time"><span class="view-step">3</span>Clock &amp; time</a>
+    <a class="view-tab" href="#view=study" data-view-link="study"><span class="view-step">4</span>Triage study</a>
+  </nav>
+
+  <div class="view" data-view="findings">
   <section class="tf-panel" aria-labelledby="findingsHeading">
     <header class="panel-head">
       <div><h2 id="findingsHeading">Findings</h2><p>Raised by fixed, readable rules. Each cites the exact evidence lines behind it. Treat them as leads to verify, not conclusions.</p></div>
@@ -451,7 +481,9 @@
     </header>
     <ol class="finding-list" id="findings"><li class="tf-empty">Analysing events…</li></ol>
   </section>
+  </div>
 
+  <div class="view" data-view="timeline" hidden>
   <div class="workspace">
     <section class="tf-panel" aria-labelledby="timelineHeading">
       <header class="panel-head">
@@ -511,7 +543,9 @@
       </div>
     </aside>
   </div>
+  </div>
 
+  <div class="view" data-view="time" hidden>
   <section class="tf-panel" id="timelineConfidenceLab" aria-labelledby="timeLabHeading">
     <header class="section-head">
       <div>
@@ -573,8 +607,10 @@
       </details>
     </div>
   </section>
+  </div>
 
-  <details class="tf-panel tf-disclosure study" id="triageBenchmark">
+  <div class="view" data-view="study" hidden>
+  <details class="tf-panel tf-disclosure study" id="triageBenchmark" open>
     <summary>
       <h2>Triage time study <span class="tf-badge">Synthetic scenarios</span></h2>
       <span class="s-desc">Time how long it takes to reach the same findings from raw logs and with ORISECT. <span id="benchMetricCoverageInline">0 of 3 scenarios paired.</span></span>
@@ -592,6 +628,7 @@
       <p class="tlab-quiet">Protocol: start timing at the beginning of each investigation and stop when you can state the same incident findings. Keep the scope equivalent and repeat trials when possible.</p>
     </div>
   </details>
+  </div>
 </main>
 <footer class="page-foot">ORISECT runs locally and never modifies source evidence or custody records. Keep exports with the original case folder; a report is not a replacement for the evidence.</footer>
 
@@ -680,6 +717,37 @@
   const SEVERITY = { high: { label: 'High', badge: 'tf-badge--bad', rank: 3 }, medium: { label: 'Medium', badge: 'tf-badge--warn', rank: 2 }, low: { label: 'Low', badge: '', rank: 1 }, info: { label: 'Info', badge: '', rank: 0 } };
   const state = { offset: 0, limit: 50, total: 0, summary: null, debounce: null, scope: null, findings: [], citedBy: new Map(), events: null };
   const filters = ['q', 'source', 'action', 'outcome', 'start', 'end'];
+
+  /* ---------- Section tabs: Findings → Timeline → Clock & time → Triage study ---------- */
+  const VIEWS = ['findings', 'timeline', 'time', 'study'];
+  function showView(name, { focus = false } = {}) {
+    if (!VIEWS.includes(name)) name = 'findings';
+    window.orisectCurrentView = name;
+    for (const v of document.querySelectorAll('[data-view]')) v.hidden = v.dataset.view !== name;
+    for (const a of document.querySelectorAll('[data-view-link]')) {
+      if (a.dataset.viewLink === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    }
+    const hash = '#view=' + name;
+    if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+    if (name === 'time' && window.orisectLoadLab) window.orisectLoadLab();
+    if (focus) document.querySelector(`[data-view="${name}"] h2`)?.scrollIntoView({ block: 'nearest' });
+  }
+  for (const a of document.querySelectorAll('[data-view-link]')) {
+    a.addEventListener('click', ev => {
+      ev.preventDefault();
+      showView(a.dataset.viewLink);
+      const nav = document.querySelector('.view-nav');
+      if (nav.getBoundingClientRect().top <= (parseFloat(getComputedStyle(nav).top) || 0) + 1) nav.scrollIntoView({ block: 'start' });
+    });
+  }
+  // Keep the sticky tab bar directly under the app bar, whose height changes when it wraps on phones.
+  const appbar = document.querySelector('.appbar');
+  const syncAppbar = () => document.documentElement.style.setProperty('--appbar-h', appbar.offsetHeight + 'px');
+  syncAppbar();
+  if ('ResizeObserver' in window) new ResizeObserver(syncAppbar).observe(appbar);
+  const viewFromHash = () => { const h = location.hash.slice(1); return h === 'timeline' ? 'timeline' : h.replace(/^view=/, ''); };
+  window.addEventListener('hashchange', () => showView(viewFromHash()));
+  showView(viewFromHash());
 
   function el(tag, cls, value) {
     const node = document.createElement(tag);
@@ -788,6 +856,7 @@
     $('caseKicker').textContent = d.case_name ? `Investigation · ${d.case_id}` : 'Investigation';
     document.title = `${title} · ORISECT`;
     $('statEvents').textContent = Number(d.events).toLocaleString();
+    $('navEvents').textContent = Number(d.events).toLocaleString();
     $('statSources').textContent = d.source_count;
     $('statGaps').textContent = Number(d.gaps).toLocaleString();
     $('gapsLink').hidden = !d.gaps;
@@ -806,6 +875,7 @@
   function techniqueUrl(id) { return 'https://attack.mitre.org/techniques/' + String(id).replace('.', '/') + '/'; }
   function renderFindings(findings) {
     const box = $('findings'); box.replaceChildren();
+    $('navFindings').textContent = findings.length ? String(findings.length) : '';
     $('findingsCount').textContent = findings.length ? `${findings.length} lead${findings.length === 1 ? '' : 's'}` : '';
     if (!findings.length) { box.append(el('li', 'tf-empty', 'No rule fired on this timeline. That does not mean nothing happened; review the events below.')); return; }
     for (const f of findings) {
@@ -849,7 +919,7 @@
       if (e.failures) { stats.append(document.createTextNode(' · ')); stats.append(el('span', 'fail', `${e.failures} failed`)); }
       btn.append(stats);
       if ((e.sources || []).length > 1) btn.append(el('span', 'entity-cross', `Seen in ${e.sources.length} sources: ${e.sources.join(', ')}`));
-      btn.addEventListener('click', () => { clearScope(false); $('q').value = e.value; state.offset = 0; loadEvents(); $('timeline').focus({ preventScroll: true }); $('timelineHeading').scrollIntoView({ block: 'start' }); });
+      btn.addEventListener('click', () => { showView('timeline'); clearScope(false); $('q').value = e.value; state.offset = 0; loadEvents(); $('timeline').focus({ preventScroll: true }); $('timelineHeading').scrollIntoView({ block: 'start' }); });
       li.append(btn); list.append(li);
     }
     wrap.append(list);
@@ -903,6 +973,7 @@
   async function showGaps() {
     const panel = $('gapsPanel'), box = $('gaps');
     panel.hidden = false;
+    showView('timeline');
     showTab('context');
     box.replaceChildren(el('li', 'tf-empty', 'Loading…'));
     const teach = $('gapTeach'); teach.replaceChildren();
@@ -956,7 +1027,7 @@
     if (pivot) {
       const b = el('button', 'pivot'); b.type = 'button'; b.innerHTML = SEARCH_ICON; b.title = `Search the timeline for ${value}`;
       b.setAttribute('aria-label', `Search the timeline for ${value}`);
-      b.addEventListener('click', () => { closeSheet(); clearScope(false); $('q').value = String(value); state.offset = 0; loadEvents(); $('q').focus(); });
+      b.addEventListener('click', () => { closeSheet(); showView('timeline'); clearScope(false); $('q').value = String(value); state.offset = 0; loadEvents(); $('q').focus(); });
       dd.append(b);
     }
     dl.append(el('dt', '', label), dd);
@@ -1196,6 +1267,7 @@
     state.offset = 0;
     $('scopeTitle').textContent = f.title;
     $('scopeBar').hidden = false;
+    showView('timeline');
     markActiveFinding();
     loadEvents().then(() => { $('timelineHeading').scrollIntoView({ block: 'start' }); $('timeline').focus({ preventScroll: true }); });
   }
@@ -1809,7 +1881,9 @@
   $('tlabIssuesOnly').addEventListener('change', () => { lab.issuesOnly = $('tlabIssuesOnly').checked; lab.offset = 0; loadLab(); });
   $('tlabPrevPage').addEventListener('click', () => { if (!lab.loading && lab.data?.pagination?.has_previous) { lab.offset = Math.max(0, lab.offset - lab.limit); loadLab(); } });
   $('tlabNextPage').addEventListener('click', () => { if (!lab.loading && lab.data?.pagination?.has_next) { lab.offset += lab.limit; loadLab(); } });
-  loadLab();
+  // Loaded on first visit to the Clock & time tab, so it doesn't slow the first paint.
+  window.orisectLoadLab = () => { if (!lab.data && !lab.loading) loadLab(); };
+  if (window.orisectCurrentView === 'time') window.orisectLoadLab();
 })();
 </script>
 </body>

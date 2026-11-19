@@ -1,4 +1,7 @@
 {
+  "regions": [
+    "bom1"
+  ],
   "functions": {
     "api/index.py": {
       "includeFiles": "src/incident_timeline/**",

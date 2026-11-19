@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import gzip
 import tempfile
@@ -66,6 +68,33 @@ def discover_cases(cases_root: Path | str) -> dict[str, Path]:
     return found
 
 
+_INLINE_SCRIPT = re.compile(rb"<script>(.*?)</script>", re.S)
+
+# Headers sent with every response. The CSP for HTML pages is built per page so it
+# can allow that page's own inline script by hash instead of 'unsafe-inline'.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+_CSP_BASE = ("default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; "
+             "connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+
+
+def content_security_policy(body: bytes, content_type: str) -> str:
+    """CSP for a response; HTML pages may run only their own inline scripts, matched by SHA-256."""
+    if not content_type.startswith("text/html"):
+        return _CSP_BASE + "; script-src 'none'"
+    hashes = " ".join(
+        "'sha256-" + base64.b64encode(hashlib.sha256(script).digest()).decode("ascii") + "'"
+        for script in _INLINE_SCRIPT.findall(body)
+    )
+    return _CSP_BASE + "; script-src 'self'" + (" " + hashes if hashes else "")
+
+
 def _json_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False).encode("utf-8")
 
@@ -105,13 +134,17 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         return Case(self.case_root)
 
     def _send(self, status: int, body: bytes, content_type: str = "application/json; charset=utf-8",
-              filename: str | None = None, cache_control: str = "no-store") -> None:
+              filename: str | None = None, cache_control: str = "no-store", cdn_cache: str | None = None) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("X-Content-Type-Options", "nosniff")
+        for name, value in SECURITY_HEADERS.items():
+            self.send_header(name, value)
         self.send_header("Cache-Control", cache_control)
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+        if cdn_cache:
+            # Vercel's CDN keeps these for the life of a deployment; a new deploy purges them.
+            self.send_header("Vercel-CDN-Cache-Control", cdn_cache)
+        self.send_header("Content-Security-Policy", content_security_policy(body, content_type))
         if filename:
             safe = filename.replace('"', "")
             self.send_header("Content-Disposition", f'attachment; filename="{safe}"')
@@ -284,8 +317,21 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             print(f"ORISECT rules error: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._fail(500, "The rule could not be processed. Check the local server log for details.")
 
+    def _cross_site(self) -> bool:
+        """True for a POST another site's page sent, which this app never needs to accept."""
+        if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
+            return True
+        origin = self.headers.get("Origin")
+        if not origin or origin == "null":
+            return origin == "null"
+        host = self.headers.get("X-Forwarded-Host") or self.headers.get("Host") or ""
+        return urlsplit(origin).netloc.lower() != host.split(",")[0].strip().lower()
+
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler contract
         url = urlsplit(self.path)
+        if self._cross_site():
+            self._fail(403, "Cross-site request refused")
+            return
         if url.path.startswith("/api/rules/"):
             self._rules_post(url.path)
             return
@@ -356,12 +402,15 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             if url.path in ("/", "/index.html"):
                 html_name = "welcome.html" if self.app_mode else "dashboard.html"
                 html_path = Path(__file__).with_name(html_name)
-                self._send(200, html_path.read_bytes(), "text/html; charset=utf-8")
+                self._send(200, html_path.read_bytes(), "text/html; charset=utf-8", cache_control="no-cache",
+                           cdn_cache="max-age=31536000" if self.app_mode else None)
                 return
             if url.path in STATIC_FILES:
                 relative, content_type = STATIC_FILES[url.path]
-                cache = "public, max-age=604800, immutable" if content_type == "font/woff2" else "no-store"
-                self._send(200, (Path(__file__).parent / relative).read_bytes(), content_type, cache_control=cache)
+                cache = ("public, max-age=604800, immutable" if content_type == "font/woff2"
+                         else "public, max-age=300, stale-while-revalidate=86400")
+                self._send(200, (Path(__file__).parent / relative).read_bytes(), content_type,
+                           cache_control=cache, cdn_cache="max-age=31536000")
                 return
             if self.app_mode and url.path == "/upload":
                 self.do_POST()
