@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#090c0a">
+<script>try{if(localStorage.getItem('orisect-theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <title>ORISECT · Engine Validation Lab</title>
   <link rel="stylesheet" href="/tracefuse.css">
@@ -100,9 +101,10 @@
 </head>
 <body>
 <header class="topbar">
-  <a class="tf-brand" href="/" aria-label="ORISECT home"><img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30"><img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12"></a>
+  <a class="tf-brand" href="/" aria-label="ORISECT home"><img class="tf-brand-mark" src="/brand/orisect-mark.svg" alt="" width="30" height="30"><img class="tf-wordmark" src="/brand/orisect-wordmark.svg" alt="ORISECT" width="104" height="12"><img class="tf-brand-mark tf-ink" src="/brand/orisect-mark-ink.svg" alt="" width="30" height="30"><img class="tf-wordmark tf-ink" src="/brand/orisect-wordmark-ink.svg" alt="ORISECT" width="104" height="12"></a>
   <span class="tf-brand-context">Engine Validation Lab</span>
   <a class="tf-btn tf-btn--ghost back-link" href="/" id="backLink">Home</a>
+  <button class="tf-btn tf-btn--ghost tf-btn--icon tf-theme-toggle" type="button" data-theme-toggle aria-label="Switch to light theme" title="Switch to light theme"><svg viewBox="0 0 24 24" aria-hidden="true"><mask id="tt-bite"><rect width="24" height="24" fill="white"/><circle class="tt-bite" r="6.5" fill="black"/></mask><circle class="tt-disc" cx="12" cy="12" mask="url(#tt-bite)"/><g class="tt-rays"><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(0 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(45 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(90 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(135 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(180 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(225 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(270 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(315 12 12)"/></g></svg></button>
 </header>
 <main class="shell">
   <section class="hero" aria-labelledby="pageTitle">
@@ -377,5 +379,6 @@
   initialise();
 })();
 </script>
+<script src="/themereveal.js"></script>
 </body>
 </html>

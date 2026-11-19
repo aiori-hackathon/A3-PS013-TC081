@@ -32,6 +32,7 @@ STATIC_FILES = {
     "/welcome.css": ("welcome.css", "text/css; charset=utf-8"),
     "/tzpicker.js": ("tzpicker.js", "text/javascript; charset=utf-8"),
     "/casestore.js": ("casestore.js", "text/javascript; charset=utf-8"),
+    "/themereveal.js": ("themereveal.js", "text/javascript; charset=utf-8"),
     "/favicon.svg": ("brand/orisect-icon.svg", "image/svg+xml"),
     **{f"/brand/{name}": (f"brand/{name}", "image/svg+xml") for name in (
         "orisect-mark.svg", "orisect-mark-ink.svg", "orisect-wordmark.svg", "orisect-wordmark-ink.svg",
