@@ -40,56 +40,60 @@ UPLOADED_SCRIPT_RE = re.compile(r"/uploads?/[^ ?]*\.(?:php\d?|phtml|jsp|aspx?)\b
 PROBE_PATH_RE = re.compile(r"wp-login|wp-admin|/admin\b|/\.env\b|/\.git\b|phpmyadmin|/etc/passwd|\.\./", re.I)
 SUSPICIOUS_CRON_RE = re.compile(r"(?:^|\s)(?:/tmp|/var/tmp|/dev/shm)/|/\.[^/\s]+/|\b(?:curl|wget|nc|ncat)\b|bash -c", re.I)
 
+# ATT&CK tactics in kill-chain order; each rule's "tactic" is the stage its technique serves here.
+TACTICS = ("Reconnaissance", "Initial Access", "Execution", "Persistence", "Privilege Escalation",
+           "Credential Access", "Lateral Movement", "Exfiltration")
+
 RULES: dict[str, dict[str, str]] = {
     "brute_force": {
-        "technique": "T1110", "technique_name": "Brute Force",
+        "tactic": "Credential Access", "technique": "T1110", "technique_name": "Brute Force",
         "rationale": f"{BRUTE_FORCE_MIN} or more failed authentications from one address within "
                      f"{int(BRUTE_FORCE_WINDOW.total_seconds() // 60)} minutes.",
     },
     "login_after_failures": {
-        "technique": "T1078", "technique_name": "Valid Accounts",
+        "tactic": "Initial Access", "technique": "T1078", "technique_name": "Valid Accounts",
         "rationale": "A successful SSH login from an address that failed to authenticate in the hour before.",
     },
     "web_to_ssh": {
-        "technique": "T1021.004", "technique_name": "Remote Services: SSH",
+        "tactic": "Lateral Movement", "technique": "T1021.004", "technique_name": "Remote Services: SSH",
         "rationale": "The same client address appears in a web access log and then logs in over SSH, "
                      "in different evidence sources, within two hours.",
     },
     "web_shell": {
-        "technique": "T1505.003", "technique_name": "Server Software Component: Web Shell",
+        "tactic": "Persistence", "technique": "T1505.003", "technique_name": "Server Software Component: Web Shell",
         "rationale": "A request runs a command through a script parameter (cmd=, exec=) or calls a script "
                      "from an upload folder.",
     },
     "web_probing": {
-        "technique": "T1595", "technique_name": "Active Scanning",
+        "tactic": "Reconnaissance", "technique": "T1595", "technique_name": "Active Scanning",
         "rationale": "Two or more refused requests (4xx) from one address for login pages, admin paths or "
                      "configuration files.",
     },
     "sensitive_file_access": {
-        "technique": "T1003.008", "technique_name": "OS Credential Dumping: /etc/passwd and /etc/shadow",
+        "tactic": "Credential Access", "technique": "T1003.008", "technique_name": "OS Credential Dumping: /etc/passwd and /etc/shadow",
         "rationale": "A privileged command touches a credential store such as /etc/shadow or /etc/sudoers.",
     },
     "privileged_commands": {
-        "technique": "T1548.003", "technique_name": "Abuse Elevation Control: Sudo",
+        "tactic": "Privilege Escalation", "technique": "T1548.003", "technique_name": "Abuse Elevation Control: Sudo",
         "rationale": "Commands run through sudo as another user (usually root).",
     },
     "account_created": {
-        "technique": "T1136.001", "technique_name": "Create Account: Local Account",
+        "tactic": "Persistence", "technique": "T1136.001", "technique_name": "Create Account: Local Account",
         "rationale": "A local account was created; it is flagged high when it is also added to an administrative group.",
     },
     "suspicious_cron": {
-        "technique": "T1053.003", "technique_name": "Scheduled Task/Job: Cron",
+        "tactic": "Persistence", "technique": "T1053.003", "technique_name": "Scheduled Task/Job: Cron",
         "rationale": "A cron job runs from a temporary or hidden directory, or downloads or pipes code.",
     },
     "large_outbound_transfer": {
-        "technique": "T1048", "technique_name": "Exfiltration Over Alternative Protocol",
+        "tactic": "Exfiltration", "technique": "T1048", "technique_name": "Exfiltration Over Alternative Protocol",
         "rationale": f"An internal host sent {OUTBOUND_MIN_BYTES // 1_000_000} MB or more to one external address "
                      f"within {int(OUTBOUND_WINDOW.total_seconds() // 3600)} hour, counting connections of "
                      f"{OUTBOUND_MIN_CONNECTION_BYTES // 1000} KB or more, in a log that records bytes sent "
                      "(such as a firewall).",
     },
     "time_basis": {
-        "technique": "", "technique_name": "",
+        "tactic": "", "technique": "", "technique_name": "",
         "rationale": "Some timestamps rely on an assumed time zone or an inferred year; ordering against other "
                      "sources may be off.",
     },
@@ -113,6 +117,7 @@ def _finding(rule: str, severity: str, title: str, summary: str, events: Iterabl
         "severity": severity,
         "title": title,
         "summary": summary,
+        "tactic": RULES[rule]["tactic"],
         "technique": RULES[rule]["technique"],
         "technique_name": RULES[rule]["technique_name"],
         "rationale": RULES[rule]["rationale"],

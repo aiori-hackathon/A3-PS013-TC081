@@ -460,6 +460,49 @@
     .skew-pairs td { padding: 6px 8px; border-bottom: 1px solid var(--tf-border); color: var(--tf-text-2); overflow-wrap: anywhere; }
     .skew-pairs .delta { color: var(--tf-text); text-align: right; white-space: nowrap; }
     @media (max-width: 720px) { .skew-row { grid-template-columns: minmax(0, 1fr); } .skew-actions { justify-content: flex-start; } }
+
+    /* Incident storyline */
+    .story-tools { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+    .story-zoom { display: inline-flex; gap: 4px; }
+    .story-chart .edge-note { fill: var(--tf-accent); font: 600 11px var(--tf-font); cursor: pointer; }
+    @media (max-width: 720px) { .story-tools { align-items: flex-start; } #storyPanel .panel-head, #skewPanel .panel-head { flex-direction: column; align-items: stretch; } .skew-controls .tf-field { flex: 1; min-width: 0; } }
+    .story-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .story-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .story-legend i { display: inline-block; width: 14px; height: 8px; border-radius: 3px; }
+    .sev-high { background: var(--tf-bad); } .sev-medium { background: var(--tf-warn); } .sev-low { background: var(--tf-info); }
+    .sev-activity { background: color-mix(in srgb, var(--tf-text-3) 45%, transparent); }
+    .story-chart { overflow-x: auto; padding: 8px 12px 4px; scrollbar-width: thin; }
+    .story-chart svg { display: block; min-width: 640px; }
+    .story-chart .lane-label { fill: var(--tf-text-2); font: 560 12px var(--tf-font); }
+    .story-chart .lane-line { stroke: var(--tf-border); stroke-width: 1; }
+    .story-chart .grid { stroke: var(--tf-border); stroke-dasharray: 2 4; }
+    .story-chart .tick { fill: var(--tf-text-3); font: 11px var(--tf-mono); }
+    .story-chart .tick-date { fill: var(--tf-text-2); font: 600 11px var(--tf-font); }
+    .story-chart .density { fill: color-mix(in srgb, var(--tf-text-3) 45%, transparent); }
+    .story-chart .density-label { fill: var(--tf-text-3); font: 11px var(--tf-font); }
+    .story-chart .bar { cursor: pointer; outline: none; }
+    .story-chart .bar rect { rx: 4px; transition: opacity var(--tf-dur) var(--tf-ease); }
+    .story-chart .bar[data-sev="high"] rect { fill: var(--tf-bad); }
+    .story-chart .bar[data-sev="medium"] rect { fill: var(--tf-warn); }
+    .story-chart .bar[data-sev="low"] rect, .story-chart .bar[data-sev="info"] rect { fill: var(--tf-info); }
+    .story-chart .bar circle { fill: var(--tf-surface); stroke: currentColor; stroke-width: 1.5; }
+    .story-chart .bar[data-sev="high"] { color: var(--tf-bad); } .story-chart .bar[data-sev="medium"] { color: var(--tf-warn); }
+    .story-chart .bar[data-sev="low"], .story-chart .bar[data-sev="info"] { color: var(--tf-info); }
+    .story-chart .bar text { fill: var(--tf-text); font: 600 10px var(--tf-mono); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .story-chart .bar:hover rect, .story-chart .bar:focus-visible rect { opacity: .8; }
+    .story-chart .bar:focus-visible circle { stroke-width: 3; }
+    .story-chart .bar.is-active circle { fill: currentColor; } .story-chart .bar.is-active text { fill: var(--tf-surface); }
+    .story-chain { display: grid; gap: 0; margin: 0; padding: 4px 0 8px; list-style: none; counter-reset: none; border-top: 1px solid var(--tf-border); }
+    .story-step { display: grid; grid-template-columns: 28px 128px minmax(0, 1fr) auto; align-items: start; gap: 4px 12px; padding: 10px 20px; }
+    .story-step + .story-step { border-top: 1px dashed var(--tf-border); }
+    .story-num { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid currentColor; border-radius: 50%; font: 600 11px var(--tf-mono); }
+    .story-step[data-sev="high"] .story-num { color: var(--tf-bad); } .story-step[data-sev="medium"] .story-num { color: var(--tf-warn); }
+    .story-step[data-sev="low"] .story-num, .story-step[data-sev="info"] .story-num { color: var(--tf-info); }
+    .story-time { font: var(--tf-fs-sm)/1.5 var(--tf-mono); } .story-time span { display: block; color: var(--tf-text-3); font-size: var(--tf-fs-2xs); }
+    .story-what strong { display: block; font-size: 14px; font-weight: 600; }
+    .story-what p { margin-top: 2px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); }
+    .story-tactic { display: inline-block; margin-bottom: 3px; color: var(--tf-accent); font-size: var(--tf-fs-2xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+    @media (max-width: 720px) { .story-step { grid-template-columns: 28px minmax(0, 1fr); } .story-time { grid-column: 2; } .story-what { grid-column: 2; } .story-step .tf-btn { grid-column: 2; justify-self: start; } }
     .view[hidden] { display: none !important; }
     @media (prefers-reduced-motion: no-preference) {
       .view:not([hidden]) { animation: view-in 180ms var(--tf-ease); }
@@ -515,6 +558,17 @@
   </nav>
 
   <div class="view" data-view="findings">
+  <section class="tf-panel story" id="storyPanel" aria-labelledby="storyHeading" hidden>
+    <header class="panel-head">
+      <div><h2 id="storyHeading">Incident storyline</h2><p id="storySummary">The findings in time order, grouped by the ATT&amp;CK stage each one resembles. Select one to see its evidence.</p></div>
+      <div class="story-tools">
+      <div class="story-zoom" role="group" aria-label="Storyline range"><button class="tf-btn tf-btn--sm" type="button" data-story-zoom="window" aria-pressed="true">Attack window</button><button class="tf-btn tf-btn--sm" type="button" data-story-zoom="all" aria-pressed="false">Whole case</button></div>
+      <div class="story-legend" aria-hidden="true"><span><i class="sev-high"></i>High</span><span><i class="sev-medium"></i>Medium</span><span><i class="sev-low"></i>Low / info</span><span><i class="sev-activity"></i>All events</span></div>
+      </div>
+    </header>
+    <div class="story-chart" id="storyChart"></div>
+    <ol class="story-chain" id="storyChain"></ol>
+  </section>
   <section class="tf-panel" aria-labelledby="findingsHeading">
     <header class="panel-head">
       <div><h2 id="findingsHeading">Findings</h2><p>Raised by fixed, readable rules. Each cites the exact evidence lines behind it. Treat them as leads to verify, not conclusions.</p></div>
@@ -1037,6 +1091,8 @@
         if (!prev || (SEVERITY[f.severity]?.rank ?? 0) > (SEVERITY[prev]?.rank ?? 0)) state.citedBy.set(id, f.severity);
       }
       renderFindings(state.findings);
+      story.findings = state.findings; story.activity = d.activity?.points || [];
+      renderStory();
       if (state.events) renderEvents(state.events);
       box.replaceChildren(entityList('Addresses', d.entities?.ips || []), entityList('Accounts', d.entities?.users || []));
     } catch (err) {
@@ -1044,6 +1100,111 @@
       box.replaceChildren(el('p', 'tf-empty', 'Unavailable.'));
     }
   }
+
+
+  /* ---------- Incident storyline ---------- */
+  const TACTICS = ['Reconnaissance', 'Initial Access', 'Execution', 'Persistence', 'Privilege Escalation', 'Credential Access', 'Lateral Movement', 'Exfiltration'];
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs = {}, text) { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text !== undefined) n.textContent = text; return n; }
+  const story = { findings: [], activity: [], zoom: 'window' };
+  // The attack window: findings grouped wherever two hours pass without a new one;
+  // the group with the most weight (severity) is where the incident happened.
+  function attackWindow(steps) {
+    const groups = [];
+    for (const s of steps) { const g = groups[groups.length - 1]; if (g && s.t0 - g.end <= 2 * 3600e3) { g.items.push(s); g.end = Math.max(g.end, s.t1); } else groups.push({ items: [s], end: s.t1 }); }
+    const weight = g => g.items.reduce((n, s) => n + 1 + (SEVERITY[s.f.severity]?.rank ?? 0), 0);
+    const best = groups.reduce((a, b) => weight(b) > weight(a) ? b : a, groups[0]);
+    return [Math.min(...best.items.map(s => s.t0)), best.end];
+  }
+  function storySteps() {
+    return story.findings.filter(f => f.tactic && f.first_ts_utc)
+      .map(f => ({ f, t0: Date.parse(f.first_ts_utc), t1: Date.parse(f.last_ts_utc || f.first_ts_utc) }))
+      .sort((a, b) => a.t0 - b.t0 || (SEVERITY[b.f.severity]?.rank ?? 0) - (SEVERITY[a.f.severity]?.rank ?? 0));
+  }
+  function niceStep(span) {
+    const M = 60e3, H = 3600e3;
+    for (const s of [M, 2 * M, 5 * M, 10 * M, 15 * M, 30 * M, H, 2 * H, 3 * H, 6 * H, 12 * H, 24 * H]) if (span / s <= 8) return s;
+    return 48 * H;
+  }
+  function renderStory() {
+    const panel = $('storyPanel'), steps = storySteps();
+    panel.hidden = !steps.length;
+    if (!steps.length) return;
+    const box = $('storyChart');
+    let [t0, t1] = story.zoom === 'window' ? attackWindow(steps) : [Math.min(...steps.map(s => s.t0)), Math.max(...steps.map(s => s.t1))];
+    const before = steps.filter(s => s.t1 < t0).length, after = steps.filter(s => s.t0 > t1).length;
+    const pad = Math.max((t1 - t0) * 0.06, 5 * 60e3); t0 -= pad; t1 += pad;
+    const lanes = TACTICS.filter(name => steps.some(s => s.f.tactic === name && s.t1 >= t0 && s.t0 <= t1));
+    const W = Math.max(box.clientWidth - 24, 640), left = 158, right = 16, top = 44, laneH = 34, densH = 44;
+    const H = top + lanes.length * laneH + densH + 8;
+    const x = ms => left + (ms - t0) / (t1 - t0) * (W - left - right);
+    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': `Incident storyline: ${steps.length} findings across ${lanes.length} attack stages` });
+    // time grid
+    const step = niceStep(t1 - t0); let lastDay = '';
+    for (let tk = Math.ceil(t0 / step) * step; tk <= t1; tk += step) {
+      const d = new Date(tk), px = x(tk);
+      root.append(svg('line', { class: 'grid', x1: px, x2: px, y1: top - 6, y2: H - 4 }));
+      root.append(svg('text', { class: 'tick', x: px, y: top - 12, 'text-anchor': 'middle' }, d.toISOString().slice(11, 16)));
+      const day = d.toISOString().slice(0, 10);
+      if (day !== lastDay) { root.append(svg('text', { class: 'tick-date', x: lastDay ? px : left - 8, y: top - 28, 'text-anchor': lastDay ? 'middle' : 'end' }, d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }) + (lastDay ? '' : ' · UTC'))); lastDay = day; }
+    }
+    // lanes
+    lanes.forEach((name, i) => {
+      const y = top + i * laneH + laneH / 2;
+      root.append(svg('line', { class: 'lane-line', x1: left, x2: W - right, y1: y, y2: y }));
+      root.append(svg('text', { class: 'lane-label', x: left - 10, y: y + 4, 'text-anchor': 'end' }, name));
+    });
+    // event density along the bottom
+    const dy = top + lanes.length * laneH + 6, bins = Math.max(24, Math.floor((W - left - right) / 6)), counts = new Array(bins).fill(0);
+    for (const p of story.activity) { const ms = Date.parse(p.ts_utc); if (ms >= t0 && ms <= t1) counts[Math.min(bins - 1, Math.floor((ms - t0) / (t1 - t0) * bins))] += p.count || 1; }
+    const peak = Math.max(1, ...counts), bw = (W - left - right) / bins;
+    counts.forEach((c, i) => { if (c) { const h = Math.max(2, c / peak * (densH - 14)); root.append(svg('rect', { class: 'density', x: left + i * bw + .5, y: dy + densH - 8 - h, width: Math.max(1, bw - 1), height: h, rx: 1 })); } });
+    root.append(svg('text', { class: 'density-label', x: left - 10, y: dy + densH - 12, 'text-anchor': 'end' }, 'All events'));
+    // findings outside the window are counted at its edges
+    const edge = (n, px, anchor, word) => { if (!n) return; const tx = svg('text', { class: 'edge-note', x: px, y: top - 28, 'text-anchor': anchor }, `${word === 'earlier' ? '‹ ' : ''}${n} ${word}${word === 'later' ? ' ›' : ''}`); tx.addEventListener('click', () => setStoryZoom('all')); root.append(tx); };
+    edge(before, left + 60, 'start', 'earlier'); edge(after, W - right, 'end', 'later');
+    // findings
+    steps.forEach((s, i) => {
+      if (s.t1 < t0 || s.t0 > t1) return;
+      const lane = lanes.indexOf(s.f.tactic), y = top + lane * laneH + laneH / 2;
+      const x1 = x(s.t0), x2 = Math.max(x(s.t1), x1 + 8);
+      const g = svg('g', { class: 'bar', 'data-sev': s.f.severity, tabindex: 0, role: 'button', 'aria-label': `${i + 1}. ${s.f.title}. Show evidence` });
+      if (state.scope && state.scope.id === s.f.id) g.classList.add('is-active');
+      g.append(svg('title', {}, `${i + 1}. ${s.f.title}\n${s.f.technique} ${s.f.technique_name}\n${s.f.first_ts_utc} – ${s.f.last_ts_utc}`));
+      g.append(svg('rect', { x: x1, y: y - 5, width: x2 - x1, height: 10 }));
+      g.append(svg('circle', { cx: x1, cy: y, r: 9 }));
+      g.append(svg('text', { x: x1, y: y + .5 }, String(i + 1)));
+      const open = () => setScope(s.f, true);
+      g.addEventListener('click', open);
+      g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
+      root.append(g);
+    });
+    box.replaceChildren(root);
+    // the attack chain, in words
+    const fmt = ms => new Date(ms).toISOString().slice(11, 19);
+    const day = ms => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    $('storyChain').replaceChildren(...steps.map((s, i) => {
+      const li = el('li', 'story-step'); li.dataset.sev = s.f.severity;
+      const time = el('div', 'story-time', `${fmt(s.t0)} UTC`); time.append(el('span', '', day(s.t0)));
+      const what = el('div', 'story-what'); what.append(el('span', 'story-tactic', `${s.f.tactic} · ${s.f.technique}`), el('strong', '', s.f.title), el('p', '', s.f.summary));
+      const btn = el('button', 'tf-btn tf-btn--sm', 'Show evidence'); btn.type = 'button'; btn.addEventListener('click', () => setScope(s.f, true));
+      li.append(el('span', 'story-num', String(i + 1)), time, what, btn);
+      return li;
+    }));
+    const order = [...new Set(steps.map(s => s.f.tactic))];
+    const ips = new Set(steps.flatMap(s => s.f.entities?.ips || [])), users = new Set(steps.flatMap(s => s.f.entities?.users || []));
+    const first = steps[0].t0, last = Math.max(...steps.map(s => s.t1));
+    $('storySummary').textContent = `${plural(steps.length, 'finding')} from ${fmt(first)} on ${day(first)} to ${fmt(last)} UTC on ${day(last)}. Stages in the order they appear: ${order.map(o => o.toLowerCase()).join(' → ')}. ` +
+      `${ips.size} address${ips.size === 1 ? '' : 'es'} and ${plural(users.size, 'account')} involved. These are leads raised by readable rules; verify each against its evidence.`;
+  }
+  function setStoryZoom(mode) {
+    story.zoom = mode;
+    for (const b of document.querySelectorAll('[data-story-zoom]')) b.setAttribute('aria-pressed', String(b.dataset.storyZoom === mode));
+    renderStory();
+  }
+  for (const b of document.querySelectorAll('[data-story-zoom]')) b.addEventListener('click', () => setStoryZoom(b.dataset.storyZoom));
+  let storyResize = null;
+  if ('ResizeObserver' in window) new ResizeObserver(() => { clearTimeout(storyResize); storyResize = setTimeout(() => { if (!$('storyPanel').hidden && story.findings.length) renderStory(); }, 120); }).observe($('storyChart'));
 
   /* ---------- Custody and gaps ---------- */
   async function loadCustody() {
