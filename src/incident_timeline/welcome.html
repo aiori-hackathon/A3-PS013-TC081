@@ -32,6 +32,10 @@
           <div class="path-copy"><h2>Start an investigation</h2><p>Upload .log, .txt or .gz files, or a whole folder, and set the format and time zone for each source.</p></div>
           <button id="open-upload" class="tf-btn tf-btn--primary tf-btn--lg" type="button">Add evidence</button>
         </div>
+        <div class="recent" id="recent" hidden>
+          <h2>Recent investigations</h2>
+          <ul id="recent-list"></ul>
+        </div>
         <p class="path-note"><strong>No logs to hand?</strong> Choose the repository's <code>demo-evidence</code> folder in the upload window. It holds four logs from one simulated intrusion, one in a format ORISECT has to be taught, and its README walks through the investigation step by step.</p>
       </div>
     </div>
@@ -122,6 +126,22 @@
   const submit = document.getElementById('submit-upload');
   const caseName = document.getElementById('case-name');
   const MAX_BYTES = 25 * 1024 * 1024;
+  // Investigations opened in this browser, so going back never means uploading again.
+  (() => {
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem('orisect-recent') || '[]'); } catch { return; }
+    if (!recent.length) return;
+    const list = document.getElementById('recent-list');
+    const ago = ms => { const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+    for (const r of recent) {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = '/case/' + encodeURIComponent(r.id);
+      const name = document.createElement('strong'); name.textContent = r.name;
+      const meta = document.createElement('span'); meta.textContent = `${Number(r.events || 0).toLocaleString()} events · ${r.sources || 0} sources · ${ago(r.opened)}`;
+      a.append(name, meta); li.append(a); list.append(li);
+    }
+    document.getElementById('recent').hidden = false;
+  })();
   const FORMATS = [['auth', 'Linux authentication / syslog'], ['syslog', 'System log (syslog)'], ['access', 'Web access log (Nginx / Apache)'], ['apache', 'Apache access log'], ['nginx', 'Nginx access log'], ['other', 'Other format (teach ORISECT after upload)']];
   const DETECTED = { auth: 'Detected: syslog / auth.log lines', access: 'Detected: web access log lines', other: 'Not a format ORISECT reads yet. Its lines are kept as unparsed evidence; after upload, the rule assistant can learn the format.' };
   let selected = [];

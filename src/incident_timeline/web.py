@@ -99,6 +99,27 @@ def _cached(path: Path, kind: str, build: Any) -> Any:
     return value
 
 
+# Pages load their stylesheets and scripts as /name?v=<content hash>, so a new
+# version always has a new URL and no browser or CDN can keep using an old copy.
+_ASSET_REF = re.compile(rb'(href|src)="/(tracefuse\.css|welcome\.css|tzpicker\.js|casestore\.js|themereveal\.js)"')
+_ASSET_VERSIONS: dict[str, tuple[int, str]] = {}
+
+
+def asset_version(name: str) -> str:
+    path = Path(__file__).with_name(name)
+    stamp = path.stat().st_mtime_ns
+    cached = _ASSET_VERSIONS.get(name)
+    if cached and cached[0] == stamp:
+        return cached[1]
+    version = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    _ASSET_VERSIONS[name] = (stamp, version)
+    return version
+
+
+def version_assets(html: bytes) -> bytes:
+    return _ASSET_REF.sub(lambda m: m.group(1) + b'="/' + m.group(2) + b"?v=" + asset_version(m.group(2).decode()).encode() + b'"', html)
+
+
 _INLINE_SCRIPT = re.compile(rb"<script>(.*?)</script>", re.S)
 
 # Headers sent with every response. The CSP for HTML pages is built per page so it
@@ -166,6 +187,8 @@ class TracefuseHandler(BaseHTTPRequestHandler):
 
     def _send(self, status: int, body: bytes, content_type: str = "application/json; charset=utf-8",
               filename: str | None = None, cache_control: str = "no-store", cdn_cache: str | None = None) -> None:
+        if content_type.startswith("text/html"):
+            body = version_assets(body)
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
@@ -509,8 +532,10 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 return
             if url.path in STATIC_FILES:
                 relative, content_type = STATIC_FILES[url.path]
-                cache = ("public, max-age=604800, immutable" if content_type == "font/woff2"
-                         else "public, max-age=300, stale-while-revalidate=86400")
+                # Versioned URLs (?v=hash) never change content; unversioned ones are always re-checked.
+                versioned = (params.get("v") or [""])[0] == asset_version(relative) if relative.endswith((".css", ".js")) else False
+                cache = ("public, max-age=31536000, immutable" if content_type == "font/woff2" or versioned
+                         else "no-cache")
                 self._send(200, (Path(__file__).parent / relative).read_bytes(), content_type,
                            cache_control=cache, cdn_cache="max-age=31536000")
                 return

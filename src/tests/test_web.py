@@ -620,3 +620,21 @@ def test_evidence_bundle_verifies_without_orisect_and_catches_tampering(tmp_path
         fh.write(b"tampered\n")
     problems = verify_bundle(out)["problems"]
     assert any("SHA256SUMS" in p for p in problems) and any("recorded at collection" in p for p in problems)
+
+
+def test_pages_load_assets_by_content_version(tmp_path: Path) -> None:
+    """A deploy that changes a stylesheet or script changes its URL, so no browser keeps the old copy."""
+    root = tmp_path.resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        with urlopen(base + "/") as response:
+            page = response.read().decode()
+        refs = dict(re.findall(r'(?:href|src)="/(tracefuse\.css|welcome\.css|tzpicker\.js|casestore\.js|themereveal\.js)\?v=([0-9a-f]{12})"', page))
+        assert set(refs) == {"tracefuse.css", "welcome.css", "tzpicker.js", "casestore.js", "themereveal.js"}
+        with urlopen(f"{base}/tracefuse.css?v={refs['tracefuse.css']}") as response:
+            assert "immutable" in response.headers["Cache-Control"]
+            assert b':root[data-theme="light"]' in response.read()
+        with urlopen(base + "/tracefuse.css") as response:
+            assert response.headers["Cache-Control"] == "no-cache"
+    finally:
+        server.shutdown()

@@ -97,3 +97,12 @@
   .specimen-raw .ln { text-align: left; }
   .file-fields { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Recent investigations (this browser) */
+.recent { padding: 14px 18px; border-top: 1px solid var(--tf-border); }
+.recent h2 { color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.recent ul { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.recent a { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; border: 1px solid var(--tf-border); border-radius: var(--tf-radius); background: var(--tf-surface-2); text-decoration: none; transition: border-color var(--tf-dur) var(--tf-ease); }
+.recent a:hover { border-color: var(--tf-accent-line); }
+.recent strong { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent span { flex: none; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }

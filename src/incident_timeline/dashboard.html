@@ -851,7 +851,7 @@
 
   /* ---------- Section tabs: Findings → Timeline → Clock & time → Triage study ---------- */
   const VIEWS = ['findings', 'timeline', 'time', 'study'];
-  function showView(name, { focus = false } = {}) {
+  function showView(name, { focus = false, push = false } = {}) {
     if (!VIEWS.includes(name)) name = 'findings';
     window.orisectCurrentView = name;
     for (const v of document.querySelectorAll('[data-view]')) v.hidden = v.dataset.view !== name;
@@ -859,7 +859,8 @@
       if (a.dataset.viewLink === name) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     }
     const hash = '#view=' + name;
-    if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+    // Tab clicks are history entries, so Back returns to the previous tab before leaving the case.
+    if (location.hash !== hash) history[push ? 'pushState' : 'replaceState'](null, '', location.pathname + location.search + hash);
     if (name === 'time' && window.orisectLoadLab) window.orisectLoadLab();
     if (name === 'time' && window.orisectLoadSkew) window.orisectLoadSkew();
     if (focus) document.querySelector(`[data-view="${name}"] h2`)?.scrollIntoView({ block: 'nearest' });
@@ -867,7 +868,7 @@
   for (const a of document.querySelectorAll('[data-view-link]')) {
     a.addEventListener('click', ev => {
       ev.preventDefault();
-      showView(a.dataset.viewLink);
+      showView(a.dataset.viewLink, { push: true });
       const nav = document.querySelector('.view-nav');
       if (nav.getBoundingClientRect().top <= (parseFloat(getComputedStyle(nav).top) || 0) + 1) nav.scrollIntoView({ block: 'start' });
     });
@@ -879,6 +880,7 @@
   if ('ResizeObserver' in window) new ResizeObserver(syncAppbar).observe(appbar);
   const viewFromHash = () => { const h = location.hash.slice(1); return h === 'timeline' ? 'timeline' : h.replace(/^view=/, ''); };
   window.addEventListener('hashchange', () => showView(viewFromHash()));
+  window.addEventListener('popstate', () => showView(viewFromHash()));
   showView(viewFromHash());
 
   // "?dupes=N" after an upload: identical files were collected once.
@@ -1026,6 +1028,14 @@
     state.summary = d;
     if (window.OrisectStore) OrisectStore.ensure(activeCase());
     if (window.orisectRenderSkew) window.orisectRenderSkew(); // source names arrive with the summary
+    try { // recent investigations on the home page
+      const id = activeCase();
+      if (id) {
+        const list = JSON.parse(localStorage.getItem('orisect-recent') || '[]').filter(r => r.id !== id);
+        list.unshift({ id, name: d.case_name || id, events: d.events, sources: d.source_count, opened: Date.now() });
+        localStorage.setItem('orisect-recent', JSON.stringify(list.slice(0, 8)));
+      }
+    } catch { /* storage unavailable */ }
     const title = d.case_name || d.case_id;
     $('caseTitle').textContent = title;
     $('caseCrumb').textContent = title;
