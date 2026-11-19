@@ -19,7 +19,7 @@ from .models import Event, ParseGap, SourceContext, write_jsonl
 from .parsers import ParseResult, parse_source
 from . import rules as parser_rules
 from .rules import active_rules, apply_rules, rule_hash
-from .skew import DEFAULT_KEYS, SkewEstimate, estimate, from_anchor
+from .skew import DEFAULT_KEYS, SkewEstimate, estimate, explain, from_anchor
 from .timeutil import UTC, parse_rfc3339, to_rfc3339
 
 
@@ -169,6 +169,52 @@ def estimate_case_skew(
         for sid, r in results.items()
         if sid != reference_id and r.events
     ]
+
+
+def skew_report(case: Case, reference_id: str | None = None, tolerance_s: float = 2.0) -> dict[str, Any]:
+    """Automatic skew estimates for every source against a reference, with the evidence pairs behind each.
+
+    With no reference given, the one that lets the most other clocks be
+    estimated is chosen. Each source is classed as "corrected" (its stored
+    offset already matches the estimate), "skewed" (it doesn't), "in_sync" (no
+    measurable skew) or "insufficient" (too few shared events to estimate).
+    """
+    results = parse_sources(case)
+    stored = {s["source_id"]: float(s.get("skew_offset_s") or 0.0) for s in case.sources()}
+    candidates = [sid for sid, r in results.items() if r.events]
+
+    def against(ref_id: str) -> list[tuple[str, SkewEstimate]]:
+        ref = results[ref_id].events
+        return [(sid, estimate(results[sid].events, ref, DEFAULT_KEYS, 3600.0, tolerance_s, 3))
+                for sid in candidates if sid != ref_id]
+
+    if reference_id is None:
+        # The clock the most others can be measured against; ties go to the one
+        # that overlaps the most events overall. Data can show how far clocks
+        # disagree, not which is right, so the analyst can pick another.
+        def score(ref_id: str) -> tuple[int, int, int]:
+            ests = [e for _, e in against(ref_id)]
+            usable = [e for e in ests if e.usable]
+            return len(usable), sum(e.candidate_pairs for e in ests), sum(e.matches for e in usable)
+        reference_id = max(candidates, key=score) if candidates else ""
+    if reference_id not in results:
+        raise EvidenceError(f"unknown reference source {reference_id!r}")
+    ref = results[reference_id].events
+    out = []
+    for sid, est in against(reference_id) if results[reference_id].events else []:
+        applied = stored.get(sid, 0.0) - stored.get(reference_id, 0.0)
+        if est.offset_s is None:
+            status = "insufficient"
+        elif abs(est.offset_s) <= tolerance_s:
+            status = "in_sync"
+        elif abs(est.offset_s - applied) <= tolerance_s:
+            status = "corrected"
+        else:
+            status = "skewed"
+        out.append({**est.to_dict(), "status": status, "applied_offset_s": round(applied, 6),
+                    "pairs": explain(results[sid].events, ref, est, DEFAULT_KEYS, tolerance_s)})
+    return {"reference_id": reference_id, "references": candidates, "match_on": list(DEFAULT_KEYS),
+            "tolerance_s": tolerance_s, "sources": out}
 
 
 def anchor_skew(case: Case, source_line: tuple[str, int], reference_line: tuple[str, int]) -> SkewEstimate:

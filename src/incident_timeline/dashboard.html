@@ -440,6 +440,26 @@
     .event-head, .event-message { flex: 1 0 100%; }
     .event-message { margin-top: 1px; font-size: var(--tf-fs-sm); line-height: 1.45; }
     .event-meta, .event-ref { margin-top: 3px; }
+
+    /* Clock skew detection */
+    .skew-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .skew-controls .tf-field { min-width: 180px; }
+    .skew-list { margin: 0; padding: 0; list-style: none; }
+    .skew-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; padding: 16px 20px; border-top: 1px solid var(--tf-border); }
+    .skew-row:first-child { border-top: 0; }
+    .skew-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
+    .skew-name .mono { color: var(--tf-text-3); font-size: var(--tf-fs-xs); font-weight: 500; }
+    .skew-offset { margin-top: 6px; font: 640 var(--tf-fs-lg)/1.2 var(--tf-mono); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+    .skew-row[data-status="skewed"] .skew-offset { color: var(--tf-warn); }
+    .skew-row[data-status="corrected"] .skew-offset, .skew-row[data-status="in_sync"] .skew-offset { color: var(--tf-ok); }
+    .skew-meta { margin-top: 4px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .skew-actions { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-end; gap: 8px; }
+    .skew-pairs { grid-column: 1 / -1; }
+    .skew-pairs table { width: 100%; border-collapse: collapse; font: var(--tf-fs-xs)/1.5 var(--tf-mono); }
+    .skew-pairs th { padding: 6px 8px; color: var(--tf-text-3); font: 560 var(--tf-fs-2xs) var(--tf-font); text-align: left; border-bottom: 1px solid var(--tf-border); }
+    .skew-pairs td { padding: 6px 8px; border-bottom: 1px solid var(--tf-border); color: var(--tf-text-2); overflow-wrap: anywhere; }
+    .skew-pairs .delta { color: var(--tf-text); text-align: right; white-space: nowrap; }
+    @media (max-width: 720px) { .skew-row { grid-template-columns: minmax(0, 1fr); } .skew-actions { justify-content: flex-start; } }
     .view[hidden] { display: none !important; }
     @media (prefers-reduced-motion: no-preference) {
       .view:not([hidden]) { animation: view-in 180ms var(--tf-ease); }
@@ -567,6 +587,20 @@
   </div>
 
   <div class="view" data-view="time" hidden>
+  <section class="tf-panel" id="skewPanel" aria-labelledby="skewHeading">
+    <header class="panel-head">
+      <div>
+        <h2 id="skewHeading">Clock skew detection</h2>
+        <p>ORISECT pairs events from different logs that share a client address and finds the time difference most of them agree on. It measures how far clocks disagree; you choose which clock to trust.</p>
+      </div>
+      <div class="skew-controls">
+        <div class="tf-field"><label class="tf-label" for="skewReference">Trusted clock</label><select class="tf-select" id="skewReference"><option value="">Choosing…</option></select></div>
+        <div class="tf-field"><label class="tf-label" for="skewAnalyst">Your name</label><input class="tf-input" id="skewAnalyst" maxlength="60" autocomplete="name" placeholder="Recorded in custody"></div>
+      </div>
+    </header>
+    <ul class="skew-list" id="skewRows" aria-live="polite"><li class="tf-empty">Open this tab to measure the clocks.</li></ul>
+  </section>
+
   <section class="tf-panel" id="timelineConfidenceLab" aria-labelledby="timeLabHeading">
     <header class="section-head">
       <div>
@@ -596,7 +630,7 @@
           <div class="tf-field"><label class="tf-label" for="tlabPreviewOffset">Proposed offset (seconds)</label><input class="tf-input" id="tlabPreviewOffset" type="number" step="0.001" inputmode="decimal" value="0" aria-describedby="tlabOffsetHelp"><span class="tf-hint" id="tlabOffsetHelp">Positive means the source clock ran ahead of the reference. ORISECT subtracts the offset to normalize.</span></div>
           <div class="tlab-actions"><button class="tf-btn tf-btn--sm" id="tlabApplyPreview" type="button">Preview shift</button><button class="tf-btn tf-btn--ghost tf-btn--sm" id="tlabClearPreview" type="button">Discard preview</button></div>
           <div class="tf-note tlab-preview-status" id="tlabPreviewStatus" role="status" aria-live="polite">No preview active. The ledger shows the stored normalized timeline.</div>
-          <p class="tlab-quiet">Never writes to case.json, events.jsonl, the original evidence or the custody chain. To persist a correction, use the skew workflow and rebuild the timeline.</p>
+          <p class="tlab-quiet">Never writes to case.json, events.jsonl, the original evidence or the custody chain. To correct a clock for real, use <strong>Clock skew detection</strong> above; each correction is recorded in the chain of custody.</p>
         </section>
         <section class="tlab-card" aria-labelledby="tlabInspectorHeading">
           <h3 id="tlabInspectorHeading">Event time basis</h3>
@@ -752,6 +786,7 @@
     const hash = '#view=' + name;
     if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
     if (name === 'time' && window.orisectLoadLab) window.orisectLoadLab();
+    if (name === 'time' && window.orisectLoadSkew) window.orisectLoadSkew();
     if (focus) document.querySelector(`[data-view="${name}"] h2`)?.scrollIntoView({ block: 'nearest' });
   }
   for (const a of document.querySelectorAll('[data-view-link]')) {
@@ -915,6 +950,7 @@
     const d = await getJSON('/api/summary');
     state.summary = d;
     if (window.OrisectStore) OrisectStore.ensure(activeCase());
+    if (window.orisectRenderSkew) window.orisectRenderSkew(); // source names arrive with the summary
     const title = d.case_name || d.case_id;
     $('caseTitle').textContent = title;
     $('caseCrumb').textContent = title;
@@ -1433,7 +1469,7 @@
     const dFindings = state.findings.length - findingsBefore;
     if (dFindings) parts.push(`${plural(Math.abs(dFindings), 'finding')} ${dFindings > 0 ? 'added' : 'removed'}.`);
     if (!$('gapsPanel').hidden) showGaps();
-    const note = $('caseNotice'); note.textContent = parts.join(' '); note.hidden = false;
+    const note = $('caseNotice'); note.textContent = parts.join(' '); note.classList.remove('is-error'); note.classList.add('is-success'); note.hidden = false;
     note.scrollIntoView({ block: 'nearest' });
     note.focus({ preventScroll: true }); // the control that started this was re-rendered
   }
@@ -1950,6 +1986,108 @@
   $('tlabIssuesOnly').addEventListener('change', () => { lab.issuesOnly = $('tlabIssuesOnly').checked; lab.offset = 0; loadLab(); });
   $('tlabPrevPage').addEventListener('click', () => { if (!lab.loading && lab.data?.pagination?.has_previous) { lab.offset = Math.max(0, lab.offset - lab.limit); loadLab(); } });
   $('tlabNextPage').addEventListener('click', () => { if (!lab.loading && lab.data?.pagination?.has_next) { lab.offset += lab.limit; loadLab(); } });
+
+  /* ---------- Clock skew detection ---------- */
+  const skew = { data: null, loading: false, reference: '' };
+  function skewSourceLabel(id) {
+    const s = (state.summary?.sources || []).find(x => x.source_id === id);
+    return s ? `${s.original_name}${s.host ? ' · ' + s.host : ''}` : id;
+  }
+  function skewWords(seconds) {
+    const n = Number(seconds), abs = Math.abs(n);
+    const amount = abs >= 120 ? `${(abs / 60).toFixed(1)} min (${abs.toFixed(1)} s)` : `${abs.toFixed(1)} s`;
+    return n > 0 ? `${amount} fast` : n < 0 ? `${amount} slow` : 'in step';
+  }
+  async function loadSkew() {
+    if (skew.loading) return;
+    skew.loading = true;
+    const list = $('skewRows');
+    try {
+      const q = skew.reference ? '?reference=' + encodeURIComponent(skew.reference) : '';
+      const d = await getJSON('/api/skew' + q);
+      skew.data = d; skew.reference = d.reference_id;
+      const pick = $('skewReference');
+      pick.replaceChildren(...(d.references || []).map(id => new Option(`${id} · ${skewSourceLabel(id)}`, id)));
+      pick.value = d.reference_id;
+      renderSkew(d);
+    } catch (err) {
+      list.replaceChildren(el('li', 'tf-empty', `Could not measure the clocks: ${err.message}`));
+    } finally { skew.loading = false; }
+  }
+  function renderSkew(d) {
+    const list = $('skewRows');
+    if (!d.sources.length) { list.replaceChildren(el('li', 'tf-empty', 'Add a second log with timestamps to compare clocks.')); return; }
+    const LABEL = { skewed: ['tf-badge--warn', 'Clock disagrees'], corrected: ['tf-badge--ok', 'Corrected'], in_sync: ['tf-badge--ok', 'In step'], insufficient: ['', 'Not enough shared events'] };
+    list.replaceChildren(...d.sources.map(s => {
+      const li = el('li', 'skew-row'); li.dataset.status = s.status;
+      const main = el('div');
+      const name = el('div', 'skew-name'); name.append(el('span', '', skewSourceLabel(s.source_id)), el('span', 'mono', s.source_id));
+      const [cls, text] = LABEL[s.status]; name.append(el('span', 'tf-badge ' + cls, text));
+      main.append(name);
+      if (s.offset_s !== null) {
+        main.append(el('div', 'skew-offset', `${s.offset_s > 0 ? '+' : s.offset_s < 0 ? '−' : ''}${Math.abs(s.offset_s).toFixed(3)} s`));
+        main.append(el('p', 'skew-meta', `Runs ${skewWords(s.offset_s)} against ${s.reference_id}. ${plural(s.matches, 'matching pair')} agree within ±${d.tolerance_s} s (of ${s.candidate_pairs} candidates), spread ${Number(s.spread_s).toFixed(3)} s.` + (s.status === 'corrected' ? ` A ${fmtOffsetSeconds(s.applied_offset_s)} correction is applied.` : '')));
+      } else {
+        main.append(el('p', 'skew-meta', `Fewer than 3 events share a client address with ${s.reference_id} within an hour, so this clock can't be measured against it. Try another trusted clock, or teach ORISECT a source's format first.`));
+      }
+      const actions = el('div', 'skew-actions');
+      if (s.status === 'skewed') {
+        const apply = el('button', 'tf-btn tf-btn--primary tf-btn--sm', `Correct by ${s.offset_s > 0 ? '−' : '+'}${Math.abs(s.offset_s).toFixed(1)} s`); apply.type = 'button';
+        apply.addEventListener('click', () => applySkew(s, apply, false));
+        actions.append(apply);
+      }
+      if (Math.abs(Number(s.applied_offset_s)) > 0) {
+        const reset = el('button', 'tf-btn tf-btn--ghost tf-btn--sm', 'Remove correction'); reset.type = 'button';
+        reset.addEventListener('click', () => applySkew(s, reset, true));
+        actions.append(reset);
+      }
+      li.append(main, actions);
+      if (s.pairs.length) {
+        const det = el('details', 'tf-disclosure skew-pairs');
+        const sum = el('summary'); sum.append(el('span', 's-title', `Evidence: ${plural(s.pairs.length, 'matching pair')}`)); det.append(sum);
+        const table = el('table'), head = el('tr');
+        for (const h of ['Shared key', `${s.source_id} line`, `${s.reference_id} line`, 'Difference']) head.append(el('th', '', h));
+        const thead = el('thead'); thead.append(head); table.append(thead);
+        const tbody = el('tbody');
+        for (const p of s.pairs) {
+          const tr = el('tr');
+          tr.append(el('td', '', Object.values(p.key).join(' · ')),
+            el('td', '', `${p.source.line_no}: ${p.source.ts_raw}`),
+            el('td', '', `${p.reference.line_no}: ${p.reference.ts_raw}`),
+            el('td', 'delta', fmtOffsetSeconds(p.delta_s)));
+          tbody.append(tr);
+        }
+        table.append(tbody); det.append(table); li.append(det);
+      }
+      return li;
+    }));
+  }
+  async function applySkew(s, button, reset) {
+    const nameInput = $('skewAnalyst'), name = nameInput.value.trim();
+    if (!name) { nameInput.setAttribute('aria-invalid', 'true'); nameInput.focus(); nameInput.placeholder = 'Enter your name first'; return; }
+    nameInput.removeAttribute('aria-invalid'); rememberAnalyst(name);
+    button.setAttribute('aria-busy', 'true'); button.disabled = true;
+    const before = { events: state.summary?.events || 0, gaps: state.summary?.gaps || 0 };
+    try {
+      const d = await postJSON('/api/skew/apply', { source_id: s.source_id, reference_id: s.reference_id, analyst: name, reset });
+      const lead = reset ? `Removed the clock correction on ${s.source_id}.` : `Corrected ${s.source_id}'s clock by ${fmtOffsetSeconds(-s.offset_s)} against ${s.reference_id}; recorded in the chain of custody by ${name}.`;
+      await afterRebuild(lead, before, d);
+      skew.data = null; loadSkew();
+    } catch (err) {
+      const note = $('caseNotice'); note.textContent = err.message; note.classList.remove('is-success'); note.classList.add('is-error'); note.hidden = false;
+      button.removeAttribute('aria-busy'); button.disabled = false;
+    }
+  }
+  $('skewReference').addEventListener('change', () => { skew.reference = $('skewReference').value; loadSkew(); });
+  $('skewAnalyst').value = rememberedAnalyst();
+  window.orisectLoadSkew = () => { if (!skew.data) loadSkew(); };
+  window.orisectRenderSkew = () => {
+    if (!skew.data) return;
+    const pick = $('skewReference');
+    for (const o of pick.options) o.textContent = `${o.value} · ${skewSourceLabel(o.value)}`;
+    renderSkew(skew.data);
+  };
+  if (window.orisectCurrentView === 'time') window.orisectLoadSkew();
   // Loaded on first visit to the Clock & time tab, so it doesn't slow the first paint.
   window.orisectLoadLab = () => { if (!lab.data && !lab.loading) loadLab(); };
   if (window.orisectCurrentView === 'time') window.orisectLoadLab();

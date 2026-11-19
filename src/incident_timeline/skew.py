@@ -124,3 +124,41 @@ def from_anchor(source_event: Event, reference_event: Event) -> SkewEstimate:
         0.0,
         f"anchor: {source_event.event_id} = {reference_event.event_id}",
     )
+
+
+def explain(
+    source: Sequence[Event],
+    reference: Sequence[Event],
+    est: SkewEstimate,
+    match_on: Sequence[str] = DEFAULT_KEYS,
+    tolerance_s: float = 2.0,
+    limit: int = 6,
+) -> list[dict[str, Any]]:
+    """Example event pairs behind an estimate: same key, time difference inside the winning cluster.
+
+    Lets an analyst check the offset against the evidence lines themselves
+    before applying it.
+    """
+    if est.offset_s is None:
+        return []
+    ref_by_key: dict[tuple[Any, ...], list[Event]] = defaultdict(list)
+    for e in reference:
+        k = _key(e, match_on)
+        if k is not None:
+            ref_by_key[k].append(e)
+    pairs: list[dict[str, Any]] = []
+    for e in sorted(source, key=_source_ts):
+        k = _key(e, match_on)
+        for r in ref_by_key.get(k, ()) if k is not None else ():
+            delta = _source_ts(e) - _source_ts(r)
+            if abs(delta - est.offset_s) <= tolerance_s:
+                pairs.append({
+                    "key": dict(zip(match_on, k)),
+                    "source": {"event_id": e.event_id, "line_no": e.line_no, "ts_raw": e.ts_raw, "action": e.action},
+                    "reference": {"event_id": r.event_id, "line_no": r.line_no, "ts_raw": r.ts_raw, "action": r.action},
+                    "delta_s": round(delta, 3),
+                })
+                break
+        if len(pairs) >= limit:
+            break
+    return pairs

@@ -235,8 +235,8 @@ class handler(TracefuseHandler):  # noqa: N801 - name required by Vercel
         case_dir = self._case_dir(case_id) if case_id else None
         if case_dir is not None:
             self._extra_headers.append(("X-Orisect-Version", case_version(case_dir)))
-            # A change through the rules API returns the updated, signed archive with its JSON.
-            if (self.command == "POST" and urlsplit(self.path).path.startswith("/api/rules/") and status == 200
+            # A change through the rules or skew API returns the updated, signed archive with its JSON.
+            if (self.command == "POST" and urlsplit(self.path).path.startswith(("/api/rules/", "/api/skew/")) and status == 200
                     and self.headers.get("X-Orisect-Archive") == "1" and content_type.startswith("application/json")):
                 data, version, signature = self._signed_archive(case_dir)
                 if len(data) <= MAX_ARCHIVE_BYTES:

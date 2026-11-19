@@ -540,3 +540,43 @@ def test_security_headers_and_script_hash_csp(tmp_path: Path) -> None:
             assert exc.code == 403
     finally:
         server.shutdown()
+
+
+def test_clock_skew_detection_and_correction_in_the_web_app(tmp_path: Path) -> None:
+    """The Clock & time tab measures edge01's 187 s fast clock and corrects it with a custody record."""
+    root = (tmp_path / "cases").resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        files = {"file_0": SAMPLE_EVIDENCE / "edge01" / "access.log.1.gz", "file_1": SAMPLE_EVIDENCE / "edge01" / "access.log",
+                 "file_2": SAMPLE_EVIDENCE / "fw01" / "fw01-traffic.log", "file_3": SAMPLE_EVIDENCE / "web01" / "auth.log"}
+        fields = {"case_name": "skew", "type_0": "nginx", "host_0": "edge01", "type_1": "nginx", "host_1": "edge01",
+                  "type_2": "other", "host_2": "fw01", "type_3": "auth", "tz_3": "Asia/Kolkata"}
+        body, content_type = _multipart(fields, files)
+        with urlopen(Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")) as r:
+            q = "?case=" + re.search(r"(CASE-[a-f0-9]{12})", r.url).group(1)
+        definition = _get(base + "/api/rules/suggest" + q + "&source_id=S003")["definition"]
+        _post_json(base + "/api/rules/approve" + q, {"definition": definition, "analyst": "Analyst"})
+
+        report = _get(base + "/api/skew" + q)
+        assert report["reference_id"] == "S004"  # web01, chosen automatically: every other clock can be measured against it
+        by_id = {s["source_id"]: s for s in report["sources"]}
+        for sid in ("S001", "S002"):
+            assert (by_id[sid]["offset_s"], by_id[sid]["matches"], by_id[sid]["status"]) == (187.0, 22, "skewed")
+            assert by_id[sid]["pairs"] and all(p["delta_s"] == 187.0 for p in by_id[sid]["pairs"])
+        assert by_id["S003"]["status"] == "in_sync"
+        assert "web_to_ssh" not in {f["rule"] for f in _get(base + "/api/insights" + q)["findings"]}
+
+        assert _post_json(base + "/api/skew/apply" + q, {"source_id": "S001", "reference_id": "S004"}, expect=400)
+        for sid in ("S001", "S002"):
+            out = _post_json(base + "/api/skew/apply" + q, {"source_id": sid, "reference_id": "S004", "analyst": "Analyst"})
+            assert out["offset_s"] == 187.0
+        assert {s["status"] for s in _get(base + "/api/skew" + q)["sources"] if s["source_id"] != "S003"} == {"corrected"}
+        assert "web_to_ssh" in {f["rule"] for f in _get(base + "/api/insights" + q)["findings"]}
+        custody = _get(base + "/api/custody" + q)
+        assert custody["chain_ok"] and sum(r["action"] == "set_skew" for r in custody["records"]) == 2
+
+        reset = _post_json(base + "/api/skew/apply" + q, {"source_id": "S001", "reference_id": "S004", "analyst": "Analyst", "reset": True})
+        assert reset["offset_s"] == 0.0
+        assert next(s for s in _get(base + "/api/skew" + q)["sources"] if s["source_id"] == "S001")["status"] == "skewed"
+    finally:
+        server.shutdown()

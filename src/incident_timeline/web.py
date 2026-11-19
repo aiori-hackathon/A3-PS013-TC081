@@ -22,7 +22,8 @@ from .evidence import Case, EvidenceError, check_source, collect, verify, verify
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
 from .time_analysis import build_time_analysis
-from .pipeline import approve_rule, build_timeline, dry_run_rule, suggest_rule
+from .pipeline import apply_skew, approve_rule, build_timeline, dry_run_rule, skew_report, suggest_rule
+from .skew import SkewEstimate
 from .rules import RuleError, revoke as revoke_rule, rule_records
 from .findings import detect as detect_findings, entities as summarize_entities
 
@@ -320,6 +321,45 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             print(f"ORISECT rules error: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._fail(500, "The rule could not be processed. Check the local server log for details.")
 
+    def _skew_post(self) -> None:
+        """Apply (or reset) a source's clock offset. The offset is re-estimated here, never taken from the client."""
+        try:
+            body = self._json_body()
+            case = self.case
+            if not self.app_mode:
+                raise PermissionError("This dashboard was opened with `serve` and is read-only. Set offsets with "
+                                      f"`incident-timeline skew` on {case.root}.")
+            actor = self._analyst(body)
+            source_id = str(body.get("source_id") or "")
+            reference_id = str(body.get("reference_id") or "")
+            if body.get("reset"):
+                est = SkewEstimate(source_id, reference_id or source_id, 0.0, 0, 0, None, "reset by analyst")
+                if source_id not in {s["source_id"] for s in case.sources()}:
+                    raise ValueError(f"unknown source {source_id!r}")
+            else:
+                report = skew_report(case, reference_id)
+                row = next((s for s in report["sources"] if s["source_id"] == source_id), None)
+                if row is None or row["offset_s"] is None:
+                    raise ValueError("Too few shared events to estimate this clock's offset; nothing was changed.")
+                ref_offset = next((float(s.get("skew_offset_s") or 0.0) for s in case.sources() if s["source_id"] == reference_id), 0.0)
+                # The estimate is relative to the reference's own clock; keep the reference's correction too.
+                est = SkewEstimate(source_id, reference_id, round(row["offset_s"] + ref_offset, 6), row["matches"],
+                                   row["candidate_pairs"], row["spread_s"], row["method"])
+            apply_skew(case, est, actor)
+            out = build_timeline(case, actor=actor)
+            self._send(200, _json_bytes({"offset_s": est.offset_s, "events": out.summary["events"], "gaps": out.summary["gaps"]}))
+        except PermissionError as exc:
+            self._fail(403, str(exc))
+        except ValueError as exc:
+            self._fail(400, str(exc))
+        except EvidenceError as exc:
+            self._fail(409, str(exc))
+        except FileNotFoundError as exc:
+            self._fail(404, str(exc))
+        except Exception as exc:
+            print(f"ORISECT skew error: {type(exc).__name__}: {exc}", file=sys.stderr)
+            self._fail(500, "The clock correction could not be applied. Check the server log for details.")
+
     def _cross_site(self) -> bool:
         """True for a POST another site's page sent, which this app never needs to accept."""
         if self.headers.get("Sec-Fetch-Site", "").lower() == "cross-site":
@@ -337,6 +377,9 @@ class TracefuseHandler(BaseHTTPRequestHandler):
             return
         if url.path.startswith("/api/rules/"):
             self._rules_post(url.path)
+            return
+        if url.path == "/api/skew/apply":
+            self._skew_post()
             return
         if url.path != "/upload" or not self.app_mode or self.cases_root is None:
             self._fail(404, "Not found")
@@ -487,6 +530,10 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 return
             if url.path == "/api/summary":
                 self._send(200, _json_bytes(self._summary()))
+                return
+            if url.path == "/api/skew":
+                reference = (params.get("reference") or [""])[0] or None
+                self._send(200, _json_bytes(skew_report(self.case, reference)))
                 return
             if url.path == "/api/time-analysis":
                 # Read-only diagnostics. Clock-offset previews are computed in memory;
