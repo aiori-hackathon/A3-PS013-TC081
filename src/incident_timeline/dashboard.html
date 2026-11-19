@@ -378,7 +378,10 @@
       .appbar-actions { width: 100%; margin-left: 0; }
       .appbar-actions .tf-btn { flex: 1; min-width: 0; padding: 0 10px; }
       .appbar-actions .tf-btn--ghost { flex: 0 0 auto; }
+      .appbar-actions .tf-btn:not(.tf-btn--ghost) svg { display: none; }
+      .appbar-actions { gap: 6px; }
       .hide-sm { display: none; }
+      .appbar .only-sm { display: inline; }
       .shell { padding-top: 20px; }
       .case-head { grid-template-columns: minmax(0, 1fr); gap: 16px; }
       .integrity { max-width: none; }
@@ -512,6 +515,7 @@
     .tf-btn[aria-busy="true"] { opacity: .7; pointer-events: none; }
     .view > * + * { margin-top: 16px; }
     .side { top: calc(var(--appbar-h, 57px) + 72px); max-height: calc(100vh - var(--appbar-h, 57px) - 88px); }
+    .only-sm { display: none; }
   </style>
 </head>
 <body>
@@ -526,7 +530,8 @@
       <a class="tf-btn tf-btn--ghost" href="/engine-test">Engine lab</a>
       <button class="tf-btn tf-btn--ghost tf-btn--icon tf-theme-toggle" type="button" data-theme-toggle aria-label="Switch to light theme" title="Switch to light theme"><svg viewBox="0 0 24 24" aria-hidden="true"><mask id="tt-bite"><rect width="24" height="24" fill="white"/><circle class="tt-bite" r="6.5" fill="black"/></mask><circle class="tt-disc" cx="12" cy="12" mask="url(#tt-bite)"/><g class="tt-rays"><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(0 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(45 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(90 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(135 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(180 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(225 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(270 12 12)"/><line x1="12" y1="2.5" x2="12" y2="4.5" transform="rotate(315 12 12)"/></g></svg></button>
       <a class="tf-btn" id="jsonExport" href="/export/events.json"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span><span class="hide-sm">Export </span>JSON</span></a>
-      <a class="tf-btn tf-btn--silver" id="pdfExport" href="/export/report.pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg>PDF report</a>
+      <a class="tf-btn" id="bundleExport" href="/export/bundle.zip" title="Original evidence, custody chain, timeline and report in one ZIP with SHA256SUMS, verifiable without ORISECT"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5zM4 7.5l8 4.5 8-4.5M12 12v9"/></svg><span class="hide-sm">Evidence bundle</span><span class="only-sm">Bundle</span></a>
+      <a class="tf-btn tf-btn--silver" id="pdfExport" href="/export/report.pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span>PDF<span class="hide-sm"> report</span></span></a>
     </nav>
   </div>
 </header>
@@ -908,7 +913,7 @@
     return d.error || `Request failed (HTTP ${r.status})`;
   }
   // Exports download through caseFetch too, so they work on whichever instance answers.
-  for (const id of ['jsonExport', 'pdfExport']) {
+  for (const id of ['jsonExport', 'pdfExport', 'bundleExport']) {
     $(id).addEventListener('click', async ev => {
       if (!window.OrisectStore || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;
       ev.preventDefault();

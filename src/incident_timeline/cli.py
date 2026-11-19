@@ -58,6 +58,31 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     return 0 if report.ok else 1
 
 
+def _cmd_verify_bundle(args: argparse.Namespace) -> int:
+    from .bundle import verify_bundle
+    result = verify_bundle(args.bundle)
+    for check in result["checks"]:
+        print(f"CHECK {check}")
+    for problem in result["problems"]:
+        print(f"FAIL  {problem}")
+    print("bundle verification passed" if result["ok"] else "bundle verification FAILED")
+    return 0 if result["ok"] else 1
+
+
+def _cmd_bundle(args: argparse.Namespace) -> int:
+    import tempfile
+    from pathlib import Path
+    from .bundle import build_bundle
+    from .exports import export_pdf
+    case = Case.open(args.case)
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = Path(tmp) / "report.pdf"
+        export_pdf(case.root, pdf)
+        Path(args.out).write_bytes(build_bundle(case, pdf.read_bytes()))
+    print(f"wrote {args.out}")
+    return 0
+
+
 def _print_estimate(e: SkewEstimate) -> None:
     if e.offset_s is None:
         print(f"{e.source_id} vs {e.reference_id}: no reliable offset "
@@ -217,6 +242,15 @@ def build_parser() -> argparse.ArgumentParser:
     v = sub.add_parser("verify", parents=[common], help="re-hash evidence and check custody chain")
     v.add_argument("case")
     v.set_defaults(func=_cmd_verify)
+
+    b = sub.add_parser("bundle", parents=[common], help="export an evidence bundle (ZIP) anyone can verify")
+    b.add_argument("case")
+    b.add_argument("out", help="path of the .zip to write")
+    b.set_defaults(func=_cmd_bundle)
+
+    vb = sub.add_parser("verify-bundle", help="check an evidence bundle from its own contents")
+    vb.add_argument("bundle", help="the bundle .zip, or the folder it was extracted to")
+    vb.set_defaults(func=_cmd_verify_bundle)
 
     k = sub.add_parser("skew", parents=[common], help="estimate or set clock-skew offsets")
     k.add_argument("case")

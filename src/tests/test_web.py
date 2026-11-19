@@ -580,3 +580,43 @@ def test_clock_skew_detection_and_correction_in_the_web_app(tmp_path: Path) -> N
         assert next(s for s in _get(base + "/api/skew" + q)["sources"] if s["source_id"] == "S001")["status"] == "skewed"
     finally:
         server.shutdown()
+
+
+def test_evidence_bundle_verifies_without_orisect_and_catches_tampering(tmp_path: Path) -> None:
+    import hashlib
+    import io
+    import zipfile
+    from incident_timeline.bundle import verify_bundle
+
+    root = (tmp_path / "cases").resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        files = {"file_0": SAMPLE_EVIDENCE / "web01" / "auth.log", "file_1": SAMPLE_EVIDENCE / "edge01" / "access.log"}
+        body, content_type = _multipart({"case_name": "bundle", "type_0": "auth", "type_1": "nginx"}, files)
+        with urlopen(Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")) as r:
+            q = "?case=" + re.search(r"(CASE-[a-f0-9]{12})", r.url).group(1)
+        with urlopen(base + "/export/bundle.zip" + q) as r:
+            assert r.headers.get_content_type() == "application/zip"
+            data = r.read()
+    finally:
+        server.shutdown()
+    zf = zipfile.ZipFile(io.BytesIO(data))
+    names = set(zf.namelist())
+    assert {"SHA256SUMS", "manifest.json", "custody.jsonl", "case.json", "report.pdf", "README.txt",
+            "evidence/S001_auth.log", "evidence/S002_access.log", "normalised/events.jsonl"} <= names
+    # Plain sha256sum semantics: every listed hash matches.
+    for line in zf.read("SHA256SUMS").decode().splitlines():
+        digest, name = line.split("  ", 1)
+        assert hashlib.sha256(zf.read(name)).hexdigest() == digest
+    assert zf.read("evidence/S001_auth.log") == (SAMPLE_EVIDENCE / "web01" / "auth.log").read_bytes()
+    manifest = json.loads(zf.read("manifest.json"))
+    assert manifest["verification_at_export"]["ok"] and manifest["custody"]["chain_ok"]
+    (tmp_path / "b.zip").write_bytes(data)
+    assert verify_bundle(tmp_path / "b.zip")["ok"]
+
+    out = tmp_path / "x"
+    zf.extractall(out)
+    with open(out / "evidence" / "S001_auth.log", "ab") as fh:
+        fh.write(b"tampered\n")
+    problems = verify_bundle(out)["problems"]
+    assert any("SHA256SUMS" in p for p in problems) and any("recorded at collection" in p for p in problems)

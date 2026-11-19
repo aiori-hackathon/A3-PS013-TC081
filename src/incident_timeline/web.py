@@ -19,6 +19,7 @@ from urllib.parse import parse_qs, urlsplit
 from typing import Any
 
 from .evidence import Case, EvidenceError, check_source, collect, verify, verify_chain, SOURCE_TYPES
+from .bundle import build_bundle
 from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
 from .time_analysis import build_time_analysis
@@ -671,6 +672,15 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 report = load_case_export(self.case.root, self._filters(params), self._scope_ids(params))
                 filename = f"orisect-{safe_case_filename(str(report['case_id']))}-timeline.json"
                 self._send(200, _json_bytes(report), "application/json; charset=utf-8", filename)
+                return
+            if url.path == "/export/bundle.zip":
+                case_id = self.case.load_meta().get("case_id", self.case.root.name)
+                stem = f"orisect-{safe_case_filename(case_id)}"
+                with tempfile.TemporaryDirectory(prefix="tracefuse-export-") as tmp_dir:
+                    pdf = Path(tmp_dir) / "report.pdf"
+                    export_pdf(self.case.root, pdf)
+                    data = build_bundle(self.case, pdf.read_bytes())
+                self._send(200, data, "application/zip", f"{stem}-evidence-bundle.zip")
                 return
             if url.path == "/export/report.pdf":
                 filename = f"orisect-{safe_case_filename(self.case.load_meta().get('case_id', self.case.root.name))}-report.pdf"
