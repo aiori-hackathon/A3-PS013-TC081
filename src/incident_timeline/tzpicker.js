@@ -267,6 +267,8 @@
     const id = `tzp-${++uid}`;
     const list = document.createElement('ul');
     list.className = 'tzp-list'; list.id = id + '-list'; list.setAttribute('role', 'listbox'); list.hidden = true;
+    list.addEventListener('click', ev => ev.stopPropagation());
+    list.addEventListener('pointerdown', ev => ev.preventDefault()); // scrollbar drags keep the input focused
     const status = document.createElement('span');
     status.className = 'tzp-status'; status.id = id + '-status'; status.setAttribute('aria-live', 'polite');
     input.insertAdjacentElement('afterend', status);
@@ -313,7 +315,11 @@
         off.textContent = it.offset === null || it.offset === undefined ? '' : (it.offset === 0 ? 'UTC' : 'UTC' + fmtOffset(it.offset));
         li.append(main, off);
         if (it.detail) { const d = document.createElement('span'); d.className = 'tzp-detail'; d.textContent = it.detail; li.append(d); }
-        li.addEventListener('pointerdown', ev => { ev.preventDefault(); choose(n); });
+        // Keep focus in the input on press; choose on the full click so the release
+        // can't land on whatever sits behind the list (a dialog would read it as
+        // a click on its backdrop and close).
+        li.addEventListener('pointerdown', ev => ev.preventDefault());
+        li.addEventListener('click', ev => { ev.stopPropagation(); choose(n); });
         return li;
       }));
       if (!items.length) {

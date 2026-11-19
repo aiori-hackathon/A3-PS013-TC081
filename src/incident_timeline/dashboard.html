@@ -1207,7 +1207,9 @@
   let returnFocus = null;
   function closeSheet() { if (sheet.open) sheet.close(); }
   sheet.addEventListener('close', () => { if (returnFocus && returnFocus.isConnected) returnFocus.focus(); });
-  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
+  { let pressed = false; // close on a backdrop click only when the press also started there
+    sheet.addEventListener('pointerdown', e => { pressed = e.target === sheet; });
+    sheet.addEventListener('click', e => { if (e.target === sheet && pressed) sheet.close(); pressed = false; }); }
   $('sheetClose').addEventListener('click', () => sheet.close());
   sheet.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => step(Number(b.dataset.step))));
 
@@ -1568,7 +1570,9 @@
     } finally { $('ruleFields').disabled = false; }
   }
   ruleDialog.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ruleDialog.close()));
-  ruleDialog.addEventListener('click', e => { if (e.target === ruleDialog) ruleDialog.close(); });
+  { let pressed = false; // close on a backdrop click only when the press also started there
+    ruleDialog.addEventListener('pointerdown', e => { pressed = e.target === ruleDialog; });
+    ruleDialog.addEventListener('click', e => { if (e.target === ruleDialog && pressed) ruleDialog.close(); pressed = false; }); }
   ruleDialog.addEventListener('close', () => { if (rulesState.opener?.isConnected) rulesState.opener.focus(); });
 
   const refilter = () => { state.offset = 0; loadEvents(); };

@@ -238,7 +238,10 @@
   document.getElementById('open-upload').addEventListener('click', e => { opener = e.currentTarget; modal.showModal(); caseName.focus(); });
   modal.addEventListener('close', () => { reset(); if (opener) opener.focus(); });
   modal.addEventListener('cancel', e => { if (submit.getAttribute('aria-busy') === 'true') e.preventDefault(); });
-  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  // Close on a backdrop click only when the press also started on the backdrop.
+  let pressedBackdrop = false;
+  modal.addEventListener('pointerdown', e => { pressedBackdrop = e.target === modal; });
+  modal.addEventListener('click', e => { if (e.target === modal && pressedBackdrop) close(); pressedBackdrop = false; });
   modal.querySelectorAll('[data-close]').forEach(n => n.addEventListener('click', close));
   document.getElementById('choose-files').addEventListener('click', () => fileInput.click());
   document.getElementById('choose-folder').addEventListener('click', () => folderInput.click());
