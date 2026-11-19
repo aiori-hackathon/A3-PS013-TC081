@@ -1,0 +1,145 @@
+{
+  "dataset": "Elastic examples / NGINX combined sample logs",
+  "source_url": "https://raw.githubusercontent.com/elastic/examples/6d86454ebb7a850bcd7e80abe86fe683370018a6/Common%20Data%20Formats/nginx_logs/nginx_logs",
+  "source_sha256": "526832433ab552466dc8623390fd92dc052b4f301b2eec94836a5c42a46937df",
+  "source_bytes": 6991577,
+  "source_records": 51462,
+  "tool": "ORISECT 0.1.0",
+  "measured_utc": "2026-11-19T05:51:48Z",
+  "runtime": {
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v653-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "processor": "x86_64"
+  },
+  "sets": {
+    "prefix_1000": {
+      "bytes": 133423,
+      "sha256": "787cdbb7452220f81735b46520178bdbb04667b43999a6b91e6371139ca3eebe",
+      "runs": [
+        {
+          "input_records": 1000,
+          "normalised": 1000,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 0.07387822400005462,
+          "records_per_second": 13535.7882993947,
+          "search_ms_median": 2.0713690000775387,
+          "search_matches": 1000,
+          "pdf_seconds": 4.290059390999886,
+          "bundle_seconds": 4.168771891999995,
+          "bundle_bytes": 179802,
+          "verify_seconds": 0.0006998869998824375,
+          "integrity_ok": true
+        },
+        {
+          "input_records": 1000,
+          "normalised": 1000,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 0.04293398499999057,
+          "records_per_second": 23291.571933055355,
+          "search_ms_median": 2.406111000027522,
+          "search_matches": 1000,
+          "pdf_seconds": 3.960867311999891,
+          "bundle_seconds": 4.365988029999926,
+          "bundle_bytes": 180281,
+          "verify_seconds": 0.0006110429999353073,
+          "integrity_ok": true
+        },
+        {
+          "input_records": 1000,
+          "normalised": 1000,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 0.06396689200005312,
+          "records_per_second": 15633.087191404727,
+          "search_ms_median": 2.097044000038295,
+          "search_matches": 1000,
+          "pdf_seconds": 3.87897609200013,
+          "bundle_seconds": 4.268504199000063,
+          "bundle_bytes": 180380,
+          "verify_seconds": 0.0007651609998902131,
+          "integrity_ok": true
+        }
+      ],
+      "median": {
+        "input_records": 1000,
+        "normalised": 1000,
+        "gaps": 0,
+        "coverage_percent": 100.0,
+        "import_seconds": 0.06396689200005312,
+        "records_per_second": 15633.087191404727,
+        "search_ms_median": 2.097044000038295,
+        "search_matches": 1000,
+        "pdf_seconds": 3.960867311999891,
+        "bundle_seconds": 4.268504199000063,
+        "bundle_bytes": 180281,
+        "verify_seconds": 0.0006998869998824375
+      }
+    },
+    "full": {
+      "bytes": 6991577,
+      "sha256": "526832433ab552466dc8623390fd92dc052b4f301b2eec94836a5c42a46937df",
+      "runs": [
+        {
+          "input_records": 51462,
+          "normalised": 51462,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 2.526127824000014,
+          "records_per_second": 20371.890729785857,
+          "search_ms_median": 24.136600000019826,
+          "search_matches": 51458,
+          "pdf_seconds": null,
+          "bundle_seconds": null,
+          "bundle_bytes": 0,
+          "verify_seconds": 0.007146791999957713,
+          "integrity_ok": true
+        },
+        {
+          "input_records": 51462,
+          "normalised": 51462,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 2.2631825710000157,
+          "records_per_second": 22738.77532437026,
+          "search_ms_median": 24.757420000014463,
+          "search_matches": 51458,
+          "pdf_seconds": null,
+          "bundle_seconds": null,
+          "bundle_bytes": 0,
+          "verify_seconds": 0.006680207000044902,
+          "integrity_ok": true
+        },
+        {
+          "input_records": 51462,
+          "normalised": 51462,
+          "gaps": 0,
+          "coverage_percent": 100.0,
+          "import_seconds": 2.5125008140000773,
+          "records_per_second": 20482.38142381689,
+          "search_ms_median": 22.482777999812242,
+          "search_matches": 51458,
+          "pdf_seconds": null,
+          "bundle_seconds": null,
+          "bundle_bytes": 0,
+          "verify_seconds": 0.006685638000135441,
+          "integrity_ok": true
+        }
+      ],
+      "median": {
+        "input_records": 51462,
+        "normalised": 51462,
+        "gaps": 0,
+        "coverage_percent": 100.0,
+        "import_seconds": 2.5125008140000773,
+        "records_per_second": 20482.38142381689,
+        "search_ms_median": 24.136600000019826,
+        "search_matches": 51458,
+        "bundle_bytes": 0,
+        "verify_seconds": 0.006685638000135441
+      }
+    }
+  }
+}

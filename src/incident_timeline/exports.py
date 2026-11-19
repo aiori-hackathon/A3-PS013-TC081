@@ -168,8 +168,37 @@ def _findings_story(findings: list[dict[str, Any]], styles: Any, colors: Any, mm
     return story
 
 
-def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str | None] | None = None) -> list[dict[str, Any]]:
-    """Apply the same filters in the web viewer and in exported reports."""
+SEARCH_FIELDS = ("event_id", "ts_utc", "source_id", "source_type", "source_file", "file_sha256", "host",
+                 "process", "user", "src_ip", "action", "outcome", "message", "raw_line", "extra")
+
+
+def _event_stamp(event: dict[str, Any]) -> datetime | None:
+    try:
+        return _parse_filter_time(str(event.get("ts_utc") or ""))
+    except ValueError:
+        return None
+
+
+def event_index(events: list[dict[str, Any]]) -> dict[str, list[Any]]:
+    """Per-event timestamp, sort key and search text, computed once so repeated filtering stays fast."""
+    stamps = [_event_stamp(e) for e in events]
+    return {
+        "stamp": stamps,
+        "sort": [(s or datetime.min.replace(tzinfo=UTC), str(e.get("source_id") or ""), int(e.get("line_no") or 0))
+                 for e, s in zip(events, stamps)],
+        "text": [" ".join(str(e.get(k) or "") for k in SEARCH_FIELDS).casefold() for e in events],
+    }
+
+
+def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str | None] | None = None,
+                       index: dict[str, list[Any]] | None = None) -> list[dict[str, Any]]:
+    """Apply the same filters in the web viewer and in exported reports.
+
+    `index` (from event_index, for the same list of events) avoids re-parsing
+    timestamps and rebuilding search text on every call.
+    """
+    events = list(events)
+    idx = index if index is not None else event_index(events)
     filters = filters or {}
     query = (filters.get("q") or "").strip().casefold()
     source_id = (filters.get("source") or "").strip()
@@ -177,42 +206,27 @@ def filter_event_dicts(events: Iterable[dict[str, Any]], filters: dict[str, str 
     outcome = (filters.get("outcome") or "").strip()
     start = _parse_filter_time(filters.get("start"))
     end = _parse_filter_time(filters.get("end"))
-    selected = []
-
-    for event in events:
+    stamps, texts = idx["stamp"], idx["text"]
+    keep = []
+    for i, event in enumerate(events):
         if source_id and event.get("source_id") != source_id:
             continue
         if action and event.get("action") != action:
             continue
         if outcome and event.get("outcome") != outcome:
             continue
-        try:
-            stamp = _parse_filter_time(str(event.get("ts_utc") or ""))
-        except ValueError:
-            stamp = None
-        if start and (stamp is None or stamp < start):
-            continue
-        if end and (stamp is None or stamp > end):
-            continue
-        if query:
-            searchable = " ".join(
-                str(event.get(key) or "")
-                for key in ("event_id", "ts_utc", "source_id", "source_type", "source_file", "file_sha256", "host",
-                            "process", "user", "src_ip", "action", "outcome", "message", "raw_line", "extra")
-            ).casefold()
-            if query not in searchable:
+        if start or end:
+            stamp = stamps[i]
+            if start and (stamp is None or stamp < start):
                 continue
-        selected.append(event)
-
-    def sort_key(event: dict[str, Any]) -> tuple[datetime, str, int]:
-        try:
-            timestamp = _parse_filter_time(str(event.get("ts_utc") or ""))
-        except ValueError:
-            timestamp = None
-        return (timestamp or datetime.min.replace(tzinfo=UTC), str(event.get("source_id") or ""), int(event.get("line_no") or 0))
-
-    selected.sort(key=sort_key)
-    return selected
+            if end and (stamp is None or stamp > end):
+                continue
+        if query and query not in texts[i]:
+            continue
+        keep.append(i)
+    keys = idx["sort"]
+    keep.sort(key=keys.__getitem__)
+    return [events[i] for i in keep]
 
 
 def _evidence_reference(event: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:

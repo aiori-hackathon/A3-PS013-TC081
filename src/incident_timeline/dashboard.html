@@ -506,6 +506,18 @@
     .story-what p { margin-top: 2px; color: var(--tf-text-2); font-size: var(--tf-fs-sm); }
     .story-tactic { display: inline-block; margin-bottom: 3px; color: var(--tf-accent); font-size: var(--tf-fs-2xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
     @media (max-width: 720px) { .story-step { grid-template-columns: 28px minmax(0, 1fr); } .story-time { grid-column: 2; } .story-what { grid-column: 2; } .story-step .tf-btn { grid-column: 2; justify-self: start; } }
+
+    /* Event density strip with brush (Timeline tab) */
+    .density { padding: 12px 20px 4px; border-bottom: 1px solid var(--tf-border); }
+    .density-head { display: flex; justify-content: space-between; gap: 12px; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+    .density-chart { position: relative; margin-top: 6px; touch-action: none; cursor: crosshair; user-select: none; }
+    .density-chart svg { display: block; width: 100%; }
+    .density-chart .bin { fill: color-mix(in srgb, var(--tf-text-3) 55%, transparent); }
+    .density-chart .bin.is-hot { fill: var(--tf-bad); }
+    .density-chart .bin.in-range { fill: var(--tf-accent); }
+    .density-chart .brush { fill: var(--tf-accent-soft); stroke: var(--tf-accent-line); }
+    .density-chart .axis { fill: var(--tf-text-3); font: 10px var(--tf-mono); }
+    @media (max-width: 720px) { .density-hint { display: none; } }
     .view[hidden] { display: none !important; }
     @media (prefers-reduced-motion: no-preference) {
       .view:not([hidden]) { animation: view-in 180ms var(--tf-ease); }
@@ -590,14 +602,18 @@
         <div><h2 id="timelineHeading">Timeline</h2><p id="resultCount" aria-live="polite">Loading events…</p></div>
         <button class="tf-btn tf-btn--ghost tf-btn--sm" id="refresh" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Refresh</button>
       </header>
+      <div class="density" id="density">
+        <div class="density-head"><span>Events over time · UTC</span><span class="density-hint" id="densityHint">Drag across the chart to narrow the time range</span></div>
+        <div class="density-chart" id="densityChart"></div>
+      </div>
       <div class="filters" role="search" aria-label="Filter the timeline">
         <div class="tf-field f-search"><label class="tf-label" for="q">Search events and raw evidence</label><div class="search-wrap"><input class="tf-input" id="q" type="search" aria-keyshortcuts="/" placeholder="IP, user, path, message or hash" autocomplete="off" spellcheck="false"><kbd class="tf-kbd" aria-hidden="true">/</kbd></div></div>
         <div class="tf-field"><label class="tf-label" for="source">Source</label><select class="tf-select" id="source"><option value="">All sources</option></select></div>
         <div class="tf-field"><label class="tf-label" for="action">Action</label><select class="tf-select" id="action"><option value="">All actions</option></select></div>
         <div class="tf-field"><label class="tf-label" for="outcome">Outcome</label><select class="tf-select" id="outcome"><option value="">Any outcome</option><option value="success">Success</option><option value="failure">Failure</option></select></div>
         <div class="f-range">
-          <div class="tf-field"><label class="tf-label" for="start">From (your time zone)</label><input class="tf-input" id="start" type="datetime-local"></div>
-          <div class="tf-field"><label class="tf-label" for="end">To (your time zone)</label><input class="tf-input" id="end" type="datetime-local"></div>
+          <div class="tf-field"><label class="tf-label" for="start">From (your time zone)</label><input class="tf-input" id="start" type="datetime-local" step="1"></div>
+          <div class="tf-field"><label class="tf-label" for="end">To (your time zone)</label><input class="tf-input" id="end" type="datetime-local" step="1"></div>
         </div>
         <div class="f-reset"><button class="tf-btn tf-btn--ghost tf-btn--sm" id="resetFilters" type="button">Clear filters</button></div>
       </div>
@@ -1098,6 +1114,7 @@
       renderFindings(state.findings);
       story.findings = state.findings; story.activity = d.activity?.points || [];
       renderStory();
+      renderDensity();
       if (state.events) renderEvents(state.events);
       box.replaceChildren(entityList('Addresses', d.entities?.ips || []), entityList('Accounts', d.entities?.users || []));
     } catch (err) {
@@ -1208,6 +1225,57 @@
     renderStory();
   }
   for (const b of document.querySelectorAll('[data-story-zoom]')) b.addEventListener('click', () => setStoryZoom(b.dataset.storyZoom));
+
+  /* ---------- Event density strip: drag to filter the time range ---------- */
+  const density = { drag: null };
+  const pad2 = n => String(n).padStart(2, '0');
+  function toLocalInput(ms) { const d = new Date(ms); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; }
+  function densityDomain() {
+    const s = state.summary; if (!s || !s.first_ts_utc || !s.last_ts_utc) return null;
+    const t0 = Date.parse(s.first_ts_utc), t1 = Math.max(Date.parse(s.last_ts_utc), t0 + 60e3);
+    return [t0, t1];
+  }
+  function renderDensity() {
+    const box = $('densityChart'), dom = densityDomain();
+    if (!dom || !story.activity.length || !box.clientWidth) { $('density').hidden = !dom || !story.activity.length; return; }
+    $('density').hidden = false;
+    const [t0, t1] = dom, W = box.clientWidth, H = 54, chartH = 40, bins = Math.max(30, Math.floor(W / 5)), counts = new Array(bins).fill(0), hot = new Array(bins).fill(false);
+    for (const p of story.activity) { const ms = Date.parse(p.ts_utc); if (ms >= t0 && ms <= t1) { const i = Math.min(bins - 1, Math.floor((ms - t0) / (t1 - t0) * bins)); counts[i] += p.count || 1; if (state.citedBy.get(p.event_id) === 'high') hot[i] = true; } }
+    const peak = Math.max(1, ...counts), bw = W / bins;
+    const start = $('start').value ? new Date($('start').value).getTime() : null, end = $('end').value ? new Date($('end').value).getTime() : null;
+    const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': 'Number of events over time; drag to filter the timeline to a time range' });
+    counts.forEach((c, i) => {
+      if (!c) return;
+      const a = t0 + i / bins * (t1 - t0), b = t0 + (i + 1) / bins * (t1 - t0), h = Math.max(2, Math.sqrt(c / peak) * chartH);
+      const inRange = (start !== null || end !== null) && (start === null || b >= start) && (end === null || a <= end);
+      root.append(svg('rect', { class: 'bin' + (inRange ? ' in-range' : hot[i] ? ' is-hot' : ''), x: i * bw + .5, y: chartH - h, width: Math.max(1, bw - 1), height: h, rx: 1 }));
+    });
+    const fmt = ms => new Date(ms).toISOString().slice(5, 16).replace('T', ' ');
+    root.append(svg('text', { class: 'axis', x: 0, y: H - 2 }, fmt(t0)), svg('text', { class: 'axis', x: W, y: H - 2, 'text-anchor': 'end' }, fmt(t1)));
+    if (density.drag) { const [x1, x2] = [density.drag.x0, density.drag.x1].sort((p, q) => p - q); root.append(svg('rect', { class: 'brush', x: x1, y: 0, width: Math.max(1, x2 - x1), height: chartH })); }
+    box.replaceChildren(root);
+  }
+  {
+    const box = $('densityChart');
+    const xAt = ev => Math.max(0, Math.min(box.clientWidth, ev.clientX - box.getBoundingClientRect().left));
+    box.addEventListener('pointerdown', ev => { if (!densityDomain()) return; box.setPointerCapture(ev.pointerId); density.drag = { x0: xAt(ev), x1: xAt(ev) }; renderDensity(); });
+    box.addEventListener('pointermove', ev => { if (!density.drag) return; density.drag.x1 = xAt(ev); renderDensity(); });
+    const finish = ev => {
+      if (!density.drag) return;
+      const [t0, t1] = densityDomain(), W = box.clientWidth, [x1, x2] = [density.drag.x0, xAt(ev)].sort((p, q) => p - q);
+      density.drag = null;
+      if (x2 - x1 < 4) { renderDensity(); return; } // a click, not a drag
+      $('start').value = toLocalInput(Math.floor((t0 + x1 / W * (t1 - t0)) / 1000) * 1000);
+      $('end').value = toLocalInput(Math.ceil((t0 + x2 / W * (t1 - t0)) / 1000) * 1000);
+      $('densityHint').textContent = 'Showing the selected range · Clear filters to see everything';
+      state.offset = 0; loadEvents(); renderDensity();
+    };
+    box.addEventListener('pointerup', finish);
+    box.addEventListener('pointercancel', () => { density.drag = null; renderDensity(); });
+    if ('ResizeObserver' in window) new ResizeObserver(() => renderDensity()).observe(box);
+    for (const id of ['start', 'end']) $(id).addEventListener('change', () => renderDensity());
+    $('resetFilters').addEventListener('click', () => { $('densityHint').textContent = 'Drag across the chart to narrow the time range'; renderDensity(); });
+  }
   let storyResize = null;
   if ('ResizeObserver' in window) new ResizeObserver(() => { clearTimeout(storyResize); storyResize = setTimeout(() => { if (!$('storyPanel').hidden && story.findings.length) renderStory(); }, 120); }).observe($('storyChart'));
 

@@ -11,6 +11,8 @@ import sys
 import re
 import uuid
 import shutil
+import threading
+from collections import OrderedDict
 from email import policy
 from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -20,7 +22,7 @@ from typing import Any
 
 from .evidence import Case, EvidenceError, check_source, collect, verify, verify_chain, SOURCE_TYPES
 from .bundle import build_bundle
-from .exports import export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
+from .exports import event_index, export_json, export_pdf, filter_event_dicts, load_case_export, safe_case_filename
 from .models import load_events
 from .time_analysis import build_time_analysis
 from .pipeline import apply_skew, approve_rule, build_timeline, dry_run_rule, skew_report, suggest_rule
@@ -71,6 +73,30 @@ def discover_cases(cases_root: Path | str) -> dict[str, Path]:
         if candidate.is_relative_to(root):
             found[candidate.parent.name] = candidate
     return found
+
+
+# Parsed timelines and their insights, reused until events.jsonl changes (any rebuild
+# rewrites it, so its size and modification time identify a version). Callers only read.
+_CACHE: "OrderedDict[tuple[str, str], tuple[tuple[int, int], Any]]" = OrderedDict()
+_CACHE_LOCK = threading.Lock()
+_CACHE_MAX = 24
+
+
+def _cached(path: Path, kind: str, build: Any) -> Any:
+    st = path.stat()
+    key, stamp = (str(path.resolve()), kind), (st.st_mtime_ns, st.st_size)
+    with _CACHE_LOCK:
+        hit = _CACHE.get(key)
+        if hit and hit[0] == stamp:
+            _CACHE.move_to_end(key)
+            return hit[1]
+    value = build()
+    with _CACHE_LOCK:
+        _CACHE[key] = (stamp, value)
+        _CACHE.move_to_end(key)
+        while len(_CACHE) > _CACHE_MAX:
+            _CACHE.popitem(last=False)
+    return value
 
 
 _INLINE_SCRIPT = re.compile(rb"<script>(.*?)</script>", re.S)
@@ -173,7 +199,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
         event_path = self.case.output_dir / "events.jsonl"
         if not event_path.is_file():
             raise EvidenceError(f"normalized timeline not found at {event_path}; run `incident-timeline parse {self.case.root}` first")
-        return [event.to_dict() for event in load_events(event_path)]
+        return _cached(event_path, "events", lambda: [event.to_dict() for event in load_events(event_path)])
 
     def _summary(self) -> dict[str, Any]:
         case = self.case
@@ -612,9 +638,12 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 return
             if url.path == "/api/insights":
                 events = self._events()
-                findings = detect_findings(events)
-                activity = [{"ts_utc": e.get("ts_utc"), "count": 1, "event_id": e.get("event_id"), "action": e.get("action")} for e in events]
-                self._send(200, _json_bytes({"findings": findings, "entities": summarize_entities(events), "activity": {"points": activity, "sampled": False}}))
+
+                def insights() -> bytes:
+                    activity = [{"ts_utc": e.get("ts_utc"), "count": 1, "event_id": e.get("event_id"), "action": e.get("action")} for e in events]
+                    return _json_bytes({"findings": detect_findings(events), "entities": summarize_entities(events),
+                                        "activity": {"points": activity, "sampled": False}})
+                self._send(200, _cached(self.case.output_dir / "events.jsonl", "insights", insights))
                 return
             if url.path == "/api/rules":
                 self._send(200, _json_bytes({"rules": rule_records(self.case), "can_edit": self.app_mode}))
@@ -652,7 +681,9 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                 self._send(200, _json_bytes({"gaps": gaps[offset:offset + limit], "total": len(gaps), "offset": offset, "limit": limit}))
                 return
             if url.path == "/api/events":
-                all_events = filter_event_dicts(self._events(), self._filters(params))
+                events = self._events()
+                index = _cached(self.case.output_dir / "events.jsonl", "index", lambda: event_index(events))
+                all_events = filter_event_dicts(events, self._filters(params), index)
                 requested_ids = (params.get("ids") or [""])[0]
                 if requested_ids:
                     wanted = set(requested_ids.split(","))
