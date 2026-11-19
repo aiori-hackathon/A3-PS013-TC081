@@ -482,3 +482,61 @@ def test_rule_approval_is_refused_on_a_read_only_dashboard(tmp_path: Path) -> No
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+def test_upload_collects_duplicate_content_once(tmp_path: Path) -> None:
+    """The same file chosen twice (a folder added again, a renamed copy) no longer fails the upload."""
+    root = (tmp_path / "cases").resolve()
+    copy = tmp_path / "auth-copy.log"
+    copy.write_bytes((SAMPLE_EVIDENCE / "web01" / "auth.log").read_bytes())
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        files = {"file_0": SAMPLE_EVIDENCE / "web01" / "auth.log", "file_1": copy}
+        body, content_type = _multipart({"case_name": "dupes", "type_0": "auth", "type_1": "auth"}, files)
+        request = Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")
+        with urlopen(request) as response:
+            assert response.status == 200
+            assert "dupes=1" in response.url
+            case_id = re.search(r"(CASE-[a-f0-9]{12})", response.url).group(1)
+        assert _get(base + "/api/summary?case=" + case_id)["source_count"] == 1
+    finally:
+        server.shutdown()
+
+
+def test_failed_upload_leaves_no_half_built_case(tmp_path: Path) -> None:
+    root = (tmp_path / "cases").resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        files = {"file_0": SAMPLE_EVIDENCE / "web01" / "auth.log"}
+        body, content_type = _multipart({"case_name": "bad tz", "type_0": "auth", "tz_0": "Mars/Olympus"}, files)
+        request = Request(base + "/upload", data=body, headers={"Content-Type": content_type}, method="POST")
+        try:
+            urlopen(request)
+            assert False, "expected 400"
+        except HTTPError as exc:
+            assert exc.code == 400
+            assert "unknown time zone" in json.loads(exc.read())["error"]
+        assert not list(root.glob("CASE-*"))
+    finally:
+        server.shutdown()
+
+
+def test_security_headers_and_script_hash_csp(tmp_path: Path) -> None:
+    root = tmp_path.resolve()
+    server, thread, base = _serve({"case_root": root, "cases_root": root, "app_mode": True})
+    try:
+        with urlopen(base + "/") as response:
+            csp = response.headers["Content-Security-Policy"]
+            assert "'unsafe-inline'" not in csp.split("script-src", 1)[1]
+            assert "'sha256-" in csp
+            assert response.headers["X-Frame-Options"] == "DENY"
+            assert response.headers["Referrer-Policy"] == "no-referrer"
+        request = Request(base + "/upload", data=b"x", method="POST",
+                          headers={"Origin": "https://evil.example", "Content-Type": "multipart/form-data; boundary=x"})
+        try:
+            urlopen(request)
+            assert False, "expected 403"
+        except HTTPError as exc:
+            assert exc.code == 403
+    finally:
+        server.shutdown()

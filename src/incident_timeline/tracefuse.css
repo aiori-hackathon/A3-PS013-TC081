@@ -327,3 +327,21 @@ code, kbd, samp, pre, .tf-mono { font-family: var(--tf-mono); font-size: .9em; f
 @media (forced-colors: active) {
   .tf-btn, .tf-badge, .tf-input, .tf-select, .tf-panel, .tf-kbd { border: 1px solid CanvasText; }
 }
+
+/* Time-zone picker (tzpicker.js): a listbox fixed under its input, above dialogs. */
+.tzp-list { position: fixed; z-index: 1000; margin: 0; padding: 6px; overflow-y: auto; overscroll-behavior: contain; list-style: none; border: 1px solid var(--tf-border-strong); border-radius: var(--tf-radius-lg); background: var(--tf-surface-2); box-shadow: var(--tf-shadow-float); scrollbar-width: thin; scrollbar-color: var(--tf-border-strong) transparent; }
+.tzp-list[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) { .tzp-list:not([hidden]) { animation: tzp-in 120ms var(--tf-ease); } }
+@keyframes tzp-in { from { opacity: 0; transform: translateY(-4px); } }
+.tzp-option { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 7px 10px; border-radius: var(--tf-radius); cursor: pointer; }
+.tzp-option[aria-selected="true"], .tzp-option:hover { background: var(--tf-accent-soft); box-shadow: inset 0 0 0 1px var(--tf-accent-line); }
+.tzp-label { color: var(--tf-text); font-size: var(--tf-fs-sm); font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tzp-offset { color: var(--tf-accent); font: var(--tf-fs-xs) var(--tf-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tzp-detail { grid-column: 1 / -1; color: var(--tf-text-3); font-size: var(--tf-fs-xs); }
+.tzp-empty { padding: 10px; color: var(--tf-text-3); font-size: var(--tf-fs-sm); line-height: 1.5; }
+.tzp-status { color: var(--tf-bad); font-size: var(--tf-fs-xs); }
+.tzp-status:empty { display: none; }
+.tf-input[aria-invalid="true"] { border-color: var(--tf-bad); }
+
+/* Calm, consistent scrollbars wherever a panel scrolls on its own. */
+.tf-panel, .tf-modal-body, .sheet-body { scrollbar-width: thin; scrollbar-color: var(--tf-border-strong) transparent; }

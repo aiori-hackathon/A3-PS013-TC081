@@ -134,7 +134,7 @@
     .side-tab:hover { color: var(--tf-text); background: var(--tf-surface-2); }
     .side-tab[aria-selected="true"] { color: var(--tf-text); border-color: #3a463d; background: linear-gradient(180deg, #27302a 0%, var(--tf-surface-2) 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 1px 2px rgba(0, 0, 0, .35); }
     .side-tab .count { margin-left: 6px; color: var(--tf-text-3); font: var(--tf-fs-2xs) var(--tf-mono); }
-    .side-pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+    .side-pane { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: auto; scrollbar-width: thin; scrollbar-color: var(--tf-border-strong) transparent; }
     .side-section { padding: 14px 16px 16px; border-top: 1px solid var(--tf-border); }
     .side-section:first-child { border-top: 0; }
     .side-section > h2 { font-size: var(--tf-fs-sm); font-weight: 620; }
@@ -440,6 +440,12 @@
     .event-message { margin-top: 1px; font-size: var(--tf-fs-sm); line-height: 1.45; }
     .event-meta, .event-ref { margin-top: 3px; }
     .view[hidden] { display: none !important; }
+    @media (prefers-reduced-motion: no-preference) {
+      .view:not([hidden]) { animation: view-in 180ms var(--tf-ease); }
+      @keyframes view-in { from { opacity: 0; transform: translateY(4px); } }
+      html { scroll-behavior: smooth; }
+    }
+    .tf-btn[aria-busy="true"] { opacity: .7; pointer-events: none; }
     .view > * + * { margin-top: 16px; }
     .side { top: calc(var(--appbar-h, 57px) + 72px); max-height: calc(100vh - var(--appbar-h, 57px) - 88px); }
   </style>
@@ -719,6 +725,7 @@
   <div class="sheet-body" id="sheetBody"></div>
 </dialog>
 
+<script src="/casestore.js"></script>
 <script>
 (() => {
   'use strict';
@@ -762,6 +769,16 @@
   window.addEventListener('hashchange', () => showView(viewFromHash()));
   showView(viewFromHash());
 
+  // "?dupes=N" after an upload: identical files were collected once.
+  const dupes = Number(new URLSearchParams(location.search).get('dupes') || 0);
+  if (dupes) {
+    const note = $('caseNotice');
+    note.textContent = `${dupes} duplicate file${dupes === 1 ? ' was' : 's were'} skipped: identical content was already in this upload, so it was collected once.`;
+    note.hidden = false;
+    const clean = new URL(location.href); clean.searchParams.delete('dupes');
+    history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+  }
+
   function el(tag, cls, value) {
     const node = document.createElement(tag);
     if (cls) node.className = cls;
@@ -775,18 +792,50 @@
   async function getJSON(url) {
     const u = new URL(url, location.origin);
     if (activeCase() && !u.searchParams.has('case')) u.searchParams.set('case', activeCase());
-    const r = await fetch(u, { cache: 'no-store' });
+    const r = await caseFetch(u, {});
     let d; try { d = await r.json(); } catch { throw new Error(`Unreadable response (HTTP ${r.status})`); }
-    if (!r.ok) throw new Error(d.error || `Request failed (HTTP ${r.status})`);
+    if (!r.ok) throw new Error(friendlyError(r, d));
     return d;
   }
   async function postJSON(url, body) {
     const u = new URL(url, location.origin);
     if (activeCase() && !u.searchParams.has('case')) u.searchParams.set('case', activeCase());
-    const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
+    const r = await caseFetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     let d; try { d = await r.json(); } catch { throw new Error(`Unreadable response (HTTP ${r.status})`); }
-    if (!r.ok) throw new Error(d.error || `Request failed (HTTP ${r.status})`);
+    if (!r.ok) throw new Error(friendlyError(r, d));
+    if (window.OrisectStore && activeCase()) await OrisectStore.absorb(activeCase(), r, d); // keep the browser copy current
     return d;
+  }
+  // Hosted, the case may live on another server instance; casestore.js restores it from this browser.
+  function caseFetch(u, init) {
+    return window.OrisectStore && activeCase() ? OrisectStore.caseFetch(activeCase(), u, init) : fetch(u, { ...init, cache: 'no-store' });
+  }
+  function friendlyError(r, d) {
+    if (r.status === 404 && /investigation not found/i.test(d.error || '')) {
+      return 'This investigation is no longer on the server, and this browser has no saved copy of it. Hosted investigations are kept for a few hours; upload the evidence again to rebuild it.';
+    }
+    return d.error || `Request failed (HTTP ${r.status})`;
+  }
+  // Exports download through caseFetch too, so they work on whichever instance answers.
+  for (const id of ['jsonExport', 'pdfExport']) {
+    $(id).addEventListener('click', async ev => {
+      if (!window.OrisectStore || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.button !== 0) return;
+      ev.preventDefault();
+      const link = ev.currentTarget; link.setAttribute('aria-busy', 'true');
+      try {
+        const u = new URL(link.href, location.origin);
+        if (activeCase() && !u.searchParams.has('case')) u.searchParams.set('case', activeCase());
+        const r = await caseFetch(u, {});
+        if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(friendlyError(r, d)); }
+        const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || u.pathname.split('/').pop();
+        const href = URL.createObjectURL(await r.blob());
+        const a = Object.assign(document.createElement('a'), { href, download: name });
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(href), 10000);
+      } catch (err) {
+        const note = $('caseNotice'); note.textContent = err.message; note.classList.remove('is-success'); note.classList.add('is-error'); note.hidden = false;
+      } finally { link.removeAttribute('aria-busy'); }
+    });
   }
   const plural = (n, word) => `${Number(n).toLocaleString()} ${word}${n === 1 ? '' : 's'}`;
   function apiFilters() {
@@ -863,6 +912,7 @@
   async function loadSummary() {
     const d = await getJSON('/api/summary');
     state.summary = d;
+    if (window.OrisectStore) OrisectStore.ensure(activeCase());
     const title = d.case_name || d.case_id;
     $('caseTitle').textContent = title;
     $('caseCrumb').textContent = title;

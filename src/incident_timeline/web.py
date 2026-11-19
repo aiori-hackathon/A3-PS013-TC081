@@ -30,6 +30,8 @@ from .findings import detect as detect_findings, entities as summarize_entities
 STATIC_FILES = {
     "/tracefuse.css": ("tracefuse.css", "text/css; charset=utf-8"),
     "/welcome.css": ("welcome.css", "text/css; charset=utf-8"),
+    "/tzpicker.js": ("tzpicker.js", "text/javascript; charset=utf-8"),
+    "/casestore.js": ("casestore.js", "text/javascript; charset=utf-8"),
     "/favicon.svg": ("brand/orisect-icon.svg", "image/svg+xml"),
     **{f"/brand/{name}": (f"brand/{name}", "image/svg+xml") for name in (
         "orisect-mark.svg", "orisect-mark-ink.svg", "orisect-wordmark.svg", "orisect-wordmark-ink.svg",
@@ -365,35 +367,64 @@ class TracefuseHandler(BaseHTTPRequestHandler):
                     fields.setdefault(name, []).append(value)
             if not files:
                 raise ValueError("Choose at least one supported log file.")
+            # The same content selected twice (a folder added again, a renamed copy) is
+            # collected once; the duplicates are reported instead of failing the upload.
+            unique: list[tuple[str, bytes, str]] = []
+            seen: set[str] = set()
+            skipped: list[str] = []
+            for idx, payload, filename in files:
+                if not payload:
+                    raise ValueError(f"{filename} is empty.")
+                digest = hashlib.sha256(payload).hexdigest()
+                if digest in seen:
+                    skipped.append(filename)
+                    continue
+                seen.add(digest)
+                unique.append((idx, payload, filename))
+                if ((fields.get("type_" + idx) or [""])[0].lower()) not in SOURCE_TYPES:
+                    raise ValueError(f"Choose a log format for {filename}.")
             case_id = "CASE-" + uuid.uuid4().hex[:12]
             case = Case.open(self.cases_root / case_id, create=True)
-            meta = case.load_meta()
-            meta["case_id"] = case_id
-            meta["case_name"] = ((fields.get("case_name") or ["Untitled investigation"])[0].strip()[:100] or "Untitled investigation")
-            case.save_meta(meta)
-            with tempfile.TemporaryDirectory(prefix="tracefuse-upload-") as tmp:
-                temp_root = Path(tmp)
-                for idx, payload, filename in files:
-                    if not payload:
-                        raise ValueError(f"{filename} is empty.")
-                    source_type = (fields.get("type_" + idx) or [""])[0].lower()
-                    if source_type not in SOURCE_TYPES:
-                        raise ValueError(f"Choose a log format for {filename}.")
-                    tz = (fields.get("tz_" + idx) or [""])[0].strip() or None
-                    host = (fields.get("host_" + idx) or [""])[0].strip() or None
-                    temp_file = temp_root / filename
-                    temp_file.write_bytes(payload)
-                    collect(case, temp_file, source_type, tz=tz, host=host, actor="tracefuse-web-upload", note="Uploaded through ORISECT web interface.")
-            build_timeline(case, actor="tracefuse-web-upload")
-            self.send_response(303)
-            self.send_header("Location", f"/case/{case_id}")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
+            try:
+                meta = case.load_meta()
+                meta["case_id"] = case_id
+                meta["case_name"] = ((fields.get("case_name") or ["Untitled investigation"])[0].strip()[:100] or "Untitled investigation")
+                case.save_meta(meta)
+                with tempfile.TemporaryDirectory(prefix="tracefuse-upload-") as tmp:
+                    temp_root = Path(tmp)
+                    for idx, payload, filename in unique:
+                        source_type = (fields.get("type_" + idx) or [""])[0].lower()
+                        tz = (fields.get("tz_" + idx) or [""])[0].strip() or None
+                        host = (fields.get("host_" + idx) or [""])[0].strip() or None
+                        temp_file = temp_root / filename
+                        temp_file.write_bytes(payload)
+                        collect(case, temp_file, source_type, tz=tz, host=host, actor="tracefuse-web-upload", note="Uploaded through ORISECT web interface.")
+                        temp_file.unlink()
+                build_timeline(case, actor="tracefuse-web-upload")
+            except BaseException:
+                # Never leave a half-built investigation behind.
+                shutil.rmtree(case.root, ignore_errors=True)
+                raise
+            self._upload_complete(case_id, skipped)
         except (ValueError, EvidenceError) as exc:
             self._fail(400, str(exc))
         except Exception as exc:
             print(f"ORISECT upload error: {type(exc).__name__}: {exc}", file=sys.stderr)
             self._fail(500, "Upload could not be processed. Check the local server log for details.")
+
+    def _upload_complete(self, case_id: str, skipped: list[str]) -> None:
+        """Send the browser to the new investigation (hosted deployments override this)."""
+        location = f"/case/{case_id}" + (f"?dupes={len(skipped)}" if skipped else "")
+        self.send_response(303)
+        self.send_header("Location", location)
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def _case_page(self, case_id: str) -> bytes:
+        """The dashboard HTML bound to one investigation."""
+        html_path = Path(__file__).with_name("dashboard.html")
+        case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const target=(typeof input==="string"||input instanceof URL)?input.toString():input.url;const u=new URL(target,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
+        return html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>").encode("utf-8")
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler contract
         url = urlsplit(self.path)
@@ -425,10 +456,7 @@ class TracefuseHandler(BaseHTTPRequestHandler):
 )
                 if not self.app_mode or not case_dir.is_relative_to(self.cases_root.resolve()) or not (case_dir / "case.json").is_file():
                     self._fail(404, "Investigation not found"); return
-                html_path = Path(__file__).with_name("dashboard.html")
-                case_script = '<script>window.TRACEFUSE_CASE_ID="' + case_id + '";(()=>{const f=window.fetch.bind(window);window.fetch=(input,init)=>{try{const target=(typeof input==="string"||input instanceof URL)?input.toString():input.url;const u=new URL(target,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/api/")||u.pathname.startsWith("/export/"))&&!u.searchParams.has("case"))u.searchParams.set("case",window.TRACEFUSE_CASE_ID);return f(u.toString(),init)}catch(e){return f(input,init)}}})();</script>'
-                page_html = html_path.read_text(encoding="utf-8").replace("</head>", case_script + "\n</head>")
-                self._send(200, page_html.encode("utf-8"), "text/html; charset=utf-8"); return
+                self._send(200, self._case_page(case_id), "text/html; charset=utf-8"); return
             if url.path in ("/engine-test", "/engine-test/"):
                 html_path = Path(__file__).with_name("engine_test.html")
                 if not html_path.is_file():

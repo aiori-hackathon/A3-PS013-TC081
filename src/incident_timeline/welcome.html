@@ -104,6 +104,8 @@
   </form>
 </dialog>
 
+<script src="/tzpicker.js"></script>
+<script src="/casestore.js"></script>
 <script>
 (() => {
   'use strict';
@@ -128,15 +130,25 @@
   const formatSize = bytes => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
 
-  function addFiles(files) {
+  // SHA-256 of the file content, the same identity the server uses for evidence.
+  async function contentHash(file) {
+    if (!(window.crypto && crypto.subtle)) return null;
+    try { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), b => b.toString(16).padStart(2, '0')).join(''); }
+    catch { return null; }
+  }
+  async function addFiles(files) {
     const incoming = files.filter(supported);
     const skipped = files.length - incoming.length;
     const known = new Set(selected.map(s => displayName(s.file) + ':' + s.file.size));
-    for (const file of incoming) {
-      const key = displayName(file) + ':' + file.size;
-      if (known.has(key)) continue;
-      known.add(key);
-      const item = { file, type: /access|nginx|apache/i.test(file.name) ? 'access' : 'auth', tz: 'UTC', host: '', hint: 'Checking the first lines…', touched: false };
+    const hashes = new Set(selected.map(s => s.hash).filter(Boolean));
+    const fresh = incoming.filter(file => !known.has(displayName(file) + ':' + file.size));
+    const digests = await Promise.all(fresh.map(contentHash));
+    let duplicates = incoming.length - fresh.length;
+    for (const [n, file] of fresh.entries()) {
+      const key = displayName(file) + ':' + file.size, hash = digests[n];
+      if (known.has(key) || (hash && hashes.has(hash))) { duplicates++; continue; }
+      known.add(key); if (hash) hashes.add(hash);
+      const item = { file, hash, type: /access|nginx|apache/i.test(file.name) ? 'access' : 'auth', tz: 'UTC', host: '', hint: 'Checking the first lines…', touched: false };
       selected.push(item);
       detectFormat(file).then(type => {
         item.hint = type ? DETECTED[type] : '';
@@ -145,7 +157,10 @@
         if (item.hintNode) item.hintNode.textContent = item.hint;
       });
     }
-    error.textContent = !incoming.length && files.length ? 'No supported .log, .txt or .gz files were found in that selection.' : skipped ? `Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'}.` : '';
+    const notes = [];
+    if (skipped) notes.push(`Skipped ${skipped} unsupported file${skipped === 1 ? '' : 's'}.`);
+    if (duplicates) notes.push(`${duplicates} duplicate${duplicates === 1 ? ' is' : 's are'} already in the list, so ${duplicates === 1 ? 'it was' : 'they were'} not added again.`);
+    error.textContent = !incoming.length && files.length ? 'No supported .log, .txt or .gz files were found in that selection.' : notes.join(' ');
     render();
   }
   // Read the first lines (through gzip if needed) and match them against the formats ORISECT parses.
@@ -175,6 +190,7 @@
   }
   function render() {
     settings.replaceChildren();
+    modal.querySelectorAll('.tzp-list').forEach(n => n.remove()); // dropdowns of the rows being replaced
     const total = selected.reduce((n, s) => n + s.file.size, 0);
     summary.textContent = selected.length ? `${selected.length} file${selected.length === 1 ? '' : 's'} · ${formatSize(total)} of 25 MB` : '';
     summary.classList.toggle('is-over', total > MAX_BYTES);
@@ -200,6 +216,7 @@
       const tz = el('input', 'tf-input'); tz.id = tzId; tz.placeholder = 'UTC, Asia/Kolkata, +05:30'; tz.value = item.tz; tz.autocomplete = 'off';
       tz.addEventListener('input', () => { item.tz = tz.value; });
       tzField.append(tzLabel, tz);
+      if (window.OrisectTZ) OrisectTZ.attach(tz, { onChange: v => { item.tz = v; } });
       const hostField = el('div', 'tf-field'), hostId = `host-${i}`;
       const hostLabel = el('label', 'tf-label', 'Host (optional)'); hostLabel.htmlFor = hostId;
       const host = el('input', 'tf-input'); host.id = hostId; host.placeholder = 'e.g. web01'; host.value = item.host; host.autocomplete = 'off';
@@ -254,12 +271,25 @@
     caseName.removeAttribute('aria-invalid');
     if (!selected.length) { error.textContent = 'Add at least one supported log file.'; return; }
     if (selected.reduce((n, s) => n + s.file.size, 0) > MAX_BYTES) { error.textContent = 'The combined upload must be 25 MB or less.'; return; }
+    for (const s of selected) {
+      if (!window.OrisectTZ || !s.tz.trim() || OrisectTZ.isValid(s.tz)) continue;
+      const fixed = OrisectTZ.resolve(s.tz);
+      if (fixed) { s.tz = fixed; continue; }
+      error.textContent = `The time zone for ${displayName(s.file)} ("${s.tz}") isn't recognised. Pick one from the list, or use an offset such as +05:30.`;
+      return;
+    }
     const data = new FormData();
     data.append('case_name', caseName.value.trim());
     selected.forEach((s, i) => { data.append('type_' + i, s.type); data.append('tz_' + i, s.tz); data.append('host_' + i, s.host); data.append('file_' + i, s.file, s.file.name); });
     submit.disabled = true; submit.setAttribute('aria-busy', 'true'); submit.textContent = 'Preserving evidence…';
-    fetch('/upload', { method: 'POST', body: data }).then(async r => {
+    fetch('/upload', { method: 'POST', body: data, headers: { 'X-Orisect-Archive': '1' } }).then(async r => {
       if (r.redirected) { location.href = r.url; return; }
+      const next = r.headers.get('X-Orisect-Location');
+      if (r.ok && next) {
+        // Hosted: keep the signed copy of the new case in this browser, then open it.
+        if (window.OrisectStore) await OrisectStore.absorb(r.headers.get('X-Orisect-Case'), r).catch(() => {});
+        location.href = next; return;
+      }
       const d = await r.json().catch(() => ({}));
       throw new Error(d.error || 'The upload could not be processed.');
     }).catch(err => {
