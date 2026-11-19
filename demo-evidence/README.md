@@ -196,38 +196,28 @@ Open **Exact cross-source timestamp ties**:
 
 Nothing has been saved; the preview never changes the case. Choose **Discard preview**.
 
-### 9. Correct the clock for real (command line)
+### 9. Correct the clock for real
 
-In a second terminal, use the case folder: the **Case storage** path from step 0, plus the `CASE-…` ID in the browser's address bar. Use the source ID that **Evidence sources** shows for `auth.log` as the trusted reference.
+Above the lab, **Clock skew detection** has already measured every clock. It picked `auth.log` (web01) as the trusted clock, because every other log can be measured against it; you can choose another under **Trusted clock**.
 
-Estimate first; this is a dry run:
+Expect **+187.000 s** for both access logs (*Runs 3.1 min fast*, 22 matching pairs each) and **0.000 s, In step** for the firewall (5 pairs). Open **Evidence** under any row to see the pairs behind the number: the monitoring server's simultaneous checks agree to the second.
 
-```bash
-incident-timeline skew cases/web-app/CASE-xxxxxxxxxxxx --reference S004
-```
+Enter your name under **Your name**, then choose **Correct by −187.0 s** on each access log. Each correction is re-estimated on the server, recorded in the chain of custody and followed by a rebuild of the timeline.
 
-Expect `clock +187.000s (ahead), 22 matches` for both access logs, and `+0.000s (in step), 5 matches` for the firewall. The estimate pairs events that share a client address, and the monitoring server's simultaneous checks agree to the second.
+On the command line the same steps are `incident-timeline skew <case> --reference S004` (a dry run), then `--apply`, then `incident-timeline parse <case>`.
 
-Store it, then rebuild the timeline:
-
-```bash
-incident-timeline skew cases/web-app/CASE-xxxxxxxxxxxx --reference S004 --apply
-```
-
-```bash
-incident-timeline parse cases/web-app/CASE-xxxxxxxxxxxx
-```
-
-Back in the browser, choose **Refresh**. Now:
+Now:
 - `cat ../config.php` (08:33:02) comes **before** the `deploy` login (08:34:28), and edge01's web-shell requests line up with the firewall's records of them;
 - a **13th finding** appears: **203.0.113.45 moved from web requests to SSH** (T1021.004). It was hidden because, on edge01's fast clock, every web request that day seemed to come after the SSH login;
-- **Chain of custody** lists three new `set_skew` records with the method and match counts, so the correction itself is evidence. The firewall's says its clock was in step.
+- **Chain of custody** lists two new `set_skew` records with your name, the method and the match counts, so the correction itself is evidence;
+- the **Incident storyline** on the Findings tab now runs in the right order: probing, the web shell, the stolen password, then the SSH login.
 
 ### 10. Export
 
 - **PDF report:** opens with the findings, each with the `source:line` and file SHA-256 of every line behind it, and the original text of those lines. Then the evidence sources with full hashes, and the filtered timeline.
 - **Export JSON:** events plus findings, each finding with its evidence references, for scripts or other tools.
 - With a finding selected (**Show evidence**), both exports cover only that finding's evidence.
+- **Evidence bundle:** one ZIP with the logs byte for byte, the chain of custody, the timeline, the PDF report, a manifest and `SHA256SUMS`. Anyone can check it with `sha256sum -c SHA256SUMS`, no ORISECT needed; `incident-timeline verify-bundle <zip>` also re-checks every custody record and each log against the hash recorded when it was collected.
 
 ### 11. Optional: show tamper detection
 

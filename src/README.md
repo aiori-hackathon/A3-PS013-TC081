@@ -9,12 +9,14 @@ Python 3.11+. The log-ingestion engine and local web server use the standard lib
 | `parsers/syslog.py` | auth.log / syslog: classic RFC 3164 (no year, no zone), ISO / rsyslog, RFC 5424. Picks out sshd, PAM, sudo, su, cron and account-change events. |
 | `parsers/access.py` | Apache / Nginx Common and Combined Log Format (also vhost prefixes and extra trailing fields). |
 | `timeutil.py` | Zone handling (IANA names or fixed offsets), daylight-saving ambiguity, RFC 3339 output. |
-| `skew.py` | Clock-skew estimation between two sources, automatic or from an analyst-chosen pair of lines. |
+| `skew.py` | Clock-skew estimation between two sources, automatic or from an analyst-chosen pair of lines, with the matching event pairs behind each estimate. In the web app, **Clock skew detection** (Clock & time tab) measures every clock against a trusted one and applies corrections with a custody record. |
 | `pipeline.py` | Checks hashes, parses the evidence copies, applies skew, merges and writes the outputs. |
 | `rules.py` | Parser rules for formats without a built-in parser: proposes a rule from a source's unparsed lines (key=value or column structure, timestamp shape, well-known field names), tests it, and records approvals and revocations in the custody log. |
-| `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, large outbound transfers, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs and an ATT&CK technique. |
+| `findings.py` | Deterministic, explainable rules over the timeline (brute force, login after failures, web-to-SSH pivots, web shells, large outbound transfers, credential-file access, new admin accounts, suspicious cron). Each finding cites its event IDs, an ATT&CK technique and the tactic (attack stage) it serves; the dashboard draws them as an incident storyline. |
 | `web.py` / `dashboard.html` | Local dashboard: findings, entity pivots, custody-chain viewer, search and filters, original-line lookup, and the rule assistant. Serves one case or a folder of cases (read-only), or uploaded investigations (`app`). |
 | `exports.py` | Filter-aware JSON export and paginated PDF investigation report with findings and full evidence references. |
+| `bundle.py` | Evidence bundle: one ZIP with the evidence byte for byte, custody chain, timeline, report, manifest and `SHA256SUMS`, checkable with `sha256sum -c` alone; `verify-bundle` also re-links the custody chain and matches each log to its collection hash. |
+| `tzpicker.js`, `casestore.js`, `themereveal.js` | Browser side: the time-zone autocomplete, the signed case copies that keep hosted investigations alive across serverless instances, and the light/dark switch with its water-reveal transition. |
 | `scenarios.py` | Generates and validates three deterministic synthetic incident cases. |
 | `cli.py` | Command-line interface, including `serve` and `demo`. |
 
@@ -49,6 +51,10 @@ python -m incident_timeline skew cases/c1 --set S002=-30                    # by
 
 # 4. Parse: build the timeline
 python -m incident_timeline parse cases/c1
+
+# 4b. Evidence bundle: one ZIP anyone can verify (sha256sum -c SHA256SUMS), and its full check
+python -m incident_timeline bundle cases/c1 c1-bundle.zip
+python -m incident_timeline verify-bundle c1-bundle.zip
 
 # 5. Unknown formats (optional): collect with --type other, then teach ORISECT a parser rule
 python -m incident_timeline collect cases/c1 fw.log --type other --host fw01
